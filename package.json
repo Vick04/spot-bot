@@ -1,0 +1,35 @@
+{
+  "name": "bot7",
+  "version": "0.0.1",
+  "description": "BTC/USDT multi-timeframe candle data collector and simulator",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "simulate": "ts-node src/simulate.ts",
+    "live": "ts-node src/live.ts",
+    "api": "ts-node src/api/server.ts",
+    "migrate": "prisma db push --accept-data-loss",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "axios": "^1.7.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "prisma": "^5.22.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.7.5",
+    "@types/ws": "^8.5.12",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}

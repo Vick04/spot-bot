@@ -1,0 +1,67 @@
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: bot7_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bot7user
+      POSTGRES_PASSWORD: bot7pass
+      POSTGRES_DB: bot7
+    ports:
+      - "5432:5432"
+    volumes:
+      - bot7_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bot7user -d bot7"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── DB migrations (runs once on startup, then exits) ─────────────────────
+  migrate:
+    build: .
+    container_name: bot7_migrate
+    restart: "no"
+    environment:
+      DATABASE_URL: postgresql://bot7user:bot7pass@postgres:5432/bot7
+    command: ["npm", "run", "migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Live trading bot ──────────────────────────────────────────────────────
+  live:
+    build: .
+    container_name: bot7_live
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://bot7user:bot7pass@postgres:5432/bot7
+      NODE_ENV: production
+    command: ["node", "dist/live.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    stop_signal: SIGTERM
+    stop_grace_period: 15s
+
+  # ── Dashboard API ─────────────────────────────────────────────────────────
+  api:
+    build: .
+    container_name: bot7_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://bot7user:bot7pass@postgres:5432/bot7
+      NODE_ENV: production
+      API_PORT: 3131
+    command: ["node", "dist/api/server.js"]
+    ports:
+      - "3131:3131"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  bot7_pgdata:
+    driver: local

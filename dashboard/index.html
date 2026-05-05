@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bot7 — Live Dashboard</title>
+<style>
+  /* ── Reset & base ─────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #0a0c0f;
+    --bg2:       #111318;
+    --bg3:       #1a1d24;
+    --border:    #23272f;
+    --text:      #e2e6ef;
+    --muted:     #5a6075;
+    --green:     #00c98d;
+    --red:       #ff4b6e;
+    --yellow:    #f5c842;
+    --blue:      #3b8bff;
+    --accent:    #00c98d;
+    --font-mono: "JetBrains Mono", "Fira Mono", "Consolas", monospace;
+    --font-ui:   "DM Sans", "Segoe UI", sans-serif;
+  }
+
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── Layout ───────────────────────────────────── */
+  .shell {
+    display: grid;
+    grid-template-rows: 52px 1fr;
+    min-height: 100vh;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+
+  .logo {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    color: var(--accent);
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+  }
+  .pill .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .pill.running .dot {
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  .pill.offline .dot { background: var(--red); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: .4; }
+  }
+
+  .refresh-info {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  main {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+  }
+
+  /* ── Stat cards ───────────────────────────────── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .card-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+  }
+  .card-value {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .card-value.green { color: var(--green); }
+  .card-value.red   { color: var(--red);   }
+  .card-value.yellow { color: var(--yellow); }
+  .card-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
+  /* ── Open position banner ─────────────────────── */
+  .position-banner {
+    display: none;
+    background: linear-gradient(135deg, #0e2a1e 0%, #0d1f2d 100%);
+    border: 1px solid #1a4a32;
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .position-banner.visible { display: block; }
+  .position-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--green);
+    margin-bottom: 12px;
+  }
+  .position-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .pos-item { display: flex; flex-direction: column; gap: 2px; }
+  .pos-item .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .pos-item .val { font-family: var(--font-mono); font-size: 14px; font-weight: 500; }
+  .pos-item .val.live-pnl { }
+
+  /* ── Section headers ──────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+  }
+
+  /* ── Trade table ──────────────────────────────── */
+  .table-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .12s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg3); }
+
+  td {
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  td.green { color: var(--green); }
+  td.red   { color: var(--red);   }
+  td.muted { color: var(--muted); }
+  td.num   { text-align: right; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+  }
+  .badge.win  { background: #0d2a1e; color: var(--green); border: 1px solid #1a4a32; }
+  .badge.loss { background: #2a0d14; color: var(--red);   border: 1px solid #4a1a22; }
+
+  /* ── Sparkline (equity curve) ─────────────────── */
+  .chart-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  canvas { display: block; width: 100%; }
+
+  /* ── Empty state ──────────────────────────────── */
+  .empty {
+    text-align: center;
+    padding: 40px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  /* ── Pagination ───────────────────────────────── */
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    justify-content: flex-end;
+  }
+  .btn {
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--accent); background: var(--bg2); }
+  .btn:disabled { opacity: .35; cursor: default; }
+  .page-info { font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Header -->
+  <header>
+    <div class="logo">BOT7 // LIVE</div>
+    <div class="header-right">
+      <span class="refresh-info" id="last-update">—</span>
+      <div class="pill offline" id="status-pill">
+        <span class="dot"></span>
+        <span id="status-label">Offline</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Stat cards -->
+    <div class="cards" id="cards">
+      <div class="card">
+        <div class="card-label">Balance</div>
+        <div class="card-value" id="c-balance">—</div>
+        <div class="card-sub" id="c-balance-sub">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Total P&amp;L</div>
+        <div class="card-value" id="c-pnl">—</div>
+        <div class="card-sub" id="c-pnl-sub">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Trades</div>
+        <div class="card-value" id="c-trades">—</div>
+        <div class="card-sub" id="c-trades-sub">Win rate —</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Fees Paid</div>
+        <div class="card-value yellow" id="c-fees">—</div>
+        <div class="card-sub" id="c-fees-sub">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Session</div>
+        <div class="card-value" id="c-session" style="font-size:14px">—</div>
+        <div class="card-sub" id="c-session-sub">—</div>
+      </div>
+    </div>
+
+    <!-- Open position -->
+    <div class="position-banner" id="position-banner">
+      <div class="position-title">▶ Open Position</div>
+      <div class="position-grid">
+        <div class="pos-item">
+          <span class="lbl">Buy Price</span>
+          <span class="val" id="pos-buy-price">—</span>
+        </div>
+        <div class="pos-item">
+          <span class="lbl">Size (USDT)</span>
+          <span class="val" id="pos-usdt">—</span>
+        </div>
+        <div class="pos-item">
+          <span class="lbl">BTC Held</span>
+          <span class="val" id="pos-btc">—</span>
+        </div>
+        <div class="pos-item">
+          <span class="lbl">Opened</span>
+          <span class="val" id="pos-time">—</span>
+        </div>
+        <div class="pos-item">
+          <span class="lbl">Target</span>
+          <span class="val green" id="pos-target">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Equity curve -->
+    <div class="chart-wrap">
+      <div class="section-header">
+        <span class="section-title">Equity Curve</span>
+      </div>
+      <canvas id="equity-chart" height="110"></canvas>
+    </div>
+
+    <!-- Trade history -->
+    <div>
+      <div class="section-header">
+        <span class="section-title">Trade History</span>
+        <span class="page-info" id="page-info">—</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Buy Time</th>
+              <th>Buy Price</th>
+              <th>Sell Time</th>
+              <th>Sell Price</th>
+              <th style="text-align:right">P&amp;L USDT</th>
+              <th style="text-align:right">P&amp;L %</th>
+              <th style="text-align:right">Balance After</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="trades-body">
+            <tr><td colspan="9" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <button class="btn" id="btn-prev" disabled>← Prev</button>
+        <button class="btn" id="btn-next" disabled>Next →</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────────
+const API       = "";          // same origin
+const POLL_MS   = 5_000;       // status refresh
+const TRADES_MS = 15_000;      // trades refresh
+
+// ── State ────────────────────────────────────────────────────────────────
+let currentPage  = 1;
+const PAGE_LIMIT = 20;
+let equityPoints = [];   // { x: index, y: balance }
+
+// ── Helpers ──────────────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+
+function fmt$(n)  { return n == null ? "—" : "$" + Number(n).toLocaleString("en-US", {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function fmtPct(n){ return n == null ? "—" : (n >= 0 ? "+" : "") + Number(n).toFixed(3) + "%"; }
+function fmtDate(d){
+  if (!d) return "—";
+  const dt = new Date(d);
+  // Display in GMT-3
+  const gmt3 = new Date(dt.getTime() - 3*3600*1000);
+  return gmt3.toISOString().replace("T"," ").slice(0,16);
+}
+function fmtDuration(start, end) {
+  const ms = (end ? new Date(end) : new Date()) - new Date(start);
+  const h  = Math.floor(ms / 3600000);
+  const m  = Math.floor((ms % 3600000) / 60000);
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+// ── Status polling ───────────────────────────────────────────────────────
+async function fetchStatus() {
+  try {
+    const r = await fetch(`${API}/api/status`);
+    const d = await r.json();
+
+    const pill  = $("status-pill");
+    const label = $("status-label");
+
+    if (!d.running && !d.session) {
+      pill.className = "pill offline";
+      label.textContent = "No session";
+      return;
+    }
+
+    pill.className  = d.running ? "pill running" : "pill offline";
+    label.textContent = d.running ? "Live" : "Stopped";
+
+    const s   = d.session;
+    const st  = d.stats;
+    const bal = s.currentBalance;
+    const pnl = st.totalPnl;
+    const pct = s.initialBalance > 0 ? (pnl / s.initialBalance * 100) : 0;
+
+    // Balance card
+    $("c-balance").textContent = fmt$(bal);
+    $("c-balance").className   = "card-value";
+    $("c-balance-sub").textContent = `Initial: ${fmt$(s.initialBalance)}`;
+
+    // P&L card
+    $("c-pnl").textContent   = fmt$(pnl);
+    $("c-pnl").className     = "card-value " + (pnl >= 0 ? "green" : "red");
+    $("c-pnl-sub").textContent = fmtPct(pct) + " overall";
+
+    // Trades card
+    $("c-trades").textContent     = st.totalTrades;
+    $("c-trades-sub").textContent = `Win rate ${st.winRate.toFixed(1)}%`;
+
+    // Fees card
+    $("c-fees").textContent    = fmt$(st.totalFees);
+    $("c-fees-sub").textContent = `@ ${(s.feeRate * 100).toFixed(3)}%`;
+
+    // Session card
+    $("c-session").textContent    = `#${s.id}`;
+    $("c-session-sub").textContent = fmtDuration(s.startedAt, s.endedAt);
+
+    // Open position banner
+    const banner = $("position-banner");
+    if (d.openPosition) {
+      banner.classList.add("visible");
+      const op = d.openPosition;
+      $("pos-buy-price").textContent = fmt$(op.buyPrice);
+      $("pos-usdt").textContent      = fmt$(op.usdtSpent);
+      $("pos-btc").textContent       = Number(op.btcNet).toFixed(8) + " BTC";
+      $("pos-time").textContent      = fmtDate(op.buyTime);
+      $("pos-target").textContent    = fmt$(op.buyPrice * 1.1);
+    } else {
+      banner.classList.remove("visible");
+    }
+
+    $("last-update").textContent = "Updated " + new Date().toLocaleTimeString();
+
+  } catch(e) {
+    $("status-pill").className = "pill offline";
+    $("status-label").textContent = "Error";
+  }
+}
+
+// ── Trades polling ───────────────────────────────────────────────────────
+async function fetchTrades(page = 1) {
+  const body = $("trades-body");
+  try {
+    const r = await fetch(`${API}/api/trades?page=${page}&limit=${PAGE_LIMIT}`);
+    const trades = await r.json();
+
+    if (!Array.isArray(trades) || trades.length === 0) {
+      body.innerHTML = `<tr><td colspan="9" class="empty">No closed trades yet.</td></tr>`;
+      $("btn-prev").disabled = true;
+      $("btn-next").disabled = true;
+      $("page-info").textContent = "";
+      return;
+    }
+
+    // Build equity curve data from trade list (most recent first)
+    // Reverse to get chronological order for chart
+    const chrono = [...trades].reverse();
+    equityPoints = chrono.map((t, i) => ({ x: i, y: t.balanceAfter ?? 0 }));
+    drawEquity();
+
+    body.innerHTML = trades.map(t => {
+      const win    = (t.pnlUsdt ?? 0) >= 0;
+      const pnlCls = win ? "green" : "red";
+      return `
+        <tr>
+          <td class="muted">${t.id}</td>
+          <td class="muted">${fmtDate(t.buyTime)}</td>
+          <td>${fmt$(t.buyPrice)}</td>
+          <td class="muted">${fmtDate(t.sellTime)}</td>
+          <td>${fmt$(t.sellPrice)}</td>
+          <td class="num ${pnlCls}">${fmt$(t.pnlUsdt)}</td>
+          <td class="num ${pnlCls}">${fmtPct(t.pnlPct)}</td>
+          <td class="num">${fmt$(t.balanceAfter)}</td>
+          <td><span class="badge ${win ? 'win':'loss'}">${win ? 'WIN':'LOSS'}</span></td>
+        </tr>`;
+    }).join("");
+
+    $("btn-prev").disabled = page <= 1;
+    $("btn-next").disabled = trades.length < PAGE_LIMIT;
+    $("page-info").textContent = `Page ${page}`;
+
+  } catch(e) {
+    body.innerHTML = `<tr><td colspan="9" class="empty">Failed to load trades.</td></tr>`;
+  }
+}
+
+// ── Equity chart ─────────────────────────────────────────────────────────
+function drawEquity() {
+  const canvas = $("equity-chart");
+  if (!canvas) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const W   = canvas.parentElement.clientWidth - 40;
+  const H   = 110;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + "px";
+  canvas.style.height = H + "px";
+
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  if (equityPoints.length < 2) {
+    ctx.fillStyle = "#5a6075";
+    ctx.font = "12px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("Not enough data yet", W/2, H/2);
+    return;
+  }
+
+  const vals    = equityPoints.map(p => p.y);
+  const minV    = Math.min(...vals);
+  const maxV    = Math.max(...vals);
+  const range   = maxV - minV || 1;
+  const pad     = { t: 12, b: 20, l: 8, r: 8 };
+  const w       = W - pad.l - pad.r;
+  const h       = H - pad.t - pad.b;
+
+  const xOf = (i) => pad.l + (i / (equityPoints.length - 1)) * w;
+  const yOf = (v) => pad.t + h - ((v - minV) / range) * h;
+
+  // Grid lines
+  ctx.strokeStyle = "#23272f";
+  ctx.lineWidth   = 1;
+  [0, .5, 1].forEach(f => {
+    const y = pad.t + h * (1 - f);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + w, y); ctx.stroke();
+  });
+
+  // Fill gradient
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + h);
+  const isPositive = vals[vals.length-1] >= vals[0];
+  const mainColor  = isPositive ? "#00c98d" : "#ff4b6e";
+  grad.addColorStop(0,   isPositive ? "rgba(0,201,141,.25)" : "rgba(255,75,110,.25)");
+  grad.addColorStop(1,   "rgba(0,0,0,0)");
+
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), yOf(equityPoints[0].y));
+  equityPoints.forEach((p, i) => { if (i > 0) ctx.lineTo(xOf(i), yOf(p.y)); });
+  ctx.lineTo(xOf(equityPoints.length - 1), pad.t + h);
+  ctx.lineTo(xOf(0), pad.t + h);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.strokeStyle = mainColor;
+  ctx.lineWidth   = 2;
+  ctx.lineJoin    = "round";
+  ctx.moveTo(xOf(0), yOf(equityPoints[0].y));
+  equityPoints.forEach((p, i) => { if (i > 0) ctx.lineTo(xOf(i), yOf(p.y)); });
+  ctx.stroke();
+
+  // Last value dot
+  const lx = xOf(equityPoints.length - 1);
+  const ly = yOf(equityPoints[equityPoints.length - 1].y);
+  ctx.beginPath();
+  ctx.arc(lx, ly, 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = mainColor;
+  ctx.fill();
+
+  // Y-axis labels
+  ctx.fillStyle = "#5a6075";
+  ctx.font      = "10px monospace";
+  ctx.textAlign = "right";
+  ctx.fillText("$" + maxV.toLocaleString("en-US", {maximumFractionDigits:0}), pad.l + w, pad.t + 10);
+  ctx.fillText("$" + minV.toLocaleString("en-US", {maximumFractionDigits:0}), pad.l + w, pad.t + h);
+}
+
+// ── Pagination ────────────────────────────────────────────────────────────
+$("btn-prev").addEventListener("click", () => {
+  if (currentPage > 1) { currentPage--; fetchTrades(currentPage); }
+});
+$("btn-next").addEventListener("click", () => {
+  currentPage++;
+  fetchTrades(currentPage);
+});
+
+// ── Boot ─────────────────────────────────────────────────────────────────
+fetchStatus();
+fetchTrades(currentPage);
+setInterval(fetchStatus, POLL_MS);
+setInterval(() => fetchTrades(currentPage), TRADES_MS);
+window.addEventListener("resize", drawEquity);
+</script>
+</body>
+</html>

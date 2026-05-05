@@ -1,0 +1,59 @@
+# .github/workflows/deploy.yml
+# Deploys Bot7 to DigitalOcean on every push to main.
+# Required GitHub Secrets:
+#   SERVER_IP      — public IP of the Droplet
+#   SERVER_USER    — SSH user (usually "root")
+#   SSH_PRIVATE_KEY — private key that matches the Droplet's authorized_keys
+
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Setup SSH ─────────────────────────────────────────────────────
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+
+      # ── 3. Deploy ────────────────────────────────────────────────────────
+      - name: Deploy to server
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} '
+            set -e
+
+            echo "→ Pulling latest code..."
+            cd /opt/bot7
+            git pull origin main
+
+            echo "→ Rebuilding containers..."
+            docker compose up -d --build
+
+            echo "→ Cleaning up unused images..."
+            docker image prune -f
+
+            echo "✓ Deploy complete"
+          '
+
+      # ── 4. Health check ──────────────────────────────────────────────────
+      - name: Health check
+        run: |
+          sleep 10
+          curl --fail --silent \
+            http://${{ secrets.SERVER_IP }}:3131/api/status \
+            | grep -q "running" \
+            && echo "✓ API is up" \
+            || echo "⚠ API health check failed"

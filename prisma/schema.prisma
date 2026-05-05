@@ -1,0 +1,121 @@
+// prisma/schema.prisma
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Candle tables ──────────────────────────────────────────────────────────
+
+model Candle1s {
+  openTime    BigInt  @id
+  open        Float
+  high        Float
+  low         Float
+  close       Float
+  volume      Float
+  ma20        Float?
+  ma99        Float?
+  bbUpper     Float?
+  bbLower     Float?
+  trix        Float?
+  superTrend  Float?
+  stDirection Int?
+  @@map("candle_1s")
+}
+
+model Candle1m {
+  openTime    BigInt  @id
+  open        Float
+  high        Float
+  low         Float
+  close       Float
+  volume      Float
+  ma20        Float?
+  ma99        Float?
+  bbUpper     Float?
+  bbLower     Float?
+  trix        Float?
+  superTrend  Float?
+  stDirection Int?
+  @@map("candle_1m")
+}
+
+model Candle15m {
+  openTime    BigInt  @id
+  open        Float
+  high        Float
+  low         Float
+  close       Float
+  volume      Float
+  ma20        Float?
+  ma99        Float?
+  bbUpper     Float?
+  bbLower     Float?
+  trix        Float?
+  superTrend  Float?
+  stDirection Int?
+  @@map("candle_15m")
+}
+
+model Candle1h {
+  openTime    BigInt  @id
+  open        Float
+  high        Float
+  low         Float
+  close       Float
+  volume      Float
+  ma20        Float?
+  ma99        Float?
+  bbUpper     Float?
+  bbLower     Float?
+  trix        Float?
+  superTrend  Float?
+  stDirection Int?
+  @@map("candle_1h")
+}
+
+// ── Live trading session ───────────────────────────────────────────────────
+
+model LiveSession {
+  id             Int       @id @default(autoincrement())
+  startedAt      DateTime  @default(now())
+  endedAt        DateTime?
+  initialBalance Float
+  finalBalance   Float?
+  feeRate        Float
+  trades         LiveTrade[]
+  @@map("live_session")
+}
+
+// ── Live trade log ─────────────────────────────────────────────────────────
+
+model LiveTrade {
+  id          Int      @id @default(autoincrement())
+  sessionId   Int
+  session     LiveSession @relation(fields: [sessionId], references: [id])
+
+  buyTime     DateTime
+  buyPrice    Float
+  usdtSpent   Float
+  btcGross    Float
+  feeBtc      Float
+  btcNet      Float
+
+  sellTime    DateTime?
+  sellPrice   Float?
+  usdtGross   Float?
+  feeUsdt     Float?
+  usdtNet     Float?
+
+  pnlUsdt     Float?
+  pnlPct      Float?
+  balanceAfter Float?
+
+  @@map("live_trade")
+}
