@@ -12,7 +12,7 @@
 
 set -e  # exit on any error
 
-REPO_URL="https://github.com/TU_USUARIO/TU_REPO.git"  # ← edit this
+REPO_URL="https://github.com/Vick04/spot-bot.git"  # ← edit this
 APP_DIR="/opt/bot7"
 DB_URL="postgresql://bot7user:bot7pass@postgres:5432/bot7"
 API_PORT="3131"
