@@ -1,48 +1,83 @@
 // ─────────────────────────────────────────────
 // src/live/liveExecutor.ts
-// Executes buy/sell orders and persists them to
-// the live_trade table. Manages the live wallet
-// in memory and reflects balance in live_session.
 // ─────────────────────────────────────────────
 
-import { prisma }                        from "../db/prismaClient";
-import { LiveWallet, OpenPosition }      from "./types";
+import { prisma }                         from "../db/prismaClient";
+import { LiveWallet, OpenPosition }       from "./types";
 import { INITIAL_BALANCE_USDT, FEE_RATE } from "../config/constants";
 
 // ── Session bootstrap ─────────────────────────────────────────────────────
 
 /**
- * Create a new live session in the DB.
- * The balance is taken from the last session's finalBalance (compound interest)
- * or INITIAL_BALANCE_USDT if this is the first run.
+ * Start a new session carrying forward the balance from the last completed one.
+ * Also checks if there is an unfinished open position from a previous session
+ * and recovers it so the engine can continue managing it.
+ *
+ * Returns:
+ *   sessionId    — new session ID
+ *   wallet       — wallet state (inTrade=true if a position was recovered)
+ *   openPosition — recovered position, or null if none
  */
 export async function startSession(feeRate: number = FEE_RATE): Promise<{
-  sessionId: number;
-  wallet:    LiveWallet;
+  sessionId:    number;
+  wallet:       LiveWallet;
+  openPosition: OpenPosition | null;
 }> {
-  // Find the most recent completed session to carry forward the balance
-  const last = await prisma.liveSession.findFirst({
-    where:   { finalBalance: { not: null } },
+  // ── Recover open position from any previous session ───────────────────
+  const orphan = await prisma.liveTrade.findFirst({
+    where:   { sellTime: null },
     orderBy: { id: "desc" },
   });
 
-  const startingBalance = last?.finalBalance ?? INITIAL_BALANCE_USDT;
+  // ── Determine starting balance ────────────────────────────────────────
+  // If there's an orphan position, USDT balance is 0 (funds are in BTC).
+  // Otherwise, take the last session's finalBalance or the initial amount.
+  let startingBalance: number;
+
+  if (orphan) {
+    // Balance is locked in BTC — start with 0 USDT
+    startingBalance = 0;
+    console.log(
+      `[Session] Recovering open position #${orphan.id}` +
+      ` — buy @ $${orphan.buyPrice.toFixed(2)}, ${orphan.btcNet.toFixed(8)} BTC`
+    );
+  } else {
+    const last = await prisma.liveSession.findFirst({
+      where:   { finalBalance: { not: null } },
+      orderBy: { id: "desc" },
+    });
+    startingBalance = last?.finalBalance ?? INITIAL_BALANCE_USDT;
+  }
 
   const session = await prisma.liveSession.create({
-    data: {
-      initialBalance: startingBalance,
-      feeRate,
-    },
+    data: { initialBalance: startingBalance, feeRate },
   });
 
   const wallet: LiveWallet = {
-    usdt:    startingBalance,
-    btc:     0,
-    inTrade: false,
+    usdt:    orphan ? 0 : startingBalance,
+    btc:     orphan ? orphan.btcNet : 0,
+    inTrade: orphan !== null,
   };
 
-  console.log(`[Session] #${session.id} started — balance: $${startingBalance.toFixed(2)}`);
-  return { sessionId: session.id, wallet };
+  const recoveredPosition: OpenPosition | null = orphan
+    ? {
+        liveTradeId: orphan.id,
+        buyTime:     orphan.buyTime.getTime(),
+        buyPrice:    orphan.buyPrice,
+        usdtSpent:   orphan.usdtSpent,
+        btcNet:      orphan.btcNet,
+        feeRate:     orphan.feeBtc / (orphan.btcGross || 1), // recover fee rate
+      }
+    : null;
+
+  console.log(
+    `[Session] #${session.id} started` +
+    (orphan
+      ? ` — resuming open position from trade #${orphan.id}`
+      : ` — balance: $${startingBalance.toFixed(2)}`)
+  );
+
+  return { sessionId: session.id, wallet, openPosition: recoveredPosition };
 }
 
 /**
@@ -61,10 +96,6 @@ export async function endSession(
 
 // ── Order execution ───────────────────────────────────────────────────────
 
-/**
- * Execute a BUY: all-in USDT → BTC, fee in BTC.
- * Persists an open LiveTrade row and returns the OpenPosition.
- */
 export async function liveExecuteBuy(
   sessionId: number,
   wallet:    LiveWallet,
@@ -79,15 +110,7 @@ export async function liveExecuteBuy(
   const buyTime   = new Date(timeMs);
 
   const row = await prisma.liveTrade.create({
-    data: {
-      sessionId,
-      buyTime,
-      buyPrice:  price,
-      usdtSpent,
-      btcGross,
-      feeBtc,
-      btcNet,
-    },
+    data: { sessionId, buyTime, buyPrice: price, usdtSpent, btcGross, feeBtc, btcNet },
   });
 
   wallet.usdt    = 0;
@@ -103,10 +126,6 @@ export async function liveExecuteBuy(
   return { liveTradeId: row.id, buyTime: timeMs, buyPrice: price, usdtSpent, btcNet, feeRate };
 }
 
-/**
- * Execute a SELL: all-in BTC → USDT, fee in USDT.
- * Updates the open LiveTrade row with sell data and P&L.
- */
 export async function liveExecuteSell(
   wallet:   LiveWallet,
   position: OpenPosition,
@@ -124,16 +143,7 @@ export async function liveExecuteSell(
 
   await prisma.liveTrade.update({
     where: { id: position.liveTradeId },
-    data:  {
-      sellTime,
-      sellPrice:   price,
-      usdtGross,
-      feeUsdt,
-      usdtNet,
-      pnlUsdt,
-      pnlPct,
-      balanceAfter: usdtNet,
-    },
+    data:  { sellTime, sellPrice: price, usdtGross, feeUsdt, usdtNet, pnlUsdt, pnlPct, balanceAfter: usdtNet },
   });
 
   wallet.btc     = 0;
@@ -144,7 +154,7 @@ export async function liveExecuteSell(
   console.log(
     `[SELL] ${sellTime.toISOString()}  @ $${price.toFixed(2)}` +
     `  | received $${usdtNet.toFixed(2)}` +
-    `  | P&L: ${sign}$${pnlUsdt.toFixed(2)} (${sign}${pnlPct.toFixed(3)}%)`+
+    `  | P&L: ${sign}$${pnlUsdt.toFixed(2)} (${sign}${pnlPct.toFixed(3)}%)` +
     `  | balance: $${usdtNet.toFixed(2)}`
   );
 }

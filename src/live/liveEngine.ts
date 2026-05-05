@@ -70,11 +70,20 @@ export async function runLiveEngine(): Promise<void> {
   const buf1h  = new CandleBuffer("1h");
   const ctx    = new LiveContext();
 
+  // Seed buffers first so indicators are ready before checking position
   await reseedAll(buf1m, buf15m, buf1h, ctx);
 
-  const { sessionId, wallet } = await startSession(FEE_RATE);
-  let position: OpenPosition | null = null;
+  // Start session — recovers any open position from a previous session
+  const { sessionId, wallet, openPosition } = await startSession(FEE_RATE);
+  let position: OpenPosition | null = openPosition;
   let reseeding                     = false;
+
+  if (position) {
+    console.log(
+      `[Engine] Resuming position: buy @ $${position.buyPrice.toFixed(2)}` +
+      `, ${position.btcNet.toFixed(8)} BTC`
+    );
+  }
 
   const ws = new BinanceWsClient(SYMBOL, LIVE_TIMEFRAMES);
 
