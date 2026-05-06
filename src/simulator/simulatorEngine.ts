@@ -49,10 +49,6 @@ export function runSimulation(
         const sell = executeSell(wallet, candle1m.close, ts, i, feeRate);
         trades.push(buildTrade(pendingBuy, sell));
         pendingBuy = null;
-
-        if (checkBuyCondition(ctx, wallet.usdt, wallet.inTrade)) {
-          pendingBuy = executeBuy(wallet, candle1m.close, ts, i, feeRate);
-        }
         continue;
       }
     }
