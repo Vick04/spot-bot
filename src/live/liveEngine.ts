@@ -2,10 +2,8 @@
 // src/live/liveEngine.ts
 // ─────────────────────────────────────────────
 
-import { CandleBuffer, BUFFER_SIZE }    from "./candleBuffer";
 import { LiveContext }                  from "./liveContext";
 import { BinanceWsClient, CandleEvent } from "./wsClient";
-import { computeLatestIndicators }      from "./indicatorEngine";
 import { liveCheckBuy, liveCheckSell }  from "./liveConditions";
 import {
   startSession,
@@ -13,70 +11,81 @@ import {
   liveExecuteBuy,
   liveExecuteSell,
 } from "./liveExecutor";
-import { LiveCandle, OpenPosition }     from "./types";
+import { LiveProcessedCandle, OpenPosition } from "./types";
+import { prisma }                       from "../db/prismaClient";
 import { fetchAllKlines }               from "../fetch/binanceFetcher";
+import { processCandles }               from "../processors/candleProcessor";
 import { SYMBOL, FEE_RATE, Timeframe }  from "../config/constants";
 
-const LIVE_TIMEFRAMES: Timeframe[] = ["1m", "15m", "1h"];
+const LIVE_TIMEFRAMES: Timeframe[] = ["1h"];
+const HOUR_MS = 3600_000;
 
-const CANDLE_DURATION_MS: Record<Timeframe, number> = {
-  "1s":  1_000,
-  "1m":  60_000,
-  "15m": 15 * 60_000,
-  "1h":  60 * 60_000,
-};
+// ── Candle resolution ─────────────────────────────────────────────────────
 
-// ── Buffer seeding ────────────────────────────────────────────────────────
+async function resolve1hCandle(openTimeMs: number): Promise<LiveProcessedCandle | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const row = await (prisma.candle1h as any).findUnique({
+    where: { openTime: BigInt(openTimeMs) },
+  });
 
-async function seedBuffer(buffer: CandleBuffer, tf: Timeframe): Promise<void> {
-  const now       = Date.now();
-  const fetchFrom = now - CANDLE_DURATION_MS[tf] * (BUFFER_SIZE + 2);
+  if (row) {
+    return {
+      openTime:    Number(row.openTime),
+      open:        row.open,
+      high:        row.high,
+      low:         row.low,
+      close:       row.close,
+      volume:      row.volume,
+      ma20:        row.ma20,
+      ma99:        row.ma99,
+      bbUpper:     row.bbUpper,
+      bbLower:     row.bbLower,
+      trix:        row.trix,
+      superTrend:  row.superTrend,
+      stDirection: row.stDirection,
+    };
+  }
 
-  console.log(`[${tf}] Seeding buffer...`);
-  const raw = await fetchAllKlines(SYMBOL, tf, fetchFrom, now);
+  // Not in DB — fetch, compute, write
+  console.log(`[Engine] Fetching candle ${new Date(openTimeMs - 3*HOUR_MS).toISOString().slice(0,16)} GMT-3 from Binance...`);
 
-  const candles: LiveCandle[] = raw
-    .filter((k) => k.openTime < now - CANDLE_DURATION_MS[tf])
-    .map((k) => ({
-      openTime: k.openTime, open: k.open, high: k.high,
-      low: k.low, close: k.close, volume: k.volume, isClosed: true,
-    }));
+  const fetchFrom = openTimeMs - 200 * HOUR_MS;
+  const raw       = await fetchAllKlines(SYMBOL, "1h", fetchFrom, openTimeMs + HOUR_MS);
+  if (raw.length === 0) return null;
 
-  buffer.seed(candles);
-  console.log(`[${tf}] Buffer ready — ${buffer.size} candles`);
-}
+  const processed = processCandles(raw);
 
-async function reseedAll(
-  buf1m: CandleBuffer, buf15m: CandleBuffer,
-  buf1h: CandleBuffer, ctx: LiveContext
-): Promise<void> {
-  await Promise.all([
-    seedBuffer(buf1m, "1m"), seedBuffer(buf15m, "15m"), seedBuffer(buf1h, "1h"),
-  ]);
-  const c1m  = computeLatestIndicators(buf1m.getAll());
-  const c15m = computeLatestIndicators(buf15m.getAll());
-  const c1h  = computeLatestIndicators(buf1h.getAll());
-  if (c1m)  ctx.set1m(c1m);
-  if (c15m) ctx.set15m(c15m);
-  if (c1h)  ctx.set1h(c1h);
-  console.log("[Engine] Buffers re-seeded — resuming");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (prisma.candle1h as any).createMany({ data: processed, skipDuplicates: true });
+  console.log(`[Engine] Wrote ${processed.length} candles to DB`);
+
+  const target = processed.find(c => c.openTime === openTimeMs);
+  if (!target) return null;
+
+  return {
+    openTime:    target.openTime,
+    open:        target.open,
+    high:        target.high,
+    low:         target.low,
+    close:       target.close,
+    volume:      target.volume,
+    ma20:        target.ma20,
+    ma99:        target.ma99,
+    bbUpper:     target.bbUpper,
+    bbLower:     target.bbLower,
+    trix:        target.trix,
+    superTrend:  target.superTrend,
+    stDirection: target.stDirection,
+  };
 }
 
 // ── Main engine ───────────────────────────────────────────────────────────
 
 export async function runLiveEngine(): Promise<void> {
-  const buf1m  = new CandleBuffer("1m");
-  const buf15m = new CandleBuffer("15m");
-  const buf1h  = new CandleBuffer("1h");
-  const ctx    = new LiveContext();
+  const ctx = new LiveContext();
 
-  // Seed buffers first so indicators are ready before checking position
-  await reseedAll(buf1m, buf15m, buf1h, ctx);
-
-  // Start session — recovers any open position from a previous session
   const { sessionId, wallet, openPosition } = await startSession(FEE_RATE);
   let position: OpenPosition | null = openPosition;
-  let reseeding                     = false;
 
   if (position) {
     console.log(
@@ -85,58 +94,67 @@ export async function runLiveEngine(): Promise<void> {
     );
   }
 
+  // Holds the closed candle pending execution at the next candle's open
+  let pendingSignal: { action: "BUY" | "SELL"; candle: LiveProcessedCandle } | null = null;
+
   const ws = new BinanceWsClient(SYMBOL, LIVE_TIMEFRAMES);
 
-  ws.on("reconnected", async () => {
-    reseeding = true;
-    console.log("[Engine] Re-seeding buffers after reconnect...");
-    try { await reseedAll(buf1m, buf15m, buf1h, ctx); }
-    catch (err) { console.error("[Engine] Re-seed failed:", err); }
-    finally { reseeding = false; }
+  ws.on("reconnected", () => {
+    console.log("[Engine] Reconnected — resuming");
   });
 
   ws.on("candle", async (event: CandleEvent) => {
-    if (reseeding) return;
-
     const { timeframe, candle } = event;
+    if (timeframe !== "1h") return;
 
-    if      (timeframe === "1m")  buf1m.push(candle);
-    else if (timeframe === "15m") buf15m.push(candle);
-    else if (timeframe === "1h")  buf1h.push(candle);
+    const openTimeMs = candle.openTime;
 
-    const bufMap: Record<string, CandleBuffer> = {
-      "1m": buf1m, "15m": buf15m, "1h": buf1h,
-    };
-    const enriched = computeLatestIndicators(bufMap[timeframe].getAll());
-    if (!enriched) return;
+    // ── Step 1: Execute pending signal at the OPEN of this new candle ──
+    // The open of the current candle = market price at the moment the
+    // previous candle closed — same logic as the simulator using currCandle1h.open
+    if (pendingSignal) {
+      const { action } = pendingSignal;
+      const execPrice  = candle.open; // open of new candle = execution price
+      const ts         = openTimeMs;
 
-    if      (timeframe === "1m")  ctx.set1m(enriched);
-    else if (timeframe === "15m") ctx.set15m(enriched);
-    else if (timeframe === "1h")  ctx.set1h(enriched);
-
-    if (timeframe !== "1m") return;
-
-    const snapshot = ctx.snapshot();
-    if (!snapshot) return;
-
-    const ts = candle.openTime;
-
-    // ── SELL ────────────────────────────────────────────────────────
-    if (wallet.inTrade && position) {
-      if (liveCheckSell(snapshot, position)) {
-        await liveExecuteSell(wallet, position, candle.close, ts, FEE_RATE);
+      if (action === "BUY" && !wallet.inTrade) {
+        position = await liveExecuteBuy(sessionId, wallet, execPrice, ts, FEE_RATE);
+      } else if (action === "SELL" && wallet.inTrade && position) {
+        await liveExecuteSell(wallet, position, execPrice, ts, FEE_RATE);
         position = null;
-
-        if (liveCheckBuy(snapshot, wallet.usdt, wallet.inTrade)) {
-          position = await liveExecuteBuy(sessionId, wallet, candle.close, ts, FEE_RATE);
-        }
-        return;
       }
+
+      pendingSignal = null;
     }
 
-    // ── BUY ─────────────────────────────────────────────────────────
-    if (!wallet.inTrade && liveCheckBuy(snapshot, wallet.usdt, wallet.inTrade)) {
-      position = await liveExecuteBuy(sessionId, wallet, candle.close, ts, FEE_RATE);
+    // ── Step 2: Resolve the candle that just CLOSED (current openTime) ─
+    // Evaluate conditions on this closed candle and queue signal for next open
+    const closedCandle = await resolve1hCandle(openTimeMs);
+
+    if (!closedCandle) {
+      console.warn(`[Engine] Could not resolve candle ${openTimeMs} — skipping`);
+      return;
+    }
+
+    ctx.set1h(closedCandle);
+
+    const snapshot = {
+      candle1m:  closedCandle,
+      candle15m: closedCandle,
+      candle1h:  closedCandle,
+    };
+
+    // ── Step 3: Evaluate conditions — queue signal for next candle open ─
+    if (wallet.inTrade && position) {
+      if (liveCheckSell(snapshot, position)) {
+        pendingSignal = { action: "SELL", candle: closedCandle };
+        console.log(`[Engine] SELL signal queued — will execute at next candle open`);
+      }
+    } else if (!wallet.inTrade) {
+      if (liveCheckBuy(snapshot, wallet.usdt, wallet.inTrade)) {
+        pendingSignal = { action: "BUY", candle: closedCandle };
+        console.log(`[Engine] BUY signal queued — will execute at next candle open`);
+      }
     }
   });
 
@@ -152,5 +170,5 @@ export async function runLiveEngine(): Promise<void> {
   process.on("SIGINT",  () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
 
-  console.log("[Engine] Live engine running — waiting for candles...");
+  console.log("[Engine] Live engine running — executing at candle open prices...");
 }

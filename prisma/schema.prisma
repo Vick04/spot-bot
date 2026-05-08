@@ -26,6 +26,8 @@ model Candle1s {
   trix        Float?
   superTrend  Float?
   stDirection Int?
+  volAvg      Float?  // avg volume over last VOLUME_AVG_PERIOD candles
+  volRatio    Float?  // volume / volAvg — relative volume vs recent average
   @@map("candle_1s")
 }
 
@@ -43,6 +45,8 @@ model Candle1m {
   trix        Float?
   superTrend  Float?
   stDirection Int?
+  volAvg      Float?
+  volRatio    Float?
   @@map("candle_1m")
 }
 
@@ -60,6 +64,8 @@ model Candle15m {
   trix        Float?
   superTrend  Float?
   stDirection Int?
+  volAvg      Float?
+  volRatio    Float?
   @@map("candle_15m")
 }
 
@@ -77,6 +83,8 @@ model Candle1h {
   trix        Float?
   superTrend  Float?
   stDirection Int?
+  volAvg      Float?
+  volRatio    Float?
   @@map("candle_1h")
 }
 
@@ -96,25 +104,25 @@ model LiveSession {
 // ── Live trade log ─────────────────────────────────────────────────────────
 
 model LiveTrade {
-  id          Int      @id @default(autoincrement())
-  sessionId   Int
-  session     LiveSession @relation(fields: [sessionId], references: [id])
+  id           Int      @id @default(autoincrement())
+  sessionId    Int
+  session      LiveSession @relation(fields: [sessionId], references: [id])
 
-  buyTime     DateTime
-  buyPrice    Float
-  usdtSpent   Float
-  btcGross    Float
-  feeBtc      Float
-  btcNet      Float
+  buyTime      DateTime
+  buyPrice     Float
+  usdtSpent    Float
+  btcGross     Float
+  feeBtc       Float
+  btcNet       Float
 
-  sellTime    DateTime?
-  sellPrice   Float?
-  usdtGross   Float?
-  feeUsdt     Float?
-  usdtNet     Float?
+  sellTime     DateTime?
+  sellPrice    Float?
+  usdtGross    Float?
+  feeUsdt      Float?
+  usdtNet      Float?
 
-  pnlUsdt     Float?
-  pnlPct      Float?
+  pnlUsdt      Float?
+  pnlPct       Float?
   balanceAfter Float?
 
   @@map("live_trade")

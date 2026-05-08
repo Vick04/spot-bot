@@ -5,69 +5,41 @@
 import { ProcessedCandle } from "../processors/candleProcessor";
 import { Trade }           from "../simulator/types";
 
-/** Context slices around the BUY moment */
-export interface BuyContext {
-  pre1m:  ProcessedCandle[]; // 60 candles before buy
-  pre15m: ProcessedCandle[]; // 4 candles before buy
-  pre1h:  ProcessedCandle;   // 1 candle before buy (the aligned 1h)
+/** Volume data at the buy candle and surrounding context */
+export interface BuyVolumeData {
+  // The trigger candle (cond2 — close > ma20)
+  volume:    number;
+  volAvg:    number | null;
+  volRatio:  number | null;
+
+  // Last 5 closed 1h candles before buy (for context)
+  pre5h:     ProcessedCandle[];
 }
 
-/**
- * Momentum of price separation from bbUpper in the N candles before buy.
- * Measures how aggressively price is pulling away from the upper band.
- *
- * separation[i] = close[i] - bbUpper[i]  (positive = price above band)
- *
- * Computed for windows of 3, 5, 10 candles before the buy signal.
- */
-export interface BuyMomentum {
-  // Raw separation values (close - bbUpper) for last 10 candles before buy
-  // Index 0 = oldest, last index = candle immediately before buy
-  separations:      number[];
-
-  // Average separation over last 3 / 5 / 10 candles
-  avgSep3:          number;
-  avgSep5:          number;
-  avgSep10:         number;
-
-  // Rate of change: how much the separation grew per candle
-  // (separation[last] - separation[first]) / window
-  slopeOf3:         number;  // slope over last 3 candles
-  slopeOf5:         number;  // slope over last 5 candles
-  slopeOf10:        number;  // slope over last 10 candles
-
-  // Separation at the buy candle itself (close_buy - bbUpper_buy)
-  separationAtBuy:  number;
-
-  // Max separation seen in the last 10 candles
-  maxSep10:         number;
-
-  // How many of the last 10 candles had close > bbUpper (positive separation)
-  candlesAboveBB10: number;
+/** Aggregate volume stats for a group of trades */
+export interface VolumeGroup {
+  count:          number;
+  avgVolume:      number;
+  avgVolRatio:    number;
+  medianVolRatio: number;
+  // Distribution of volRatio at buy
+  ratioDist: {
+    below1:   number; // volRatio < 1    (below average)
+    r1_1_5:   number; // 1.0 – 1.5
+    r1_5_2:   number; // 1.5 – 2.0
+    r2_3:     number; // 2.0 – 3.0
+    above3:   number; // > 3.0
+    noData:   number; // volRatio null
+  };
 }
 
-/** Data about the highest price reached during the trade window */
-export interface PeakData {
-  price:         number;
-  idx1m:         number;
-  openTime:      number;
-  pre1m:         ProcessedCandle[];
-  post1m:        ProcessedCandle[];
-  pre15m:        ProcessedCandle[];
-  post15m:       ProcessedCandle[];
-  aligned1h:     ProcessedCandle;
-  missedGainPct: number;
-}
-
-/** All data assembled for one trade entry */
+/** All data for one trade */
 export interface TradeReport {
-  index:        number;
-  trade:        Trade;
-  buyContext:   BuyContext;
-  buyMomentum:  BuyMomentum;
-  peak:         PeakData;
-  isPositive:   boolean;
-  maxPotPct:    number; // (peak.price - buy.price) / buy.price * 100
+  index:      number;
+  trade:      Trade;
+  buyVolume:  BuyVolumeData;
+  isPositive: boolean;
+  pnlPct:     number;
 }
 
 export interface SimulationReport {
@@ -80,39 +52,11 @@ export interface SimulationReport {
   totalPnlUsdt:  number;
   totalPnlPct:   number;
   totalFeesPaid: number;
-  // Momentum statistics across all trades — for pattern discovery
-  momentumStats: MomentumStats;
-  positive:      TradeReport[];
-  negative:      TradeReport[];
-}
-
-/** Aggregate momentum stats split by outcome — the core pattern analysis */
-export interface MomentumStats {
-  // Averages by group
-  pos: MomentumGroup;
-  neg: MomentumGroup;
-  // Trades with peak < 0.1% (pure noise) — isolated for comparison
-  noise: MomentumGroup;
-}
-
-export interface MomentumGroup {
-  count:           number;
-  avgSep3:         number;
-  avgSep5:         number;
-  avgSep10:        number;
-  avgSlope3:       number;
-  avgSlope5:       number;
-  avgSlope10:      number;
-  avgSepAtBuy:     number;
-  avgMaxSep10:     number;
-  avgCandlesAbove: number;
-  // Distribution of separationAtBuy
-  sepAtBuyDist: {
-    neg:    number; // close < bbUpper at buy (should be 0 — sanity check)
-    p0_50:  number; // 0–50
-    p50_100: number;
-    p100_200: number;
-    p200_500: number;
-    p500plus: number;
+  // Volume analysis split by outcome
+  volumeStats: {
+    pos:   VolumeGroup;
+    neg:   VolumeGroup;
   };
+  positive: TradeReport[];
+  negative: TradeReport[];
 }
