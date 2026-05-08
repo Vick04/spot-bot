@@ -4,7 +4,7 @@
 
 import { LiveContext }                  from "./liveContext";
 import { BinanceWsClient, CandleEvent } from "./wsClient";
-import { liveCheckBuy, liveCheckSell }  from "./liveConditions";
+import { liveCheckSell }                from "./liveConditions";
 import {
   startSession,
   endSession,
@@ -14,7 +14,12 @@ import {
 import { LiveProcessedCandle, OpenPosition } from "./types";
 import { prisma }                       from "../db/prismaClient";
 import { fetchAllKlines }               from "../fetch/binanceFetcher";
-import { processCandles }               from "../processors/candleProcessor";
+import { processCandles, ProcessedCandle } from "../processors/candleProcessor";
+import {
+  evaluateBuySequence,
+  initialBuyState,
+  BuySequenceState,
+} from "../simulator/conditions";
 import { SYMBOL, FEE_RATE, Timeframe }  from "../config/constants";
 
 const LIVE_TIMEFRAMES: Timeframe[] = ["1h"];
@@ -22,29 +27,53 @@ const HOUR_MS = 3600_000;
 
 // ── Candle resolution ─────────────────────────────────────────────────────
 
+function rowToLiveCandle(r: any): LiveProcessedCandle {
+  return {
+    openTime:    Number(r.openTime),
+    open:        r.open,
+    high:        r.high,
+    low:         r.low,
+    close:       r.close,
+    volume:      r.volume,
+    ma20:        r.ma20,
+    ma99:        r.ma99,
+    bbUpper:     r.bbUpper,
+    bbLower:     r.bbLower,
+    trix:        r.trix,
+    superTrend:  r.superTrend,
+    stDirection: r.stDirection,
+    volAvg:      r.volAvg      ?? null,
+    volRatio:    r.volRatio    ?? null,
+  };
+}
+
+function processedToLiveCandle(c: ProcessedCandle): LiveProcessedCandle {
+  return {
+    openTime:    c.openTime,
+    open:        c.open,
+    high:        c.high,
+    low:         c.low,
+    close:       c.close,
+    volume:      c.volume,
+    ma20:        c.ma20,
+    ma99:        c.ma99,
+    bbUpper:     c.bbUpper,
+    bbLower:     c.bbLower,
+    trix:        c.trix,
+    superTrend:  c.superTrend,
+    stDirection: c.stDirection,
+    volAvg:      c.volAvg      ?? null,
+    volRatio:    c.volRatio    ?? null,
+  };
+}
+
 async function resolve1hCandle(openTimeMs: number): Promise<LiveProcessedCandle | null> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const row = await (prisma.candle1h as any).findUnique({
     where: { openTime: BigInt(openTimeMs) },
   });
 
-  if (row) {
-    return {
-      openTime:    Number(row.openTime),
-      open:        row.open,
-      high:        row.high,
-      low:         row.low,
-      close:       row.close,
-      volume:      row.volume,
-      ma20:        row.ma20,
-      ma99:        row.ma99,
-      bbUpper:     row.bbUpper,
-      bbLower:     row.bbLower,
-      trix:        row.trix,
-      superTrend:  row.superTrend,
-      stDirection: row.stDirection,
-    };
-  }
+  if (row) return rowToLiveCandle(row);
 
   // Not in DB — fetch, compute, write
   console.log(`[Engine] Fetching candle ${new Date(openTimeMs - 3*HOUR_MS).toISOString().slice(0,16)} GMT-3 from Binance...`);
@@ -60,29 +89,70 @@ async function resolve1hCandle(openTimeMs: number): Promise<LiveProcessedCandle 
   console.log(`[Engine] Wrote ${processed.length} candles to DB`);
 
   const target = processed.find(c => c.openTime === openTimeMs);
-  if (!target) return null;
+  return target ? processedToLiveCandle(target) : null;
+}
 
-  return {
-    openTime:    target.openTime,
-    open:        target.open,
-    high:        target.high,
-    low:         target.low,
-    close:       target.close,
-    volume:      target.volume,
-    ma20:        target.ma20,
-    ma99:        target.ma99,
-    bbUpper:     target.bbUpper,
-    bbLower:     target.bbLower,
-    trix:        target.trix,
-    superTrend:  target.superTrend,
-    stDirection: target.stDirection,
-  };
+// ── State warmup ──────────────────────────────────────────────────────────
+
+/**
+ * Replay the last 500 1h candles from the DB to reconstruct cond1Met/cond2Met
+ * as of now. Without this, the bot starts blind and may fire immediately
+ * if the conditions were already met in the recent history.
+ */
+async function warmupBuyState(): Promise<BuySequenceState> {
+  console.log("[Engine] Warming up buy sequence state from DB history...");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows: any[] = await (prisma.candle1h as any).findMany({
+    orderBy: { openTime: "asc" },
+    take:    500,
+  });
+
+  if (rows.length === 0) {
+    console.log("[Engine] No DB history — starting with clean state");
+    return initialBuyState();
+  }
+
+  const candles: ProcessedCandle[] = rows.map((r: any) => ({
+    openTime:    Number(r.openTime),
+    open:        r.open,
+    high:        r.high,
+    low:         r.low,
+    close:       r.close,
+    volume:      r.volume,
+    ma20:        r.ma20,
+    ma99:        r.ma99,
+    bbUpper:     r.bbUpper,
+    bbLower:     r.bbLower,
+    trix:        r.trix,
+    superTrend:  r.superTrend,
+    stDirection: r.stDirection,
+    volAvg:      r.volAvg   ?? null,
+    volRatio:    r.volRatio ?? null,
+  }));
+
+  let state = initialBuyState();
+
+  for (let i = 1; i < candles.length; i++) {
+    const result = evaluateBuySequence(candles[i - 1], state, 1, false);
+    state = result.state;
+    // If signal fires during replay, reset — the trade already happened
+    if (result.signal) {
+      state = initialBuyState();
+    }
+  }
+
+  console.log(`[Engine] Warmup done — cond1Met: ${state.cond1Met}, cond2Met: ${state.cond2Met}`);
+  return state;
 }
 
 // ── Main engine ───────────────────────────────────────────────────────────
 
 export async function runLiveEngine(): Promise<void> {
   const ctx = new LiveContext();
+
+  // Reconstruct buy sequence state from DB history before connecting WS
+  let buyState = await warmupBuyState();
 
   const { sessionId, wallet, openPosition } = await startSession(FEE_RATE);
   let position: OpenPosition | null = openPosition;
@@ -94,13 +164,13 @@ export async function runLiveEngine(): Promise<void> {
     );
   }
 
-  // Holds the closed candle pending execution at the next candle's open
-  let pendingSignal: { action: "BUY" | "SELL"; candle: LiveProcessedCandle } | null = null;
+  let pendingSignal: { action: "BUY" | "SELL" } | null = null;
 
   const ws = new BinanceWsClient(SYMBOL, LIVE_TIMEFRAMES);
 
-  ws.on("reconnected", () => {
-    console.log("[Engine] Reconnected — resuming");
+  ws.on("reconnected", async () => {
+    console.log("[Engine] Reconnected — re-warming state...");
+    buyState = await warmupBuyState();
   });
 
   ws.on("candle", async (event: CandleEvent) => {
@@ -109,12 +179,10 @@ export async function runLiveEngine(): Promise<void> {
 
     const openTimeMs = candle.openTime;
 
-    // ── Step 1: Execute pending signal at the OPEN of this new candle ──
-    // The open of the current candle = market price at the moment the
-    // previous candle closed — same logic as the simulator using currCandle1h.open
+    // ── Step 1: Execute pending signal at OPEN of new candle ────────────
     if (pendingSignal) {
       const { action } = pendingSignal;
-      const execPrice  = candle.open; // open of new candle = execution price
+      const execPrice  = candle.open;
       const ts         = openTimeMs;
 
       if (action === "BUY" && !wallet.inTrade) {
@@ -122,13 +190,13 @@ export async function runLiveEngine(): Promise<void> {
       } else if (action === "SELL" && wallet.inTrade && position) {
         await liveExecuteSell(wallet, position, execPrice, ts, FEE_RATE);
         position = null;
+        buyState = initialBuyState(); // reset sequence after sell
       }
 
       pendingSignal = null;
     }
 
-    // ── Step 2: Resolve the candle that just CLOSED (current openTime) ─
-    // Evaluate conditions on this closed candle and queue signal for next open
+    // ── Step 2: Resolve the candle that just closed ──────────────────────
     const closedCandle = await resolve1hCandle(openTimeMs);
 
     if (!closedCandle) {
@@ -144,16 +212,26 @@ export async function runLiveEngine(): Promise<void> {
       candle1h:  closedCandle,
     };
 
-    // ── Step 3: Evaluate conditions — queue signal for next candle open ─
+    // ── Step 3: Evaluate conditions — queue signal for next candle open ──
     if (wallet.inTrade && position) {
       if (liveCheckSell(snapshot, position)) {
-        pendingSignal = { action: "SELL", candle: closedCandle };
-        console.log(`[Engine] SELL signal queued — will execute at next candle open`);
+        pendingSignal = { action: "SELL" };
+        console.log(`[Engine] SELL signal queued — executes at next candle open`);
       }
     } else if (!wallet.inTrade) {
-      if (liveCheckBuy(snapshot, wallet.usdt, wallet.inTrade)) {
-        pendingSignal = { action: "BUY", candle: closedCandle };
-        console.log(`[Engine] BUY signal queued — will execute at next candle open`);
+      // Use evaluateBuySequence — same logic as simulator
+      const result = evaluateBuySequence(
+        closedCandle as unknown as ProcessedCandle,
+        buyState,
+        wallet.usdt,
+        wallet.inTrade
+      );
+      buyState = result.state;
+
+      if (result.signal) {
+        pendingSignal = { action: "BUY" };
+        buyState = initialBuyState(); // reset after signal fires
+        console.log(`[Engine] BUY signal queued — executes at next candle open`);
       }
     }
   });

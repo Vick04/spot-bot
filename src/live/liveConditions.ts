@@ -1,44 +1,26 @@
 // ─────────────────────────────────────────────
 // src/live/liveConditions.ts
-// Entry / exit conditions for live trading.
-// Mirrors simulator/conditions.ts exactly.
+// Exit condition for live trading.
+// Entry logic handled directly by evaluateBuySequence
+// from simulator/conditions.ts in liveEngine.ts.
 // ─────────────────────────────────────────────
 
 import { LiveCandleContext, LiveProcessedCandle, OpenPosition } from "./types";
 
-// ── Warm-up guard ─────────────────────────────────────────────────────────
-
-function ready1h(c: LiveProcessedCandle): boolean {
-  return c.bbUpper !== null;
-}
-
-// ── Entry ─────────────────────────────────────────────────────────────────
-
-/**
- * BUY signal — 1h close > 1h bbUpper.
- */
-export function liveCheckBuy(
-  ctx:     LiveCandleContext,
-  usdt:    number,
-  inTrade: boolean
-): boolean {
-  if (inTrade || usdt <= 0) return false;
-  if (!ready1h(ctx.candle1h)) return false;
-
-  return ctx.candle1h.close > (ctx.candle1h.bbUpper as number);
-}
-
 // ── Exit ──────────────────────────────────────────────────────────────────
 
 /**
- * SELL signal — 1h close drops below 1h bbUpper.
+ * SELL signal — mirrors checkSellCondition from simulator/conditions.ts:
+ *   A) Take profit : close >= buyPrice * 1.03  (+3%)
+ *   B) Stop loss   : close <= buyPrice * 0.93  (-7%)
  */
 export function liveCheckSell(
-  ctx:       LiveCandleContext,
-  _position: OpenPosition
+  ctx:      LiveCandleContext,
+  position: OpenPosition
 ): boolean {
+  const close = ctx.candle1h.close;
   return (
-    ctx.candle1h.bbUpper !== null &&
-    ctx.candle1h.close < (ctx.candle1h.bbUpper as number)
+    close >= position.buyPrice * 1.03 ||
+    close <= position.buyPrice * 0.93
   );
 }

@@ -29,9 +29,11 @@ export interface LiveProcessedCandle {
   trix:        number | null;
   superTrend:  number | null;
   stDirection: number | null;
+  volAvg:      number | null;
+  volRatio:    number | null;
 }
 
-/** The three aligned candles available at any given 1m tick */
+/** The three aligned candles available at any given 1h tick */
 export interface LiveCandleContext {
   candle1m:  LiveProcessedCandle;
   candle15m: LiveProcessedCandle;
