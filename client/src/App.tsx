@@ -3,7 +3,7 @@ import type { Status, Trade } from "./types";
 
 // ── Constants ────────────────────────────────────────────────────────────
 const API          = import.meta.env.VITE_API_URL ?? "";
-const TP_MULT      = 1.1;
+const TP_MULT      = 1.01;
 const POLL_STATUS  = 5000;
 const POLL_TRADES  = 15000;
 const PAGE_LIMIT   = 20;
