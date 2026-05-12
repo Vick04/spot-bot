@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import type { Status, Trade } from "./types";
+import { useBtcTicker } from "./useBtcTicker";
 
 // ── Constants ────────────────────────────────────────────────────────────
 const API          = import.meta.env.VITE_API_URL ?? "";
@@ -9,11 +10,11 @@ const POLL_TRADES  = 15000;
 const PAGE_LIMIT   = 20;
 
 const BUY_CONDITIONS = [
-  "Cond 1: close < bbLower  →  arms the sequence (persists)",
-  "Cond 2: bbUpper < close  AND  ma99 < bbUpper  →  fires buy",
+  "Cond 1: ma20 < ma99 && bbLower < ma99 && bbUpper < ma99",
+  "Cond 2: close < ma99 × 0.98",
 ];
 const SELL_CONDITIONS = [
-  "close >= buyPrice × 1.03  AND  close ≤ ma20",
+  "close >= buyPrice × 1.01",
 ];
 
 // ── Formatters ───────────────────────────────────────────────────────────
@@ -101,6 +102,7 @@ export default function App() {
     return () => clearInterval(id);
   }, [loadTrades, page]);
 
+  const { ticker, connected: wsConnected } = useBtcTicker();
   const s   = status.session;
   const st  = status.stats;
   const op  = status.openPosition;
@@ -115,15 +117,46 @@ export default function App() {
           <h1 className="text-lg font-semibold tracking-wider text-amber-400">SPOT-BOT</h1>
           <p className="text-[10px] text-zinc-500 uppercase tracking-widest">BTC/USDT · Live Engine</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`w-2 h-2 rounded-full ${
-            status.running ? "bg-green-400 animate-pulse"
-            : statusErr    ? "bg-red-500"
-                           : "bg-zinc-600"
-          }`} />
-          <span className="text-xs text-zinc-400 uppercase tracking-wider">
-            {statusErr ? "ERROR" : status.running ? "LIVE" : "OFFLINE"}
-          </span>
+
+        {/* BTC price */}
+        {ticker && (
+          <div className="flex flex-col items-center">
+            <span className="text-2xl font-semibold tabular-nums text-zinc-100">
+              ${ticker.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+            <span className={`text-xs font-medium tabular-nums ${
+              ticker.change >= 0 ? "text-green-400" : "text-red-400"
+            }`}>
+              {ticker.change >= 0 ? "+" : ""}{ticker.change.toFixed(2)}% 24h
+            </span>
+            <span className="text-[10px] text-zinc-500 tabular-nums">
+              H ${ticker.high.toLocaleString("en-US", { maximumFractionDigits: 0 })} &nbsp;
+              L ${ticker.low.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            </span>
+          </div>
+        )}
+
+        <div className="flex flex-col items-end gap-1">
+          {/* WS status */}
+          <div className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              wsConnected ? "bg-blue-400 animate-pulse" : "bg-zinc-600"
+            }`} />
+            <span className="text-[9px] text-zinc-500 uppercase tracking-wider">
+              {wsConnected ? "Binance WS" : "Connecting..."}
+            </span>
+          </div>
+          {/* Bot status */}
+          <div className="flex items-center gap-1.5">
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              status.running ? "bg-green-400 animate-pulse"
+              : statusErr    ? "bg-red-500"
+                             : "bg-zinc-600"
+            }`} />
+            <span className="text-[9px] text-zinc-400 uppercase tracking-wider">
+              {statusErr ? "API ERROR" : status.running ? "BOT LIVE" : "BOT OFFLINE"}
+            </span>
+          </div>
         </div>
       </div>
 
