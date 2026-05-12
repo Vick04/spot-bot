@@ -70,9 +70,7 @@ export function evaluateBuySequence(
 
   // ── Cond2 — evaluated only after cond1, only once ─────────────────────
   if (!cond2Met) {
-    const volumeOk =
-      COND2_MIN_VOL_RATIO <= 0 ||
-      (volRatio !== null && volRatio >= COND2_MIN_VOL_RATIO);
+    const volumeOk = close < ma99 * 0.98;
 
     if (volumeOk) {
       cond2Met = true;
@@ -101,7 +99,6 @@ export function checkSellCondition(
   buyPrice:   number
 ): boolean {
   return (
-    prevCandle.close >= buyPrice * 1.03 ||
-    prevCandle.close <= buyPrice * 0.93
+    prevCandle.close >= buyPrice * 1.01
   );
 }

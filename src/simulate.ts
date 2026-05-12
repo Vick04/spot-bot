@@ -37,7 +37,7 @@ async function main() {
     );
 
     console.log("\nRunning simulation...\n");
-    const result = runSimulation(candles1m, candles15m, candles1h);
+    const result = runSimulation(candles1m, candles15m, candles1m);
 
     // ── Console log ────────────────────────────────────────────────────
     if (result.trades.length > 0) {
