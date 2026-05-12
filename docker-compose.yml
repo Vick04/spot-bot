@@ -46,7 +46,7 @@ services:
     stop_signal: SIGTERM
     stop_grace_period: 15s
 
-  # -- Dashboard API
+  # -- API
   api:
     build: .
     container_name: spotbot_api
@@ -61,6 +61,16 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+
+  # -- React client (Bun + Vite + Tailwind → Nginx)
+  client:
+    build: ./client
+    container_name: spotbot_client
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
 
 volumes:
   spotbot_pgdata:
