@@ -10,16 +10,6 @@ function hasIndicators(c: ProcessedCandle): boolean {
   return c.ma20 !== null && c.ma99 !== null;
 }
 
-// ── Volume filter threshold ───────────────────────────────────────────────
-
-/**
- * Minimum volRatio required for cond2 to fire.
- * volRatio = volume / SMA(volume, 20)
- * Example: 1.5 means current candle volume must be at least 1.5x the 20-period average.
- * Set to 0 to disable the volume filter.
- */
-export const COND2_MIN_VOL_RATIO = 1.1; // disabled by default — set to e.g. 1.5 to enable
-
 // ── Buy sequence state ────────────────────────────────────────────────────
 
 export interface BuySequenceState {
@@ -37,11 +27,8 @@ export function initialBuyState(): BuySequenceState {
  * Cond1: ma20 < ma99 AND bbLower < ma99 AND bbUpper < ma99
  *        Once true, never re-evaluated.
  *
- * Cond2: close > ma20
- *        AND volRatio >= COND2_MIN_VOL_RATIO (if > 0)
+ * Cond2: close < ma99 * 0.98  (price still >2% below ma99)
  *        Only evaluated after cond1 is met.
- *
- * Signal fires when both are true. Caller resets state after buy/sell.
  */
 export function evaluateBuySequence(
   prevCandle:  ProcessedCandle,
@@ -51,12 +38,11 @@ export function evaluateBuySequence(
 ): { state: BuySequenceState; signal: boolean } {
   if (!hasIndicators(prevCandle)) return { state, signal: false };
 
-  const close    = prevCandle.close;
-  const bbLower  = prevCandle.bbLower as number;
-  const bbUpper  = prevCandle.bbUpper as number;
-  const ma20     = prevCandle.ma20    as number;
-  const ma99     = prevCandle.ma99    as number;
-  const volRatio = prevCandle.volRatio;
+  const close   = prevCandle.close;
+  const bbLower = prevCandle.bbLower as number;
+  const bbUpper = prevCandle.bbUpper as number;
+  const ma20    = prevCandle.ma20    as number;
+  const ma99    = prevCandle.ma99    as number;
 
   let { cond1Met, cond2Met } = state;
 
@@ -70,16 +56,13 @@ export function evaluateBuySequence(
 
   // ── Cond2 — evaluated only after cond1, only once ─────────────────────
   if (!cond2Met) {
-    const volumeOk = close < ma99 * 0.98;
-
-    if (volumeOk) {
+    if (close < ma99 * 0.98) {
       cond2Met = true;
     }
   }
 
   const newState = { cond1Met, cond2Met };
 
-  // Signal fires when both met and able to trade
   if (cond2Met && !inTrade && usdtBalance > 0) {
     return { state: newState, signal: true };
   }
@@ -90,15 +73,11 @@ export function evaluateBuySequence(
 // ── Exit condition ────────────────────────────────────────────────────────
 
 /**
- * SELL signal:
- *   A) Take profit : close >= buyPrice * 1.06  (+6%)
- *   B) Stop loss   : close <= buyPrice * 0.93  (-7%)
+ * SELL signal: close >= buyPrice * 1.01  (+1%)
  */
 export function checkSellCondition(
   prevCandle: ProcessedCandle,
   buyPrice:   number
 ): boolean {
-  return (
-    prevCandle.close >= buyPrice * 1.01
-  );
+  return prevCandle.close >= buyPrice * 1.01;
 }
