@@ -41,15 +41,11 @@ function alignedIndex(candles: ProcessedCandle[], targetMs: number): number {
 
 function buildBuyVolumeData(
   trade:     Trade,
-  candles1h: ProcessedCandle[]
+  candles1m: ProcessedCandle[]
 ): BuyVolumeData {
-  const buyTs  = trade.buy.openTime;
-  const idx    = alignedIndex(candles1h, buyTs);
-  const candle = candles1h[idx];
-
-  // Last 5 candles before the buy candle
-  const pre5h = candles1h.slice(Math.max(0, idx - 5), idx);
-
+  const idx    = alignedIndex(candles1m, trade.buy.openTime);
+  const candle = candles1m[idx];
+  const pre5h  = candles1m.slice(Math.max(0, idx - 5), idx);
   return {
     volume:   candle.volume,
     volAvg:   candle.volAvg,
@@ -67,11 +63,9 @@ function buildVolumeGroup(reports: TradeReport[]): VolumeGroup {
       ratioDist: { below1: 0, r1_1_5: 0, r1_5_2: 0, r2_3: 0, above3: 0, noData: 0 },
     };
   }
-
   const volumes   = reports.map(r => r.buyVolume.volume);
   const ratios    = reports.map(r => r.buyVolume.volRatio).filter((v): v is number => v !== null);
   const allRatios = reports.map(r => r.buyVolume.volRatio);
-
   const dist = { below1: 0, r1_1_5: 0, r1_5_2: 0, r2_3: 0, above3: 0, noData: 0 };
   allRatios.forEach(r => {
     if (r === null)   dist.noData++;
@@ -81,13 +75,12 @@ function buildVolumeGroup(reports: TradeReport[]): VolumeGroup {
     else if (r < 3)   dist.r2_3++;
     else              dist.above3++;
   });
-
   return {
-    count:          reports.length,
-    avgVolume:      avg(volumes),
-    avgVolRatio:    avg(ratios),
+    count: reports.length,
+    avgVolume: avg(volumes),
+    avgVolRatio: avg(ratios),
     medianVolRatio: median(ratios),
-    ratioDist:      dist,
+    ratioDist: dist,
   };
 }
 
@@ -95,15 +88,13 @@ function buildVolumeGroup(reports: TradeReport[]): VolumeGroup {
 
 export function buildReport(
   result:        SimulationResult,
-  _candles1m:    ProcessedCandle[],
-  _candles15m:   ProcessedCandle[],
-  candles1h:     ProcessedCandle[],
+  candles1m:     ProcessedCandle[],
   totalFeesPaid: number
 ): SimulationReport {
   const tradeReports: TradeReport[] = result.trades.map((trade, i) => ({
     index:      i + 1,
     trade,
-    buyVolume:  buildBuyVolumeData(trade, candles1h),
+    buyVolume:  buildBuyVolumeData(trade, candles1m),
     isPositive: trade.pnlUsdt >= 0,
     pnlPct:     trade.pnlPct,
   }));

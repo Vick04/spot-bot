@@ -17,5 +17,5 @@ export function liveCheckSell(
   ctx:      LiveCandleContext,
   position: OpenPosition
 ): boolean {
-  return ctx.candle1h.close >= position.buyPrice * 1.01;
+  return ctx.candle1m.close >= position.buyPrice * 1.009;
 }

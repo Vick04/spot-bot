@@ -26,18 +26,12 @@ async function main() {
 
   try {
     console.log("Loading candles from DB...");
-    const [candles1m, candles15m, candles1h] = await Promise.all([
-      loadCandles("candle1m"),
-      loadCandles("candle15m"),
-      loadCandles("candle1h"),
-    ]);
+    const candles1m = await loadCandles("candle1m");
 
-    console.log(
-      `Loaded  1m: ${candles1m.length} | 15m: ${candles15m.length} | 1h: ${candles1h.length}`
-    );
+    console.log(`Loaded  1m: ${candles1m.length}`);
 
     console.log("\nRunning simulation...\n");
-    const result = runSimulation(candles1m, candles15m, candles1m);
+    const result = runSimulation(candles1m);
 
     // ── Console log ────────────────────────────────────────────────────
     if (result.trades.length > 0) {
@@ -64,7 +58,7 @@ async function main() {
 
     // ── Report ─────────────────────────────────────────────────────────
     console.log("\nGenerating report...");
-    const report   = buildReport(result, candles1m, candles15m, candles1h, result.totalFeesPaid);
+    const report   = buildReport(result, candles1m, result.totalFeesPaid);
     const filepath = writeReport(report);
     console.log(`Report saved → ${filepath}`);
 

@@ -43,7 +43,7 @@ async function main() {
 
     // Phase 2: run simulation
     console.log("\n=== Running simulation ===");
-    const result = runSimulation(candles1m, candles15m, candles1m);
+    const result = runSimulation(candles1m);
 
     // Summary output
     console.log("\n── Simulation result ──────────────────────");

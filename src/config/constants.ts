@@ -8,7 +8,7 @@ export const SYMBOL = "BTCUSDT";
 export const GMT_OFFSET_MS = -3 * 60 * 60 * 1000;
 
 export const START_DATE_GMT3 = new Date("2025-01-01T05:00:00-03:00");
-export const END_DATE_GMT3   = new Date("2026-05-06T14:49:59-03:00");
+export const END_DATE_GMT3   = new Date("2026-05-12T23:59:59-03:00");
 
 export const START_TS = START_DATE_GMT3.getTime();
 export const END_TS   = END_DATE_GMT3.getTime();

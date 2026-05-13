@@ -19,9 +19,7 @@ export interface SimulatorOptions {
 }
 
 export function runSimulation(
-  _candles1m:  ProcessedCandle[],
-  _candles15m: ProcessedCandle[],
-  candles1h:   ProcessedCandle[],
+  candles1m:   ProcessedCandle[],
   options:     SimulatorOptions = {}
 ): SimulationResult {
   const feeRate = options.feeRate ?? FEE_RATE;
@@ -30,9 +28,9 @@ export function runSimulation(
   let   pendingBuy: BuyOrder | null = null;
   let   buyState                    = initialBuyState();
 
-  for (let i = 1; i < candles1h.length; i++) {
-    const prevCandle = candles1h[i - 1];
-    const currCandle = candles1h[i];
+  for (let i = 1; i < candles1m.length; i++) {
+    const prevCandle = candles1m[i - 1];
+    const currCandle = candles1m[i];
     const ts         = Number(currCandle.openTime);
 
     // ── Exit ────────────────────────────────────────────────────────────

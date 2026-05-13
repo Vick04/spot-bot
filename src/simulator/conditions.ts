@@ -56,7 +56,7 @@ export function evaluateBuySequence(
 
   // ── Cond2 — evaluated only after cond1, only once ─────────────────────
   if (!cond2Met) {
-    if (close < ma99 * 0.98) {
+    if (close < ma99 * 0.97) {
       cond2Met = true;
     }
   }
@@ -79,5 +79,5 @@ export function checkSellCondition(
   prevCandle: ProcessedCandle,
   buyPrice:   number
 ): boolean {
-  return prevCandle.close >= buyPrice * 1.01;
+  return prevCandle.close >= buyPrice * 1.009;
 }
