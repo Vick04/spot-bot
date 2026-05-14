@@ -10,33 +10,56 @@ function hasIndicators(c: ProcessedCandle): boolean {
   return c.ma20 !== null && c.ma99 !== null;
 }
 
-// ── Buy sequence state ────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────
 
-export interface BuySequenceState {
+export type ActiveStrategy = "down" | "up" | null;
+
+interface StrategyState {
   cond1Met: boolean;
   cond2Met: boolean;
 }
 
+export interface BuySequenceState {
+  down:     StrategyState;
+  up:       StrategyState;
+  upStreak: number; // consecutive up trades — resets to 0 on any down trade
+}
+
 export function initialBuyState(): BuySequenceState {
-  return { cond1Met: false, cond2Met: false };
+  return {
+    down:     { cond1Met: false, cond2Met: false },
+    up:       { cond1Met: false, cond2Met: false },
+    upStreak: 0,
+  };
 }
 
 /**
- * Two-step buy sequence evaluated on the closed candle.
+ * Maximum consecutive "up" trades before up is disabled.
+ * Resets to 0 when a "down" trade executes.
+ */
+export const UP_MAX_STREAK = 3;
+
+/**
+ * Two fully independent strategies evaluated simultaneously.
  *
- * Cond1: ma20 < ma99 AND bbLower < ma99 AND bbUpper < ma99
- *        Once true, never re-evaluated.
+ * STRATEGY "down" (no limits):
+ *   Cond1: ma20 < ma99 AND bbLower < ma99 AND bbUpper < ma99
+ *   Cond2: close < ma99 * 0.97
+ *   Sell:  close >= buyPrice * 1.009
  *
- * Cond2: close < ma99 * 0.98  (price still >2% below ma99)
- *        Only evaluated after cond1 is met.
+ * STRATEGY "up" (disabled when upStreak >= UP_MAX_STREAK):
+ *   Cond1: ma20 > ma99 AND bbUpper > ma99
+ *   Cond2: close > ma99 * 1.02
+ *   Sell:  close >= buyPrice * 1.01
  */
 export function evaluateBuySequence(
   prevCandle:  ProcessedCandle,
   state:       BuySequenceState,
   usdtBalance: number,
   inTrade:     boolean
-): { state: BuySequenceState; signal: boolean } {
-  if (!hasIndicators(prevCandle)) return { state, signal: false };
+): { state: BuySequenceState; signal: boolean; activeStrategy: ActiveStrategy } {
+  const noSignal = { state, signal: false, activeStrategy: null as ActiveStrategy };
+  if (!hasIndicators(prevCandle)) return noSignal;
 
   const close   = prevCandle.close;
   const bbLower = prevCandle.bbLower as number;
@@ -44,40 +67,53 @@ export function evaluateBuySequence(
   const ma20    = prevCandle.ma20    as number;
   const ma99    = prevCandle.ma99    as number;
 
-  let { cond1Met, cond2Met } = state;
+  const down = { ...state.down };
+  const up   = { ...state.up };
 
-  // ── Cond1 — evaluated only when not yet met ────────────────────────────
-  if (!cond1Met) {
-    if (ma20 < ma99 && bbLower < ma99 && bbUpper < ma99) {
-      cond1Met = true;
+  // ── Strategy "down" — no limits ───────────────────────────────────────
+  if (!down.cond1Met) {
+    if (ma20 < ma99 && bbLower < ma99 && bbUpper < ma99) down.cond1Met = true;
+  }
+  if (down.cond1Met && !down.cond2Met) {
+    if (close < ma99 * 0.97) down.cond2Met = true;
+  }
+
+  // ── Strategy "up" — disabled when upStreak >= UP_MAX_STREAK ──────────
+  if (state.upStreak < UP_MAX_STREAK) {
+    if (!up.cond1Met) {
+      if (ma20 > ma99 && bbUpper > ma99) up.cond1Met = true;
     }
-    return { state: { cond1Met, cond2Met }, signal: false };
-  }
-
-  // ── Cond2 — evaluated only after cond1, only once ─────────────────────
-  if (!cond2Met) {
-    if (close < ma99 * 0.97) {
-      cond2Met = true;
+    if (up.cond1Met && !up.cond2Met) {
+      if (close > ma99 * 1.02) up.cond2Met = true;
     }
   }
 
-  const newState = { cond1Met, cond2Met };
+  const newState: BuySequenceState = { down, up, upStreak: state.upStreak };
 
-  if (cond2Met && !inTrade && usdtBalance > 0) {
-    return { state: newState, signal: true };
+  if (!inTrade && usdtBalance > 0) {
+    if (down.cond2Met) {
+      return { state: newState, signal: true, activeStrategy: "down" };
+    }
+    if (up.cond2Met) {
+      return { state: newState, signal: true, activeStrategy: "up" };
+    }
   }
 
-  return { state: newState, signal: false };
+  return { state: newState, signal: false, activeStrategy: null };
 }
 
 // ── Exit condition ────────────────────────────────────────────────────────
 
 /**
- * SELL signal: close >= buyPrice * 1.01  (+1%)
+ * SELL signal:
+ *   "down": close >= buyPrice * 1.009
+ *   "up":   close >= buyPrice * 1.01
  */
 export function checkSellCondition(
   prevCandle: ProcessedCandle,
-  buyPrice:   number
+  buyPrice:   number,
+  strategy:   ActiveStrategy
 ): boolean {
-  return prevCandle.close >= buyPrice * 1.009;
+  const mult = strategy === "up" ? 1.01 : 1.009;
+  return prevCandle.close >= buyPrice * mult;
 }

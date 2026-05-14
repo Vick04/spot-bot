@@ -18,6 +18,7 @@ import {
   evaluateBuySequence,
   initialBuyState,
   BuySequenceState,
+  ActiveStrategy,
 } from "../simulator/conditions";
 import { SYMBOL, FEE_RATE, Timeframe }  from "../config/constants";
 
@@ -26,8 +27,8 @@ const MIN_MS         = 60_000;
 const WARMUP_CANDLES = 500;
 
 interface PendingSignal {
-  action:     "BUY" | "SELL";
-  evalCandle: LiveProcessedCandle; // the candle that triggered the signal
+  action:   "BUY" | "SELL";
+  strategy: ActiveStrategy;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -57,11 +58,9 @@ async function resolve1mCandle(
   openTimeMs:  number,
   memoryCache: ProcessedCandle[]
 ): Promise<LiveProcessedCandle | null> {
-  // 1. In-memory cache
   const cached = memoryCache.find(c => c.openTime === openTimeMs);
   if (cached) return processedToLiveCandle(cached);
 
-  // 2. DB
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const row = await (prisma.candle1m as any).findUnique({
     where: { openTime: BigInt(openTimeMs) },
@@ -77,7 +76,6 @@ async function resolve1mCandle(
     });
   }
 
-  // 3. Fresh fetch + write to DB
   console.log(`[Engine] Fetching 1m candle ${new Date(openTimeMs).toISOString()} from Binance...`);
   const raw       = await fetchAllKlines(SYMBOL, "1m", openTimeMs - 200 * MIN_MS, openTimeMs + MIN_MS);
   if (raw.length === 0) return null;
@@ -123,10 +121,17 @@ async function warmupBuyState(): Promise<{
   for (let i = 1; i < candles.length; i++) {
     const result = evaluateBuySequence(candles[i - 1], state, 1, false);
     state = result.state;
-    if (result.signal) state = initialBuyState();
+    if (result.signal) {
+      // Mirror engine reset logic on signal
+      if (result.activeStrategy === 'down') {
+        state = { ...result.state, down: { cond1Met: false, cond2Met: false }, upStreak: 0 };
+      } else {
+        state = { ...result.state, up: { cond1Met: false, cond2Met: false }, upStreak: result.state.upStreak + 1 };
+      }
+    }
   }
 
-  console.log(`[Engine] Warmup done — cond1Met: ${state.cond1Met}, cond2Met: ${state.cond2Met}`);
+  console.log(`[Engine] Warmup done — upStreak: ${state.upStreak}`);
   return { state, cache: candles };
 }
 
@@ -145,9 +150,8 @@ export async function runLiveEngine(): Promise<void> {
     );
   }
 
-  // Signal queued on prevCandle — executed at next candle's open price
-  // This mirrors simulator behavior: evaluate on candles1m[i-1], execute at candles1m[i]
   let pendingSignal: PendingSignal | null = null;
+  let openStrategy: ActiveStrategy        = null;
 
   const ws = new BinanceWsClient(SYMBOL, LIVE_TIMEFRAMES);
 
@@ -165,19 +169,33 @@ export async function runLiveEngine(): Promise<void> {
     const openTimeMs = candle.openTime;
 
     // ── Step 1: Execute pending signal at OPEN of this new candle ────────
-    // Mirrors simulator: prevCandle triggered signal, currCandle provides price
     if (pendingSignal) {
-      const { action } = pendingSignal;
-      const execPrice  = candle.open;
-      const ts         = openTimeMs;
+      const { action, strategy } = pendingSignal;
+      const execPrice = candle.open;
+      const ts        = openTimeMs;
 
       if (action === "BUY" && !wallet.inTrade) {
-        position = await liveExecuteBuy(sessionId, wallet, execPrice, ts, FEE_RATE);
-        console.log(`[Engine] BUY executed @ $${execPrice.toFixed(2)}`);
+        position     = await liveExecuteBuy(sessionId, wallet, execPrice, ts, FEE_RATE);
+        openStrategy = strategy;
+        console.log(`[Engine] BUY executed @ $${execPrice.toFixed(2)} [${openStrategy}]`);
       } else if (action === "SELL" && wallet.inTrade && position) {
         await liveExecuteSell(wallet, position, execPrice, ts, FEE_RATE);
         position = null;
-        buyState = initialBuyState();
+
+        if (openStrategy === 'down') {
+          buyState = {
+            ...buyState,
+            down:     { cond1Met: false, cond2Met: false },
+            upStreak: 0,
+          };
+        } else {
+          buyState = {
+            ...buyState,
+            up:       { cond1Met: false, cond2Met: false },
+            upStreak: buyState.upStreak + 1,
+          };
+        }
+        openStrategy = null;
         console.log(`[Engine] SELL executed @ $${execPrice.toFixed(2)}`);
       }
 
@@ -199,23 +217,26 @@ export async function runLiveEngine(): Promise<void> {
 
     // ── Step 3: Evaluate conditions — queue signal for next candle open ───
     if (wallet.inTrade && position) {
-      if (liveCheckSell(snapshot, position)) {
-        pendingSignal = { action: "SELL", evalCandle: closedCandle };
+      if (liveCheckSell(snapshot, position, openStrategy)) {
+        pendingSignal = { action: "SELL", strategy: openStrategy };
         console.log(`[Engine] SELL signal — executes at next candle open`);
       }
     } else if (!wallet.inTrade) {
       const result = evaluateBuySequence(
         closedCandle as unknown as ProcessedCandle,
-        buyState,
-        wallet.usdt,
-        wallet.inTrade
+        buyState, wallet.usdt, wallet.inTrade
       );
       buyState = result.state;
 
       if (result.signal) {
-        pendingSignal = { action: "BUY", evalCandle: closedCandle };
-        buyState = initialBuyState();
-        console.log(`[Engine] BUY signal — executes at next candle open`);
+        const fired = result.activeStrategy;
+        pendingSignal = { action: "BUY", strategy: fired };
+        if (fired === 'down') {
+          buyState = { ...buyState, down: { cond1Met: false, cond2Met: false }, upStreak: 0 };
+        } else {
+          buyState = { ...buyState, up: { cond1Met: false, cond2Met: false }, upStreak: buyState.upStreak + 1 };
+        }
+        console.log(`[Engine] BUY signal [${fired}] upStreak=${buyState.upStreak} — executes at next candle open`);
       }
     }
   });
