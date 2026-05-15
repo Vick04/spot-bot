@@ -231,10 +231,12 @@ export async function runLiveEngine(): Promise<void> {
       if (result.signal) {
         const fired = result.activeStrategy;
         pendingSignal = { action: "BUY", strategy: fired };
+        // Reset only the fired strategy's cond state
+        // upStreak is updated on SELL (not here) to mirror simulator behavior
         if (fired === 'down') {
           buyState = { ...buyState, down: { cond1Met: false, cond2Met: false }, upStreak: 0 };
         } else {
-          buyState = { ...buyState, up: { cond1Met: false, cond2Met: false }, upStreak: buyState.upStreak + 1 };
+          buyState = { ...buyState, up: { cond1Met: false, cond2Met: false } };
         }
         console.log(`[Engine] BUY signal [${fired}] upStreak=${buyState.upStreak} — executes at next candle open`);
       }

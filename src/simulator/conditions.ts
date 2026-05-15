@@ -23,7 +23,7 @@ export interface BuySequenceState {
   down:     StrategyState;
   up:       StrategyState;
   upStreak: number; // consecutive up trades
-                    // resets when: down trade executes OR close < ma99
+                    // resets when: down trade executes OR bbLower < ma99
 }
 
 export function initialBuyState(): BuySequenceState {
