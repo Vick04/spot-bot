@@ -1,6 +1,6 @@
 {
   "name": "bot7",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "BTC/USDT multi-timeframe candle data collector and simulator",
   "main": "dist/index.js",
   "scripts": {

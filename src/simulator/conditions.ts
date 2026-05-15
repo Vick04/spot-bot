@@ -22,7 +22,8 @@ interface StrategyState {
 export interface BuySequenceState {
   down:     StrategyState;
   up:       StrategyState;
-  upStreak: number; // consecutive up trades — resets to 0 on any down trade
+  upStreak: number; // consecutive up trades
+                    // resets when: down trade executes OR close < ma99
 }
 
 export function initialBuyState(): BuySequenceState {
@@ -35,7 +36,9 @@ export function initialBuyState(): BuySequenceState {
 
 /**
  * Maximum consecutive "up" trades before up is disabled.
- * Resets to 0 when a "down" trade executes.
+ * Resets to 0 when:
+ *   - A "down" trade executes, OR
+ *   - close < ma99 (price left the UP zone)
  */
 export const UP_MAX_STREAK = 3;
 
@@ -69,8 +72,14 @@ export function evaluateBuySequence(
 
   const down = { ...state.down };
   const up   = { ...state.up };
+  let   upStreak = state.upStreak;
 
-  // ── Strategy "down" — no limits ───────────────────────────────────────
+  // upStreak reset: if close drops below ma99, market left the UP zone
+  if (upStreak > 0 && bbLower < ma99) {
+    upStreak = 0;
+  }
+
+  // Strategy "down" — no limits
   if (!down.cond1Met) {
     if (ma20 < ma99 && bbLower < ma99 && bbUpper < ma99) down.cond1Met = true;
   }
@@ -78,8 +87,8 @@ export function evaluateBuySequence(
     if (close < ma99 * 0.97) down.cond2Met = true;
   }
 
-  // ── Strategy "up" — disabled when upStreak >= UP_MAX_STREAK ──────────
-  if (state.upStreak < UP_MAX_STREAK) {
+  // Strategy "up" — disabled when upStreak >= UP_MAX_STREAK
+  if (upStreak < UP_MAX_STREAK) {
     if (!up.cond1Met) {
       if (ma20 > ma99 && bbUpper > ma99) up.cond1Met = true;
     }
@@ -88,7 +97,7 @@ export function evaluateBuySequence(
     }
   }
 
-  const newState: BuySequenceState = { down, up, upStreak: state.upStreak };
+  const newState: BuySequenceState = { down, up, upStreak };
 
   if (!inTrade && usdtBalance > 0) {
     if (down.cond2Met) {
