@@ -123,6 +123,6 @@ export function checkSellCondition(
   buyPrice:   number,
   strategy:   ActiveStrategy
 ): boolean {
-  const mult = strategy === "up" ? 1.004 : 1.009;
+  const mult = strategy === "up" ? 1.01 : 1.009;
   return prevCandle.close >= buyPrice * mult;
 }
