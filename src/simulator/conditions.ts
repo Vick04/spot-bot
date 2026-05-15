@@ -90,10 +90,10 @@ export function evaluateBuySequence(
   // Strategy "up" — disabled when upStreak >= UP_MAX_STREAK
   if (upStreak < UP_MAX_STREAK) {
     if (!up.cond1Met) {
-      if (ma20 > ma99 && bbUpper > ma99) up.cond1Met = true;
+      if (bbUpper > ma99) up.cond1Met = true;
     }
     if (up.cond1Met && !up.cond2Met) {
-      if (close > ma99 * 1.02) up.cond2Met = true;
+      if (close > ma99 * 1.018) up.cond2Met = true;
     }
   }
 
@@ -123,6 +123,6 @@ export function checkSellCondition(
   buyPrice:   number,
   strategy:   ActiveStrategy
 ): boolean {
-  const mult = strategy === "up" ? 1.01 : 1.009;
+  const mult = strategy === "up" ? 1.004 : 1.009;
   return prevCandle.close >= buyPrice * mult;
 }
