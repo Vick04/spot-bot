@@ -1,13 +1,15 @@
 {
   "name": "bot7",
-  "version": "0.0.6",
+  "version": "0.2.0",
   "description": "BTC/USDT multi-timeframe candle data collector and simulator",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
+    "fetch:multi": "ts-node src/fetchMulti.ts",
     "simulate": "ts-node src/simulate.ts",
+    "simulate:multi": "ts-node src/simulateMulti.ts",
     "live": "ts-node src/live.ts",
     "api": "ts-node src/api/server.ts",
     "migrate": "prisma db push --accept-data-loss",

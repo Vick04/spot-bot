@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────
 
 import { ProcessedCandle } from "../processors/candleProcessor";
+import { SymbolParams }    from "../config/constants";
 
 // ── Warm-up guard ─────────────────────────────────────────────────────────
 
@@ -42,6 +43,14 @@ export function initialBuyState(): BuySequenceState {
  */
 export const UP_MAX_STREAK = 3;
 
+// ── Volume filter thresholds (cond3) ────────────────────────────────
+// DOWN: high volume = capitulation = good entry signal
+export const DOWN_COND2_MIN_VOL_RATIO = 2;
+
+// UP: moderate volume preferred — too high may indicate distribution
+export const UP_COND2_MIN_VOL_RATIO = 3;
+export const UP_COND2_MAX_VOL_RATIO = 3.0;
+
 /**
  * Two fully independent strategies evaluated simultaneously.
  *
@@ -56,10 +65,11 @@ export const UP_MAX_STREAK = 3;
  *   Sell:  close >= buyPrice * 1.01
  */
 export function evaluateBuySequence(
-  prevCandle:  ProcessedCandle,
-  state:       BuySequenceState,
-  usdtBalance: number,
-  inTrade:     boolean
+  prevCandle:   ProcessedCandle,
+  state:        BuySequenceState,
+  usdtBalance:  number,
+  inTrade:      boolean,
+  symbolParams?: SymbolParams
 ): { state: BuySequenceState; signal: boolean; activeStrategy: ActiveStrategy } {
   const noSignal = { state, signal: false, activeStrategy: null as ActiveStrategy };
   if (!hasIndicators(prevCandle)) return noSignal;
@@ -69,6 +79,10 @@ export function evaluateBuySequence(
   const bbUpper = prevCandle.bbUpper as number;
   const ma20    = prevCandle.ma20    as number;
   const ma99    = prevCandle.ma99    as number;
+
+  // Use per-symbol thresholds if provided, otherwise use module-level constants
+  const downThr = symbolParams?.downCond2 ?? 0.98;
+  const upThr   = symbolParams?.upCond2   ?? 1.018;
 
   const down = { ...state.down };
   const up   = { ...state.up };
@@ -84,16 +98,16 @@ export function evaluateBuySequence(
     if (ma20 < ma99 && bbLower < ma99 && bbUpper < ma99) down.cond1Met = true;
   }
   if (down.cond1Met && !down.cond2Met) {
-    if (close < ma99 * 0.97) down.cond2Met = true;
+    if (close < ma99 * downThr) down.cond2Met = true;
   }
 
   // Strategy "up" — disabled when upStreak >= UP_MAX_STREAK
   if (upStreak < UP_MAX_STREAK) {
     if (!up.cond1Met) {
-      if (bbUpper > ma99) up.cond1Met = true;
+      if (bbUpper > ma99 && bbLower > ma99 && ma20 > ma99) up.cond1Met = true;
     }
     if (up.cond1Met && !up.cond2Met) {
-      if (close > ma99 * 1.018) up.cond2Met = true;
+      if (close > ma99 * upThr) up.cond2Met = true;
     }
   }
 
@@ -119,10 +133,13 @@ export function evaluateBuySequence(
  *   "up":   close >= buyPrice * 1.01
  */
 export function checkSellCondition(
-  prevCandle: ProcessedCandle,
-  buyPrice:   number,
-  strategy:   ActiveStrategy
+  prevCandle:   ProcessedCandle,
+  buyPrice:     number,
+  strategy:     ActiveStrategy,
+  symbolParams?: SymbolParams
 ): boolean {
-  const mult = strategy === "up" ? 1.01 : 1.009;
+  const mult = strategy === "up"
+    ? (symbolParams?.upSell   ?? 1.04)
+    : (symbolParams?.downSell ?? 1.04);
   return prevCandle.close >= buyPrice * mult;
 }

@@ -10,7 +10,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ── Candle tables ──────────────────────────────────────────────────────────
+// ── Candle tables (single-symbol, legacy BTC only) ────────────────────────
 
 model Candle1s {
   openTime    BigInt  @id
@@ -26,8 +26,8 @@ model Candle1s {
   trix        Float?
   superTrend  Float?
   stDirection Int?
-  volAvg      Float?  // avg volume over last VOLUME_AVG_PERIOD candles
-  volRatio    Float?  // volume / volAvg — relative volume vs recent average
+  volAvg      Float?
+  volRatio    Float?
   @@map("candle_1s")
 }
 
@@ -88,6 +88,30 @@ model Candle1h {
   @@map("candle_1h")
 }
 
+// ── Multi-symbol candle table ─────────────────────────────────────────────
+// Stores 1m candles for all symbols used in multi-pair trading.
+// Primary key is (symbol, openTime) — each symbol has its own timeline.
+
+model SymbolCandle1m {
+  symbol      String
+  openTime    BigInt
+  open        Float
+  high        Float
+  low         Float
+  close       Float
+  volume      Float
+  ma20        Float?
+  ma99        Float?
+  bbUpper     Float?
+  bbLower     Float?
+  volAvg      Float?
+  volRatio    Float?
+
+  @@id([symbol, openTime])
+  @@index([symbol, openTime])
+  @@map("symbol_candle_1m")
+}
+
 // ── Live trading session ───────────────────────────────────────────────────
 
 model LiveSession {
@@ -107,6 +131,8 @@ model LiveTrade {
   id           Int      @id @default(autoincrement())
   sessionId    Int
   session      LiveSession @relation(fields: [sessionId], references: [id])
+
+  symbol       String   @default("BTCUSDT")
 
   buyTime      DateTime
   buyPrice     Float
