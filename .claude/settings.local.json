@@ -21,7 +21,9 @@
       "Bash(grep -n '\\\\${API}/api' client/src/App.tsx)",
       "Bash(grep -n '${API}/' client/src/App.tsx)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git commit -m 'Add client/.gitignore to exclude .env.local from Docker build *)",
+      "Bash(gh run *)"
     ]
   }
 }
