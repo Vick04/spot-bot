@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import type { Status, Trade, WatchlistItem, BotConfig } from "./types";
 
 // ── Constants ────────────────────────────────────────────────────────────
@@ -177,11 +177,14 @@ export default function App() {
     `${API}/watchlist`, 5000, []
   );
 
-  // Merge watchlist with real-time prices from WebSocket
-  const watchlist: WatchlistItem[] = watchlistSymbols.map(w => ({
-    ...w,
-    lastPrice: ws.prices.get(w.symbol) ?? w.lastPrice,
-  }));
+  // Merge watchlist with real-time prices from WebSocket (memoized to prevent infinite loops)
+  const watchlist = useMemo(
+    () => watchlistSymbols.map(w => ({
+      ...w,
+      lastPrice: ws.prices.get(w.symbol) ?? w.lastPrice,
+    })),
+    [watchlistSymbols, ws.prices]
+  );
 
   // Use WebSocket config if available, otherwise use REST config
   const currentConfig = ws.config ?? status.config;
@@ -191,18 +194,23 @@ export default function App() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [tradeErr, setTradeErr] = useState(false);
 
-  const loadTrades = useCallback((p: number) => {
-    fetch(`${API}/trades?page=${p}&limit=${PAGE_LIMIT}`)
-      .then(r => r.json())
-      .then((d: Trade[]) => { setTrades(d); setTradeErr(false); })
-      .catch(() => setTradeErr(true));
-  }, []);
-
-  useEffect(() => { loadTrades(page); }, [loadTrades, page]);
+  // Load trades on page change and set up polling interval
   useEffect(() => {
-    const id = setInterval(() => loadTrades(page), POLL_TRADES);
+    const loadPage = async () => {
+      try {
+        const r = await fetch(`${API}/trades?page=${page}&limit=${PAGE_LIMIT}`);
+        const d: Trade[] = await r.json();
+        setTrades(d);
+        setTradeErr(false);
+      } catch {
+        setTradeErr(true);
+      }
+    };
+
+    loadPage(); // Load immediately
+    const id = setInterval(loadPage, POLL_TRADES); // Poll periodically
     return () => clearInterval(id);
-  }, [loadTrades, page]);
+  }, [page]);
 
   // Config editing
   const [configEditOpen, setConfigEditOpen] = useState(false);
