@@ -6,7 +6,7 @@
 import { prisma }           from "../db/prismaClient";
 import { fetchAllKlines }   from "./binanceFetcher";
 import { processCandles }   from "../processors/candleProcessor";
-import { MULTI_SYMBOLS, START_TS, END_TS, Timeframe } from "../config/constants";
+import { MULTI_SYMBOLS, Timeframe } from "../config/constants";
 
 const BATCH_SIZE = 1000;
 
@@ -15,9 +15,9 @@ const BATCH_SIZE = 1000;
  * Skips candles already in the DB (skipDuplicates).
  */
 export async function fetchSymbol(
-  symbol:   string,
-  startMs:  number = START_TS,
-  endMs:    number = END_TS,
+  symbol:      string,
+  startMs:     number,
+  endMs:       number,
   onProgress?: (symbol: string, count: number) => void
 ): Promise<void> {
   console.log(`[${symbol}] Fetching 1m candles...`);
@@ -65,8 +65,8 @@ export async function fetchSymbol(
  * Used by npm run dev:multi to populate the DB for simulation.
  */
 export async function fetchAllSymbols(
-  startMs: number = START_TS,
-  endMs:   number = END_TS,
+  startMs: number,
+  endMs:   number,
   parallel = false
 ): Promise<void> {
   console.log(`Fetching ${MULTI_SYMBOLS.length} symbols from ${new Date(startMs).toISOString()} to ${new Date(endMs).toISOString()}`);

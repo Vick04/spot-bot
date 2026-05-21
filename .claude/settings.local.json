@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx ts-node -e ' *)",
+      "Bash(npx prisma *)",
+      "Bash(curl -s http://localhost:5555/api/schema)",
+      "Bash(kill %1)",
+      "Bash(npx vite *)",
+      "mcp__filesystem__create_directory",
+      "Bash(grep -E \"\\\\.ts$\")",
+      "Bash(npm run *)",
+      "Bash(cat C:\\\\\\\\Users\\\\\\\\ADMINI~1\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\C--Projects-spot-bot\\\\\\\\9daac4c1-9674-4be4-9515-010e83c0ff0e\\\\\\\\tasks\\\\\\\\bh0cuor1k.output)",
+      "Bash(tee /tmp/live-api-test.log)",
+      "Bash(psql \"postgresql://spotbot_user:spotbot_pass@localhost:5432/spotbot\" -c \"SELECT * FROM bot_config;\")",
+      "Bash(curl -s http://localhost:5555/api/botConfig.json)",
+      "Bash(npx ts-node *)",
+      "Bash(curl -s http://localhost:3131/api/status)",
+      "Bash(chmod +x /c/Projects/spot-bot/scripts/setup-digitalocean.sh)",
+      "Bash(cat)",
+      "Read(//tmp/**)"
+    ]
+  }
+}

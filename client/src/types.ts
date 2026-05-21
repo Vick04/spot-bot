@@ -1,31 +1,62 @@
+export interface SymbolParams {
+  downCond2: number;
+  upCond2: number;
+  downSell: number;
+  upSell: number;
+}
+
+export interface WatchlistItem {
+  symbol: string;
+  params: SymbolParams;
+  lastPrice: number | null;
+  active: boolean;
+}
+
+export interface BotConfig {
+  UP_MAX_STREAK: number;
+  DAILY_MAX_TRADES: number;
+  DAILY_MAX_PNL_PCT: number;
+  FEE_RATE: number;
+  INITIAL_BALANCE_USDT: number;
+}
+
+export interface DailyStats {
+  day: string;
+  trades: number;
+  pnlPct: number;
+}
+
+export interface ActiveTrade {
+  symbol: string;
+  buyPrice: number;
+  buyTime: number;
+  usdtSpent: number;
+  currentPrice: number | null;
+  strategy: "up" | "down" | null;
+  sellTarget: number;
+  sellMult: number;
+  pnlUsd: number | null;
+  pnlPct: number | null;
+}
+
 export interface Status {
   running: boolean;
-  session?: {
-    id: number;
-    startedAt: string;
-    endedAt: string | null;
-    initialBalance: number;
-    currentBalance: number;
-    feeRate: number;
-  };
-  stats?: {
-    totalTrades: number;
-    openPosition: boolean;
-    winRate: number;
+  sessionId: number;
+  balance: number;
+  dailyStats: DailyStats;
+  activeTrade: ActiveTrade | null;
+  stats: {
+    totalClosedTrades: number;
     totalPnl: number;
-    totalFees: number;
+    winRate: number;
   };
-  openPosition?: {
-    buyTime: string;
-    buyPrice: number;
-    usdtSpent: number;
-    btcNet: number;
-  } | null;
+  config: BotConfig;
 }
 
 export interface Trade {
   id: number;
   sessionId: number;
+  symbol: string;
   buyTime: string;
   buyPrice: number;
   usdtSpent: number;

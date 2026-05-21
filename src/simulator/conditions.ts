@@ -5,8 +5,6 @@
 import { ProcessedCandle } from "../processors/candleProcessor";
 import { SymbolParams }    from "../config/constants";
 
-// ── Warm-up guard ─────────────────────────────────────────────────────────
-
 function hasIndicators(c: ProcessedCandle): boolean {
   return c.ma20 !== null && c.ma99 !== null;
 }
@@ -37,38 +35,28 @@ export function initialBuyState(): BuySequenceState {
 
 /**
  * Maximum consecutive "up" trades before up is disabled.
- * Resets to 0 when:
- *   - A "down" trade executes, OR
- *   - close < ma99 (price left the UP zone)
+ * Resets to 0 when a down trade executes OR bbLower < ma99.
  */
-export const UP_MAX_STREAK = 3;
-
-// ── Volume filter thresholds (cond3) ────────────────────────────────
-// DOWN: high volume = capitulation = good entry signal
-export const DOWN_COND2_MIN_VOL_RATIO = 2;
-
-// UP: moderate volume preferred — too high may indicate distribution
-export const UP_COND2_MIN_VOL_RATIO = 3;
-export const UP_COND2_MAX_VOL_RATIO = 3.0;
+export const UP_MAX_STREAK = 1;
 
 /**
  * Two fully independent strategies evaluated simultaneously.
  *
  * STRATEGY "down" (no limits):
  *   Cond1: ma20 < ma99 AND bbLower < ma99 AND bbUpper < ma99
- *   Cond2: close < ma99 * 0.97
- *   Sell:  close >= buyPrice * 1.009
+ *   Cond2: close < ma99 * symbolParams.downCond2
+ *   Sell:  close >= buyPrice * symbolParams.downSell
  *
  * STRATEGY "up" (disabled when upStreak >= UP_MAX_STREAK):
- *   Cond1: ma20 > ma99 AND bbUpper > ma99
- *   Cond2: close > ma99 * 1.02
- *   Sell:  close >= buyPrice * 1.01
+ *   Cond1: ma20 > ma99 AND bbLower > ma99 AND bbUpper > ma99
+ *   Cond2: close > ma99 * symbolParams.upCond2
+ *   Sell:  close >= buyPrice * symbolParams.upSell
  */
 export function evaluateBuySequence(
-  prevCandle:   ProcessedCandle,
-  state:        BuySequenceState,
-  usdtBalance:  number,
-  inTrade:      boolean,
+  prevCandle:    ProcessedCandle,
+  state:         BuySequenceState,
+  usdtBalance:   number,
+  inTrade:       boolean,
   symbolParams?: SymbolParams
 ): { state: BuySequenceState; signal: boolean; activeStrategy: ActiveStrategy } {
   const noSignal = { state, signal: false, activeStrategy: null as ActiveStrategy };
@@ -80,15 +68,14 @@ export function evaluateBuySequence(
   const ma20    = prevCandle.ma20    as number;
   const ma99    = prevCandle.ma99    as number;
 
-  // Use per-symbol thresholds if provided, otherwise use module-level constants
   const downThr = symbolParams?.downCond2 ?? 0.98;
   const upThr   = symbolParams?.upCond2   ?? 1.018;
 
   const down = { ...state.down };
   const up   = { ...state.up };
-  let   upStreak = state.upStreak;
+  let upStreak = state.upStreak;
 
-  // upStreak reset: if close drops below ma99, market left the UP zone
+  // upStreak reset: price left the UP zone
   if (upStreak > 0 && bbLower < ma99) {
     upStreak = 0;
   }
@@ -104,7 +91,7 @@ export function evaluateBuySequence(
   // Strategy "up" — disabled when upStreak >= UP_MAX_STREAK
   if (upStreak < UP_MAX_STREAK) {
     if (!up.cond1Met) {
-      if (bbUpper > ma99 && bbLower > ma99 && ma20 > ma99) up.cond1Met = true;
+      if (ma20 > ma99 && bbLower > ma99 && bbUpper > ma99) up.cond1Met = true;
     }
     if (up.cond1Met && !up.cond2Met) {
       if (close > ma99 * upThr) up.cond2Met = true;
@@ -128,18 +115,17 @@ export function evaluateBuySequence(
 // ── Exit condition ────────────────────────────────────────────────────────
 
 /**
- * SELL signal:
- *   "down": close >= buyPrice * 1.009
- *   "up":   close >= buyPrice * 1.01
+ * SELL signal — uses per-symbol thresholds from symbolParams.
+ * Falls back to DEFAULT_SYMBOL_PARAMS values if not provided.
  */
 export function checkSellCondition(
-  prevCandle:   ProcessedCandle,
-  buyPrice:     number,
-  strategy:     ActiveStrategy,
+  prevCandle:    ProcessedCandle,
+  buyPrice:      number,
+  strategy:      ActiveStrategy,
   symbolParams?: SymbolParams
 ): boolean {
   const mult = strategy === "up"
-    ? (symbolParams?.upSell   ?? 1.04)
-    : (symbolParams?.downSell ?? 1.04);
+    ? (symbolParams?.upSell   ?? 1.010)
+    : (symbolParams?.downSell ?? 1.009);
   return prevCandle.close >= buyPrice * mult;
 }

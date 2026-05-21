@@ -112,6 +112,27 @@ model SymbolCandle1m {
   @@map("symbol_candle_1m")
 }
 
+// ── Bot configuration (key/value) ─────────────────────────────────────────
+// Keys: UP_MAX_STREAK, DAILY_MAX_TRADES, DAILY_MAX_PNL_PCT,
+//       STOP_LOSS_PCT, FEE_RATE, INITIAL_BALANCE_USDT
+
+model BotConfig {
+  key   String @id
+  value String
+  @@map("bot_config")
+}
+
+// ── Watchlist — active symbols ─────────────────────────────────────────────
+// params is a JSON object matching SymbolParams
+// { downCond2, upCond2, downSell, upSell }
+
+model Watchlist {
+  symbol String  @id
+  params Json
+  active Boolean @default(true)
+  @@map("watchlist")
+}
+
 // ── Live trading session ───────────────────────────────────────────────────
 
 model LiveSession {

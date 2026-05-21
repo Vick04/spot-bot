@@ -26,6 +26,7 @@ export interface ProcessedCandle {
   low:         number;
   close:       number;
   volume:      number;
+  closeTime:   number;
   ma20:        number | null;
   ma99:        number | null;
   bbUpper:     number | null;
@@ -66,6 +67,7 @@ export function processCandles(raw: RawKline[]): ProcessedCandle[] {
       low:         k.low,
       close:       k.close,
       volume:      k.volume,
+      closeTime:   k.closeTime,
       ma20:        nanToNull(ma20[i]),
       ma99:        nanToNull(ma99[i]),
       bbUpper:     nanToNull(bb.upper[i]),

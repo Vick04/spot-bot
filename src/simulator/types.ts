@@ -12,12 +12,6 @@ export interface WalletState {
   inTrade: boolean;
 }
 
-export interface CandleContext {
-  candle1m:  ProcessedCandle;
-  candle15m: ProcessedCandle;
-  candle1h:  ProcessedCandle;
-}
-
 export interface BuyOrder {
   type:         "BUY";
   openTime:     number;

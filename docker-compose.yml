@@ -31,7 +31,7 @@ services:
       postgres:
         condition: service_healthy
 
-  # -- Live trading bot
+  # -- Live trading bot (WebSocket engine without API)
   live:
     build: .
     container_name: spotbot_live
@@ -39,14 +39,16 @@ services:
     environment:
       DATABASE_URL: postgresql://spotbot_user:spotbot_pass@postgres:5432/spotbot
       NODE_ENV: production
-    command: ["node", "dist/live.js"]
+      BINANCE_API_KEY: ${BINANCE_API_KEY:-}
+      BINANCE_API_SECRET: ${BINANCE_API_SECRET:-}
+    command: ["node", "dist/entries/live.js"]
     depends_on:
       migrate:
         condition: service_completed_successfully
     stop_signal: SIGTERM
     stop_grace_period: 15s
 
-  # -- API
+  # -- API Server (REST + WebSocket)
   api:
     build: .
     container_name: spotbot_api
@@ -55,7 +57,7 @@ services:
       DATABASE_URL: postgresql://spotbot_user:spotbot_pass@postgres:5432/spotbot
       NODE_ENV: production
       API_PORT: 3131
-    command: ["node", "dist/api/server.js"]
+    command: ["node", "dist/entries/api.js"]
     ports:
       - "3131:3131"
     depends_on:

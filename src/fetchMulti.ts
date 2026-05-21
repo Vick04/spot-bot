@@ -26,7 +26,9 @@ async function main() {
   }
 
   console.log("\nStarting fetch...");
-  await fetchAllSymbols();
+  const startMs = new Date("2026-04-18T00:00:00-03:00").getTime();
+  const endMs   = new Date("2026-05-20T23:50:59-03:00").getTime();
+  await fetchAllSymbols(startMs, endMs);
 
   console.log("\nDone. Final DB state:");
   for (const symbol of MULTI_SYMBOLS) {

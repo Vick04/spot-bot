@@ -1,20 +1,17 @@
 // ─────────────────────────────────────────────
 // src/live/types.ts
-// Types exclusive to the live trading engine
 // ─────────────────────────────────────────────
 
-/** A single OHLCV candle as received from the WebSocket */
 export interface LiveCandle {
-  openTime:  number; // UTC ms
+  openTime:  number;
   open:      number;
   high:      number;
   low:       number;
   close:     number;
   volume:    number;
-  isClosed:  boolean; // true = candle fully closed, safe to use
+  isClosed:  boolean;
 }
 
-/** Fully enriched candle with all indicators computed */
 export interface LiveProcessedCandle {
   openTime:    number;
   open:        number;
@@ -33,24 +30,16 @@ export interface LiveProcessedCandle {
   volRatio:    number | null;
 }
 
-/** The three aligned candles available at any given 1h tick */
-export interface LiveCandleContext {
-  candle1m:  LiveProcessedCandle;
-  candle15m: LiveProcessedCandle;
-  candle1h:  LiveProcessedCandle;
-}
-
-/** Live wallet — persisted across ticks via liveExecutor */
 export interface LiveWallet {
   usdt:    number;
   btc:     number;
   inTrade: boolean;
 }
 
-/** Open position tracking */
 export interface OpenPosition {
-  liveTradeId: number;  // DB row id for update on sell
-  buyTime:     number;  // UTC ms
+  liveTradeId: number;
+  symbol:      string;
+  buyTime:     number;
   buyPrice:    number;
   usdtSpent:   number;
   btcNet:      number;

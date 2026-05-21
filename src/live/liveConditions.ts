@@ -2,19 +2,19 @@
 // src/live/liveConditions.ts
 // ─────────────────────────────────────────────
 
-import { LiveCandleContext, OpenPosition } from "./types";
+import { OpenPosition }  from "./types";
 import { ActiveStrategy } from "../simulator/conditions";
+import { getSymbolParams } from "../config/constants";
 
 /**
- * SELL signal — mirrors checkSellCondition from simulator/conditions.ts.
- * "down": close >= buyPrice * 1.009
- * "up":   close >= buyPrice * 1.01
+ * SELL signal — uses per-symbol thresholds from SymbolParams.
  */
 export function liveCheckSell(
-  ctx:      LiveCandleContext,
+  close:    number,
   position: OpenPosition,
   strategy: ActiveStrategy
 ): boolean {
-  const mult = strategy === "up" ? 1.01 : 1.009;
-  return ctx.candle1m.close >= position.buyPrice * mult;
+  const params = getSymbolParams(position.symbol);
+  const mult   = strategy === "up" ? params.upSell : params.downSell;
+  return close >= position.buyPrice * mult;
 }
