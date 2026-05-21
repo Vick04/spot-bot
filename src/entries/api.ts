@@ -515,7 +515,7 @@ app.get("/api/health", (_req, res) => {
 // ── WebSocket Server ───────────────────────────────────────────────────────
 
 const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ server, path: "/api/" });
 
 wss.on("connection", (ws: WebSocket) => {
   wsClients.add(ws);
