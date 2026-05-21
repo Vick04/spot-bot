@@ -19,7 +19,9 @@
       "Bash(cat)",
       "Read(//tmp/**)",
       "Bash(grep -n '\\\\${API}/api' client/src/App.tsx)",
-      "Bash(grep -n '${API}/' client/src/App.tsx)"
+      "Bash(grep -n '${API}/' client/src/App.tsx)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
