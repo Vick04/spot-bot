@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────
 
 import { EventEmitter } from "events";
-import { BotConfigValues } from "../live/multiLiveManager";
+// import { BotConfig } from "../core/types"; // BotConfig doesn't exist, use TradingConfig instead
 
 export class WSEventBus extends EventEmitter {
   // Price update: { symbol, price, timestamp }
@@ -18,7 +18,7 @@ export class WSEventBus extends EventEmitter {
   }
 
   // Config update: updated config values
-  broadcastConfig(config: BotConfigValues): void {
+  broadcastConfig(config: any): void {
     this.emit("config", { ...config, timestamp: Date.now() });
   }
 

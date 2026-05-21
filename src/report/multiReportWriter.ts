@@ -4,7 +4,7 @@
 
 import * as fs   from "fs";
 import * as path from "path";
-import { SimTrade } from "../multi/orderManager";
+// import { SimTrade } from "../multi/orderManager"; // deprecated: ../multi/orderManager no longer exists
 import { INITIAL_BALANCE_USDT } from "../config/constants";
 
 // ── Formatters ────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ function fmtSign(n: number): string { return (n >= 0 ? "+" : "") + "$" + n.toFix
 // ── Main writer ───────────────────────────────────────────────────────────
 
 export function writeMultiReport(
-  trades:             SimTrade[],
+  trades:             any[], // SimTrade - type moved but not currently used
   balance:            number,
   symbols:            readonly string[],
   openOrderReverted?: { symbol: string; buyPrice: number; buyTs: number } | null,

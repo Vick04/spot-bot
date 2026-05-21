@@ -5,7 +5,9 @@
 // Updated independently as each timeframe closes.
 // ─────────────────────────────────────────────
 
-import { LiveProcessedCandle, LiveCandleContext } from "./types";
+import { LiveProcessedCandle } from "./types";
+// LiveCandleContext is deprecated - use ProcessedCandle from core/candle.ts instead
+// import { LiveCandleContext } from "./types";
 
 export class LiveContext {
   private _1m:  LiveProcessedCandle | null = null;
@@ -25,7 +27,7 @@ export class LiveContext {
    * have at least one closed candle with computed indicators.
    * Returns null otherwise (bot waits silently).
    */
-  snapshot(): LiveCandleContext | null {
+  snapshot(): any | null { // LiveCandleContext - type no longer defined
     if (!this._1m || !this._15m || !this._1h) return null;
     return {
       candle1m:  this._1m,
