@@ -31,38 +31,26 @@ services:
       postgres:
         condition: service_healthy
 
-  # -- Live trading bot (WebSocket engine without API)
-  live:
+  # -- Unified Live Trading Bot + API Server
+  # Single container that runs both live engine and API server
+  bot:
     build: .
-    container_name: spotbot_live
+    container_name: spotbot_bot
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://spotbot_user:spotbot_pass@postgres:5432/spotbot
       NODE_ENV: production
       BINANCE_API_KEY: ${BINANCE_API_KEY:-}
       BINANCE_API_SECRET: ${BINANCE_API_SECRET:-}
-    command: ["node", "dist/entries/live.js"]
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    stop_signal: SIGTERM
-    stop_grace_period: 15s
-
-  # -- API Server (REST + WebSocket)
-  api:
-    build: .
-    container_name: spotbot_api
-    restart: unless-stopped
-    environment:
-      DATABASE_URL: postgresql://spotbot_user:spotbot_pass@postgres:5432/spotbot
-      NODE_ENV: production
       API_PORT: 3131
-    command: ["node", "dist/entries/api.js"]
+    command: ["node", "dist/entries/unified.js"]
     ports:
       - "3131:3131"
     depends_on:
       migrate:
         condition: service_completed_successfully
+    stop_signal: SIGTERM
+    stop_grace_period: 15s
 
   # -- React client (Bun + Vite + Tailwind → Nginx)
   client:

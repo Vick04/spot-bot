@@ -23,7 +23,10 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git commit -m 'Add client/.gitignore to exclude .env.local from Docker build *)",
-      "Bash(gh run *)"
+      "Bash(gh run *)",
+      "Bash(find ~/.ssh -name \"deploy_key*\" -o -name \"id_*\" 2>/dev/null | head -5)",
+      "Bash(ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no root@139.59.114.2 'docker logs spotbot_live --tail 30')",
+      "Bash(git commit -m 'Unify live trading bot and API server into single container *)"
     ]
   }
 }
