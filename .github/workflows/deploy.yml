@@ -32,13 +32,12 @@ jobs:
                cd /opt/spot-bot
                git pull origin main
 
-               # Create .env file with API URL for client build
-               cat > .env.client << EOF
+               # Create .env file with VITE_API_URL for docker-compose
+               cat > .env << EOF
                VITE_API_URL=${{ secrets.VITE_API_URL }}
                EOF
 
-               # Build with environment variable
-               export VITE_API_URL=${{ secrets.VITE_API_URL }}
+               # docker-compose will read VITE_API_URL from .env file
                docker compose up -d --build
                docker image prune -f
                echo "Deploy complete"'
