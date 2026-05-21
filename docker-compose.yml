@@ -66,7 +66,10 @@ services:
 
   # -- React client (Bun + Vite + Tailwind → Nginx)
   client:
-    build: ./client
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3131/api}
     container_name: spotbot_client
     restart: unless-stopped
     ports:
