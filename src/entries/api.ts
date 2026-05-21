@@ -512,6 +512,16 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, running: manager?.isRunning ?? false });
 });
 
+// Catch-all for /api requests that aren't WebSocket upgrades
+// This allows WebSocket.Server to intercept upgrade requests
+app.all("/api", (_req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
+
+app.all("/api/*", (_req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
+
 // ── WebSocket Server ───────────────────────────────────────────────────────
 
 const server = http.createServer(app);
