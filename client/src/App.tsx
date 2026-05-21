@@ -2,8 +2,18 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import type { Status, Trade, WatchlistItem, BotConfig } from "./types";
 
 // ── Constants ────────────────────────────────────────────────────────────
-const API = import.meta.env.VITE_API_URL ?? "http://localhost:3131";
-const WS_URL = API.replace("http", "ws");
+// API URL: use env var or default to /api (proxied by Nginx)
+const API = import.meta.env.VITE_API_URL ?? "/api";
+
+// WebSocket URL: convert http(s) to ws(s), or if relative path, build from current origin
+const WS_URL = (() => {
+  if (API.startsWith("http")) {
+    return API.replace(/^https/, "wss").replace(/^http/, "ws");
+  }
+  // For relative paths like "/api", construct full WebSocket URL from current origin
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  return `${protocol}://${window.location.host}${API}`;
+})();
 const POLL_STATUS = 5000;   // Poll status less frequently (REST)
 const POLL_TRADES = 15000;  // Poll trades even less frequently
 const PAGE_LIMIT = 20;
@@ -145,7 +155,7 @@ export default function App() {
 
   // Status & config (REST polling, less frequent)
   const { data: status, err: statusErr } = usePoll<Status>(
-    `${API}/api/status`, POLL_STATUS, {
+    `${API}/status`, POLL_STATUS, {
       running: false,
       sessionId: 0,
       balance: 0,
@@ -164,7 +174,7 @@ export default function App() {
 
   // Watchlist symbols (REST polling)
   const { data: watchlistSymbols, err: watchlistErr } = usePoll<WatchlistItem[]>(
-    `${API}/api/watchlist`, 5000, []
+    `${API}/watchlist`, 5000, []
   );
 
   // Merge watchlist with real-time prices from WebSocket
@@ -182,7 +192,7 @@ export default function App() {
   const [tradeErr, setTradeErr] = useState(false);
 
   const loadTrades = useCallback((p: number) => {
-    fetch(`${API}/api/trades?page=${p}&limit=${PAGE_LIMIT}`)
+    fetch(`${API}/trades?page=${p}&limit=${PAGE_LIMIT}`)
       .then(r => r.json())
       .then((d: Trade[]) => { setTrades(d); setTradeErr(false); })
       .catch(() => setTradeErr(true));
@@ -226,7 +236,7 @@ export default function App() {
     if (!configEdit) return;
     setConfigSaving(true);
     try {
-      await fetch(`${API}/api/config`, {
+      await fetch(`${API}/config`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(configEdit),
@@ -242,7 +252,7 @@ export default function App() {
     setWatchlistSaving(true);
     try {
       for (const symbol in watchlistEdit) {
-        await fetch(`${API}/api/watchlist/${symbol}/params`, {
+        await fetch(`${API}/watchlist/${symbol}/params`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(watchlistEdit[symbol]),
