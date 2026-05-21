@@ -17,7 +17,9 @@
       "Bash(curl -s http://localhost:3131/api/status)",
       "Bash(chmod +x /c/Projects/spot-bot/scripts/setup-digitalocean.sh)",
       "Bash(cat)",
-      "Read(//tmp/**)"
+      "Read(//tmp/**)",
+      "Bash(grep -n '\\\\${API}/api' client/src/App.tsx)",
+      "Bash(grep -n '${API}/' client/src/App.tsx)"
     ]
   }
 }
