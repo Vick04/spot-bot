@@ -194,7 +194,7 @@ class GainersManager extends EventEmitter {
     }
 
     const buyPrice = observer.currentPrice;
-    const quantity = this._executeBuyOrder(symbol, buyPrice, "BUY-UP");
+    const quantity = this._executeBuyOrder(symbol, buyPrice, "BUY-UP", observer);
 
     if (quantity > 0) {
       const signalData = {
@@ -230,7 +230,7 @@ class GainersManager extends EventEmitter {
     }
 
     const buyPrice = observer.currentPrice;
-    const quantity = this._executeBuyOrder(symbol, buyPrice, "BUY-DOWN");
+    const quantity = this._executeBuyOrder(symbol, buyPrice, "BUY-DOWN", observer);
 
     if (quantity > 0) {
       const signalData = {
@@ -259,7 +259,7 @@ class GainersManager extends EventEmitter {
    * Applies 0.1% fee on BTC received
    * @private
    */
-  _executeBuyOrder(symbol, buyPrice, signalType) {
+  _executeBuyOrder(symbol, buyPrice, signalType, observer) {
     if (this.tradingState.balance <= 0) {
       console.warn(`[GainersManager] ❌ Cannot buy ${symbol} - Insufficient balance`);
       return 0;
@@ -279,8 +279,7 @@ class GainersManager extends EventEmitter {
     candleObserver.signalType = signalType;
 
     // Store reference to the CryptoObserver (1m buffer) for monitoring sell conditions
-    const cryptoObserver = observer;
-    candleObserver.cryptoObserver = cryptoObserver;
+    candleObserver.cryptoObserver = observer;
 
     // Listen for sell completion
     candleObserver.on("sell", (sellInfo) => {

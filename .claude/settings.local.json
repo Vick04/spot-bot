@@ -87,7 +87,9 @@
       "Bash(Get-Process node *)",
       "Bash(Select-Object ProcessName, Id, Handles)",
       "Bash(curl -s http://localhost:4445/api/trading/state)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git push *)",
+      "Bash(git commit *)"
     ]
   }
 }
