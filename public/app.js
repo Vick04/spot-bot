@@ -80,6 +80,9 @@ class GainersDashboard {
       case "order-progress":
         this.updateOrderProgress(message.position, message.timestamp);
         break;
+      case "order-closed":
+        this.handleOrderClosed(message);
+        break;
       default:
         console.log("[Dashboard] Unknown message type:", message.type);
     }
@@ -361,6 +364,27 @@ class GainersDashboard {
 
     document.getElementById("orderTimeInTrade").textContent =
       position.timeInTrade ? position.timeInTrade + " min" : "-";
+  }
+
+  // ── Order Closed Handler ───────────────────────────────────────────
+  handleOrderClosed(message) {
+    console.log("[Dashboard] Order closed event received:", message.order);
+
+    // Update trading state with new balance and stats
+    if (message.tradingState) {
+      this.updateTradingStatus(message.tradingState);
+    }
+
+    // Hide order in progress section
+    const section = document.getElementById("orderProgressSection");
+    if (section) {
+      section.style.display = "none";
+    }
+
+    // Clear position from tradingState
+    this.tradingState.activeCandleObserver = null;
+
+    console.log(`[Dashboard] ✅ Order closed - New Balance: $${this.tradingState.balance.toFixed(2)}`);
   }
 }
 

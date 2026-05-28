@@ -89,7 +89,12 @@
       "Bash(curl -s http://localhost:4445/api/trading/state)",
       "Bash(git add *)",
       "Bash(git push *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(pkill -9 -f \"node\")",
+      "Bash(killall -9 node)",
+      "Bash(curl -s --connect-timeout 2 http://localhost:4445/api/health)",
+      "Bash(lsof -ti:4445)",
+      "Bash(curl -s --connect-timeout 1 http://localhost:4445/api/health)"
     ]
   }
 }
