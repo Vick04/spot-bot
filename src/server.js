@@ -136,6 +136,40 @@ binanceWS.on("candle", (candle) => {
     quoteAssetVolume: candle.quoteAssetVolume,
   });
 
+  // Broadcast order in progress updates (real-time position updates)
+  if (gainersManager.tradingState.activeCandleObserver &&
+      gainersManager.tradingState.activeCandleObserver.symbol === candle.symbol) {
+    const position = gainersManager.tradingState.activeCandleObserver;
+    const observer = gainersManager.observers.get(candle.symbol);
+
+    if (observer && position) {
+      const sellTarget = position.buyPrice * 1.005;
+      const currentPrice = observer.currentPrice;
+      const pnlValue = (currentPrice - position.buyPrice) * position.quantity;
+      const pnlPercent = ((currentPrice - position.buyPrice) / position.buyPrice) * 100;
+      const timeInTrade = Math.floor((Date.now() - new Date(position.buyTime).getTime()) / 1000 / 60);
+      const progressPercent = ((currentPrice - position.buyPrice) / (sellTarget - position.buyPrice)) * 100;
+
+      broadcastEvent({
+        type: "order-progress",
+        position: {
+          symbol: position.symbol,
+          buyPrice: position.buyPrice,
+          currentPrice: currentPrice,
+          quantity: position.quantity,
+          sellTarget: sellTarget,
+          pnlValue: pnlValue,
+          pnlPercent: pnlPercent,
+          timeInTrade: timeInTrade,
+          progressPercent: Math.min(Math.max(progressPercent, 0), 100),
+          priceGapToTarget: sellTarget - currentPrice,
+          buyTime: position.buyTime,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
   // Broadcast updated top gainers and trading state to all WebSocket clients
   if (candleCount % 10 === 0) {
     const gainersToSend = gainersManager.getTop1hGainers(10).map(gainer => {

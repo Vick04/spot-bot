@@ -47,42 +47,64 @@
       </div>
     </section>
 
-    <!-- Current Position -->
-    <section class="position-section" id="positionSection" style="display: none;">
-      <h2>📍 Current Position</h2>
-      <div class="position-details" id="positionDetails">
-        <div class="position-grid">
-          <div class="position-item">
-            <span class="position-label">Symbol:</span>
-            <span class="position-value" id="posSymbol">-</span>
+    <!-- Order in Progress -->
+    <section class="order-progress-section" id="orderProgressSection" style="display: none;">
+      <h2>⏳ Order in Progress</h2>
+      <div class="order-progress-card">
+        <!-- Symbol and Status -->
+        <div class="order-header">
+          <div class="order-symbol" id="orderSymbol">-</div>
+          <div class="order-status" id="orderStatus">WAITING</div>
+        </div>
+
+        <!-- Price Info -->
+        <div class="order-prices">
+          <div class="price-row">
+            <span class="price-label">Buy Price:</span>
+            <span class="price-value" id="orderBuyPrice">-</span>
           </div>
-          <div class="position-item">
-            <span class="position-label">Buy Price:</span>
-            <span class="position-value" id="posBuyPrice">-</span>
+          <div class="price-row">
+            <span class="price-label">Current Price:</span>
+            <span class="price-value highlight" id="orderCurrentPrice">-</span>
           </div>
-          <div class="position-item">
-            <span class="position-label">Current Price:</span>
-            <span class="position-value" id="posCurrentPrice">-</span>
+          <div class="price-row">
+            <span class="price-label">Sell Target:</span>
+            <span class="price-value target" id="orderSellTarget">-</span>
           </div>
-          <div class="position-item">
-            <span class="position-label">Quantity:</span>
-            <span class="position-value" id="posQuantity">-</span>
+          <div class="price-row">
+            <span class="price-label">Gap to Target:</span>
+            <span class="price-value" id="orderGapToTarget">-</span>
           </div>
-          <div class="position-item">
-            <span class="position-label">Sell Target:</span>
-            <span class="position-value" id="posSellTarget">-</span>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-section">
+          <div class="progress-label">
+            <span>Progress to Target:</span>
+            <span class="progress-percent" id="orderProgressPercent">0%</span>
           </div>
-          <div class="position-item">
-            <span class="position-label">P&L:</span>
-            <span class="position-value" id="posPnL">-</span>
+          <div class="progress-bar">
+            <div class="progress-fill" id="orderProgressFill" style="width: 0%"></div>
           </div>
-          <div class="position-item">
-            <span class="position-label">Buy Time:</span>
-            <span class="position-value" id="posBuyTime">-</span>
+        </div>
+
+        <!-- P&L Info -->
+        <div class="pnl-section">
+          <div class="pnl-item">
+            <span class="pnl-label">P&L Value:</span>
+            <span class="pnl-value" id="orderPnLValue">-</span>
           </div>
-          <div class="position-item">
-            <span class="position-label">Time in Trade:</span>
-            <span class="position-value" id="posTimeInTrade">-</span>
+          <div class="pnl-item">
+            <span class="pnl-label">P&L Percent:</span>
+            <span class="pnl-value" id="orderPnLPercent">-</span>
+          </div>
+          <div class="pnl-item">
+            <span class="pnl-label">Quantity:</span>
+            <span class="pnl-value" id="orderQuantity">-</span>
+          </div>
+          <div class="pnl-item">
+            <span class="pnl-label">Time in Trade:</span>
+            <span class="pnl-value" id="orderTimeInTrade">-</span>
           </div>
         </div>
       </div>

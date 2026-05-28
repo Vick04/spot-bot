@@ -77,6 +77,9 @@ class GainersDashboard {
       case "trading-order":
         this.updateTradingOrder(message);
         break;
+      case "order-progress":
+        this.updateOrderProgress(message.position, message.timestamp);
+        break;
       default:
         console.log("[Dashboard] Unknown message type:", message.type);
     }
@@ -304,6 +307,60 @@ class GainersDashboard {
         element.textContent = value;
       }
     }
+  }
+
+  // ── Order Progress Updates (Real-time) ─────────────────────────────
+  updateOrderProgress(position, timestamp) {
+    const section = document.getElementById("orderProgressSection");
+
+    if (!position) {
+      if (section) section.style.display = "none";
+      return;
+    }
+
+    if (section) section.style.display = "block";
+
+    // Update symbol and status
+    document.getElementById("orderSymbol").textContent = position.symbol || "-";
+    document.getElementById("orderStatus").textContent = "IN PROGRESS";
+
+    // Update prices
+    document.getElementById("orderBuyPrice").textContent =
+      position.buyPrice ? `$${position.buyPrice.toFixed(8)}` : "-";
+
+    document.getElementById("orderCurrentPrice").textContent =
+      position.currentPrice ? `$${position.currentPrice.toFixed(8)}` : "-";
+
+    document.getElementById("orderSellTarget").textContent =
+      position.sellTarget ? `$${position.sellTarget.toFixed(8)}` : "-";
+
+    document.getElementById("orderGapToTarget").textContent =
+      position.priceGapToTarget ? `$${position.priceGapToTarget.toFixed(8)}` : "-";
+
+    // Update progress bar
+    const progressPercent = Math.min(Math.max(position.progressPercent || 0, 0), 100);
+    const progressFill = document.getElementById("orderProgressFill");
+    if (progressFill) {
+      progressFill.style.width = progressPercent + "%";
+    }
+
+    document.getElementById("orderProgressPercent").textContent =
+      progressPercent.toFixed(1) + "%";
+
+    // Update P&L info
+    const pnlColor = position.pnlValue >= 0 ? '#48bb78' : '#f56565';
+
+    document.getElementById("orderPnLValue").innerHTML =
+      `<span style="color: ${pnlColor}">$${position.pnlValue.toFixed(2)}</span>`;
+
+    document.getElementById("orderPnLPercent").innerHTML =
+      `<span style="color: ${pnlColor}">${position.pnlPercent >= 0 ? '+' : ''}${position.pnlPercent.toFixed(4)}%</span>`;
+
+    document.getElementById("orderQuantity").textContent =
+      position.quantity ? position.quantity.toFixed(8) : "-";
+
+    document.getElementById("orderTimeInTrade").textContent =
+      position.timeInTrade ? position.timeInTrade + " min" : "-";
   }
 }
 
