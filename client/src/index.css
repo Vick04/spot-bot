@@ -1,3 +1,26 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@layer components {
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+    animation: pulse 2s infinite;
+  }
+
+  .status-dot.disconnected {
+    @apply bg-red-500;
+    animation: none;
+  }
+
+  .status-dot.connected {
+    @apply bg-cyan-400;
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+}

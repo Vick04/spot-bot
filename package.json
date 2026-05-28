@@ -1,41 +1,30 @@
 {
-  "name": "bot7",
-  "version": "0.2.0",
-  "description": "BTC/USDT multi-timeframe candle data collector and simulator",
-  "main": "dist/index.js",
+  "name": "spot-bot",
+  "version": "1.1.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
-    "fetch:multi": "ts-node src/fetchMulti.ts",
-    "simulate": "ts-node src/entries/simulate.ts",
-    "simulate:multi": "ts-node src/entries/simulate.ts",
-    "live": "ts-node src/entries/live.ts",
-    "live:multi": "ts-node src/entries/live.ts",
-    "live:api": "ts-node src/entries/live.ts",
-    "api": "ts-node src/entries/api.ts",
-    "api:multi": "ts-node src/entries/api.ts",
-    "clean:candles": "ts-node src/cleanCandles.ts",
-    "migrate": "prisma db push --accept-data-loss",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push"
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "node test.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vick04/spot-bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Vick04/spot-bot/issues"
+  },
+  "homepage": "https://github.com/Vick04/spot-bot#readme",
   "dependencies": {
-    "@prisma/client": "^5.22.0",
-    "axios": "^1.7.7",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.1",
-    "prisma": "^5.22.0",
-    "ws": "^8.18.0"
-  },
-  "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.7.5",
-    "@types/ws": "^8.5.12",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.6.3"
+    "axios": "^1.16.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "ws": "^8.20.1"
   }
 }

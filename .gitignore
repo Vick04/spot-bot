@@ -1,5 +1,11 @@
 node_modules/
-dist/
 .env
-reports/
-*.sql.gz
+.env.local
+.env.*.local
+npm-debug.log
+*.log
+.DS_Store
+dist/
+build/
+.vscode/
+.idea/
