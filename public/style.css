@@ -88,6 +88,98 @@ body {
   color: var(--text-secondary);
 }
 
+/* Trading Status Section */
+.trading-status-section {
+  margin-bottom: 30px;
+}
+
+.trading-status-section h2 {
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.trading-status {
+  background-color: var(--bg-secondary);
+  border: 2px solid var(--info);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-value {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+}
+
+/* Position Section */
+.position-section {
+  margin-bottom: 30px;
+}
+
+.position-section h2 {
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.position-details {
+  background-color: var(--bg-secondary);
+  border: 2px solid var(--success);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.position-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.position-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.position-label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.position-value {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
 /* Gainers Section */
 .gainers-section {
   margin-bottom: 30px;

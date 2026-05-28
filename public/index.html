@@ -22,6 +22,72 @@
       </div>
     </header>
 
+    <!-- Trading Status -->
+    <section class="trading-status-section">
+      <h2>💰 Trading Status</h2>
+      <div class="trading-status" id="tradingStatus">
+        <div class="status-grid">
+          <div class="status-item">
+            <span class="status-label">Balance:</span>
+            <span class="status-value" id="balance">$0.00</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Active Position:</span>
+            <span class="status-value" id="activePosition">None</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Total Trades:</span>
+            <span class="status-value" id="totalTrades">0</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Total Profit:</span>
+            <span class="status-value" id="totalProfit">$0.00</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Current Position -->
+    <section class="position-section" id="positionSection" style="display: none;">
+      <h2>📍 Current Position</h2>
+      <div class="position-details" id="positionDetails">
+        <div class="position-grid">
+          <div class="position-item">
+            <span class="position-label">Symbol:</span>
+            <span class="position-value" id="posSymbol">-</span>
+          </div>
+          <div class="position-item">
+            <span class="position-label">Buy Price:</span>
+            <span class="position-value" id="posBuyPrice">-</span>
+          </div>
+          <div class="position-item">
+            <span class="position-label">Current Price:</span>
+            <span class="position-value" id="posCurrentPrice">-</span>
+          </div>
+          <div class="position-item">
+            <span class="position-label">Quantity:</span>
+            <span class="position-value" id="posQuantity">-</span>
+          </div>
+          <div class="position-item">
+            <span class="position-label">Sell Target:</span>
+            <span class="position-value" id="posSellTarget">-</span>
+          </div>
+          <div class="position-item">
+            <span class="position-label">P&L:</span>
+            <span class="position-value" id="posPnL">-</span>
+          </div>
+          <div class="position-item">
+            <span class="position-label">Buy Time:</span>
+            <span class="position-value" id="posBuyTime">-</span>
+          </div>
+          <div class="position-item">
+            <span class="position-label">Time in Trade:</span>
+            <span class="position-value" id="posTimeInTrade">-</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Top 10 Gainers -->
     <section class="gainers-section">
       <h2>🔝 Top 10 Gainers (Last Hour)</h2>

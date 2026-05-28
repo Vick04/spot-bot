@@ -5,7 +5,10 @@
 
 const { EventEmitter } = require("events");
 const CryptoObserver = require("./CryptoObserver");
+const CandleObserver = require("./CandleObserver");
 const { getAvailableSymbols } = require("./binanceAPI");
+
+const FEE = 0.001; // 0.1% fee
 
 class GainersManager extends EventEmitter {
   constructor() {
@@ -13,6 +16,25 @@ class GainersManager extends EventEmitter {
     this.observers = new Map(); // symbol -> CryptoObserver
     this._initialized = false;
     this._initializationPromise = null;
+
+    // Trading state
+    this.tradingState = {
+      balance: 10000, // Initial balance
+      activeCandleObserver: null, // Currently active position
+      completedOrders: [], // History of completed trades
+      stats: {
+        totalTrades: 0,
+        totalProfit: 0,
+        totalProfitPercent: 0,
+        winTrades: 0,
+        lossTrades: 0,
+        totalFees: 0,
+        avgProfitPercent: 0,
+      },
+    };
+
+    // Track previous condition state to detect changes
+    this.previousConditions = new Map(); // symbol -> { canBuyUP, canBuyDOWN }
   }
 
   /**
@@ -95,6 +117,7 @@ class GainersManager extends EventEmitter {
   /**
    * Update a crypto with a new candle
    * Called when a 1-minute candle closes from WebSocket
+   * Monitors: trading signals for top 10, and sell conditions for active position
    *
    * @param {string} symbol - Trading pair
    * @param {Object} candle - New candle data
@@ -107,6 +130,277 @@ class GainersManager extends EventEmitter {
     }
 
     observer.updateCandle(candle);
+
+    // Monitor active position (sell condition)
+    if (this.tradingState.activeCandleObserver && this.tradingState.activeCandleObserver.symbol === symbol) {
+      this._monitorActivePosition(symbol, observer, candle);
+    }
+
+    // Check for trading signals ONLY if this symbol is in top 10 gainers
+    if (this._isInTop10(symbol)) {
+      this._checkTradingSignals(symbol, observer);
+    }
+  }
+
+  /**
+   * Check if a symbol is in the current top 10 gainers
+   * @private
+   */
+  _isInTop10(symbol) {
+    const top10 = this.getTop1hGainers(10);
+    return top10.some((gainer) => gainer.symbol === symbol);
+  }
+
+  /**
+   * Check if a trading signal (BUYUP or BUYDOWN) just occurred
+   * Only triggers on transition from false -> true
+   *
+   * @private
+   */
+  _checkTradingSignals(symbol, observer) {
+    const currentConditions = {
+      canBuyUP: observer.canBuyUP,
+      canBuyDOWN: observer.canBuyDOWN,
+    };
+
+    const previousConditions = this.previousConditions.get(symbol) || {
+      canBuyUP: false,
+      canBuyDOWN: false,
+    };
+
+    // Check if BUYUP just triggered (false -> true transition)
+    if (!previousConditions.canBuyUP && currentConditions.canBuyUP) {
+      this._onBuyUpSignal(symbol, observer);
+    }
+
+    // Check if BUYDOWN just triggered (false -> true transition)
+    if (!previousConditions.canBuyDOWN && currentConditions.canBuyDOWN) {
+      this._onBuyDownSignal(symbol, observer);
+    }
+
+    // Update previous state for next check
+    this.previousConditions.set(symbol, currentConditions);
+  }
+
+  /**
+   * Handle BUYUP signal detection - Execute BUY order
+   * @private
+   */
+  _onBuyUpSignal(symbol, observer) {
+    // Only buy if no active position
+    if (this.tradingState.activeCandleObserver) {
+      console.log(`[GainersManager] ⏭️ Skipping BUY UP ${symbol} - Already in position`);
+      return;
+    }
+
+    const buyPrice = observer.currentPrice;
+    const quantity = this._executeBuyOrder(symbol, buyPrice, "BUY-UP");
+
+    if (quantity > 0) {
+      const signalData = {
+        type: "BUY-UP",
+        symbol: symbol,
+        buyPrice: buyPrice,
+        quantity: quantity,
+        investedAmount: quantity * buyPrice,
+        timestamp: new Date().toISOString(),
+        ma20: observer.ma20,
+        ma99: observer.ma99,
+        gainer1h: observer.gainer1h,
+      };
+
+      console.log(
+        `[GainersManager] 🔼 BUY UP EXECUTED: ${symbol} @ $${buyPrice.toFixed(8)} | Qty: ${quantity.toFixed(8)} | Balance: $${this.tradingState.balance.toFixed(2)}`
+      );
+
+      // Emit event for WebSocket broadcast
+      this.emit("trading-signal", signalData);
+    }
+  }
+
+  /**
+   * Handle BUYDOWN signal detection - Execute BUY order
+   * @private
+   */
+  _onBuyDownSignal(symbol, observer) {
+    // Only buy if no active position
+    if (this.tradingState.activeCandleObserver) {
+      console.log(`[GainersManager] ⏭️ Skipping BUY DOWN ${symbol} - Already in position`);
+      return;
+    }
+
+    const buyPrice = observer.currentPrice;
+    const quantity = this._executeBuyOrder(symbol, buyPrice, "BUY-DOWN");
+
+    if (quantity > 0) {
+      const signalData = {
+        type: "BUY-DOWN",
+        symbol: symbol,
+        buyPrice: buyPrice,
+        quantity: quantity,
+        investedAmount: quantity * buyPrice,
+        timestamp: new Date().toISOString(),
+        ma20: observer.ma20,
+        ma99: observer.ma99,
+        gainer1h: observer.gainer1h,
+      };
+
+      console.log(
+        `[GainersManager] 🔽 BUY DOWN EXECUTED: ${symbol} @ $${buyPrice.toFixed(8)} | Qty: ${quantity.toFixed(8)} | Balance: $${this.tradingState.balance.toFixed(2)}`
+      );
+
+      // Emit event for WebSocket broadcast
+      this.emit("trading-signal", signalData);
+    }
+  }
+
+  /**
+   * Execute a buy order - all in with current balance
+   * Applies 0.1% fee on BTC received
+   * @private
+   */
+  _executeBuyOrder(symbol, buyPrice, signalType) {
+    if (this.tradingState.balance <= 0) {
+      console.warn(`[GainersManager] ❌ Cannot buy ${symbol} - Insufficient balance`);
+      return 0;
+    }
+
+    // Calculate quantity with fee
+    // Fee is applied on BTC received: btcReceived = (usdt / price) * (1 - fee)
+    const usdtToInvest = this.tradingState.balance;
+    const btcBeforeFee = usdtToInvest / buyPrice;
+    const btcAfterFee = btcBeforeFee * (1 - FEE);
+    const feeAmount = btcBeforeFee * FEE;
+
+    // Create CandleObserver for this position
+    const candleObserver = new CandleObserver(symbol, buyPrice, btcAfterFee);
+
+    // Store signal type for sell condition logic
+    candleObserver.signalType = signalType;
+
+    // Store reference to the CryptoObserver (1m buffer) for monitoring sell conditions
+    const cryptoObserver = observer;
+    candleObserver.cryptoObserver = cryptoObserver;
+
+    // Listen for sell completion
+    candleObserver.on("sell", (sellInfo) => {
+      this._onSellCompleted(sellInfo);
+    });
+
+    // Update trading state
+    this.tradingState.activeCandleObserver = candleObserver;
+    this.tradingState.balance = 0; // All balance invested
+
+    // Record buy order
+    const buyOrder = {
+      type: "BUY",
+      timestamp: new Date().toISOString(),
+      symbol: symbol,
+      signalType: signalType,
+      buyPrice: buyPrice,
+      quantity: btcAfterFee,
+      investedUSDT: usdtToInvest,
+      feeOnBuy: feeAmount,
+      status: "open",
+    };
+
+    this.tradingState.completedOrders.push(buyOrder);
+    this.tradingState.stats.totalTrades++;
+
+    return btcAfterFee;
+  }
+
+  /**
+   * Monitor active trading position using 1m candle buffer
+   * Checks sell conditions on each new candle from the buffer
+   * @private
+   */
+  _monitorActivePosition(symbol, observer, candle) {
+    const candleObserver = this.tradingState.activeCandleObserver;
+    const cryptoObserverBuffer = candleObserver.cryptoObserver;
+
+    // Update with latest candle data from the 1m buffer
+    candleObserver.updateWithCandle({
+      close: observer.currentPrice,
+      ma20: observer.ma20,
+      ma99: observer.ma99,
+      bbUpper: observer.bbUpper,
+      bbLower: observer.bbLower,
+    });
+
+    // Monitor sell condition: simple price-based target
+    // Sell when: currentPrice >= buyPrice * 1.005 (0.5% profit target)
+    const sellTarget = candleObserver.buyPrice * 1.005;
+    const currentPrice = observer.currentPrice;
+    const shouldSell = currentPrice >= sellTarget;
+
+    if (shouldSell) {
+      console.log(
+        `[GainersManager] 📊 Sell target reached for ${symbol}:`,
+        `currentPrice=${currentPrice.toFixed(8)} >= sellTarget=${sellTarget.toFixed(8)}`
+      );
+    }
+
+    if (shouldSell) {
+      this._executeSellOrder(candleObserver, cryptoObserverBuffer);
+    }
+  }
+
+  /**
+   * Execute sell order when condition is met in 1m candle buffer
+   * Applies 0.1% fee on USDT received
+   * @private
+   */
+  _executeSellOrder(candleObserver, cryptoObserverBuffer) {
+    const sellInfo = candleObserver.executeSell();
+
+    // Update balance
+    this.tradingState.balance = sellInfo.sellValueAfterFee;
+
+    // Update stats
+    this.tradingState.stats.totalProfit += sellInfo.profit;
+    this.tradingState.stats.totalProfitPercent += sellInfo.profitPercent;
+    this.tradingState.stats.totalFees += sellInfo.feeOnSell;
+
+    if (sellInfo.profit > 0) {
+      this.tradingState.stats.winTrades++;
+    } else if (sellInfo.profit < 0) {
+      this.tradingState.stats.lossTrades++;
+    }
+
+    if (this.tradingState.stats.totalTrades > 0) {
+      this.tradingState.stats.avgProfitPercent =
+        this.tradingState.stats.totalProfitPercent / this.tradingState.stats.totalTrades;
+    }
+
+    // Record sell order
+    const sellOrder = {
+      type: "SELL",
+      timestamp: new Date().toISOString(),
+      symbol: sellInfo.symbol,
+      sellPrice: sellInfo.sellPrice,
+      quantity: sellInfo.quantity,
+      profit: sellInfo.profit,
+      profitPercent: sellInfo.profitPercent,
+      feeOnSell: sellInfo.feeOnSell,
+      status: "closed",
+    };
+
+    this.tradingState.completedOrders.push(sellOrder);
+
+    // Clear active position
+    this.tradingState.activeCandleObserver = null;
+
+    // Emit sell event for WebSocket broadcast
+    this.emit("order-closed", {
+      type: "SELL",
+      orderInfo: sellInfo,
+      tradingState: this.getTradingStatus(),
+    });
+
+    console.log(
+      `[GainersManager] ✅ SELL COMPLETED: ${sellInfo.symbol} @ $${sellInfo.sellPrice.toFixed(8)} | Profit: ${sellInfo.profitPercent.toFixed(4)}% | New Balance: $${this.tradingState.balance.toFixed(2)}`
+    );
   }
 
   /**
@@ -189,6 +483,25 @@ class GainersManager extends EventEmitter {
       readyCount: this.readyCount,
       isReady: this.isReady,
       topGainers: this.getTop1hGainers(10),
+    };
+  }
+
+  /**
+   * Get trading state (balance, active position, stats)
+   */
+  getTradingState() {
+    return this.tradingState;
+  }
+
+  /**
+   * Get detailed trading state with additional info
+   */
+  getTradingStatus() {
+    return {
+      ...this.tradingState,
+      availableBalance: this.tradingState.balance,
+      activePosition: this.tradingState.activeCandleObserver,
+      recentSignals: this.tradingState.completedOrders.slice(-5), // Last 5 orders
     };
   }
 

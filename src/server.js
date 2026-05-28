@@ -95,6 +95,26 @@ gainersManager.on("initialized", (data) => {
   });
 });
 
+// Listen for trading signals (BUYUP/BUYDOWN) - BUY orders executed
+gainersManager.on("trading-signal", (signalData) => {
+  console.log(`[Server] Trading signal detected: ${signalData.type} ${signalData.symbol}`);
+  broadcastEvent({
+    type: "trading-signal",
+    signal: signalData,
+    tradingState: gainersManager.getTradingStatus(),
+  });
+});
+
+// Listen for closed orders (SELL completed)
+gainersManager.on("order-closed", (orderData) => {
+  console.log(`[Server] Order closed: ${orderData.type} ${orderData.orderInfo.symbol}`);
+  broadcastEvent({
+    type: "order-closed",
+    order: orderData.orderInfo,
+    tradingState: orderData.tradingState,
+  });
+});
+
 // Listen to BinanceWebSocket candle updates and update gainers
 let candleCount = 0;
 binanceWS.on("candle", (candle) => {
@@ -116,7 +136,7 @@ binanceWS.on("candle", (candle) => {
     quoteAssetVolume: candle.quoteAssetVolume,
   });
 
-  // Broadcast updated top gainers to all WebSocket clients
+  // Broadcast updated top gainers and trading state to all WebSocket clients
   if (candleCount % 10 === 0) {
     const gainersToSend = gainersManager.getTop1hGainers(10).map(gainer => {
       const observer = gainersManager.observers.get(gainer.symbol);
@@ -134,6 +154,12 @@ binanceWS.on("candle", (candle) => {
       type: "gainers-update",
       gainers: gainersToSend,
       timestamp: new Date().toISOString(),
+    });
+
+    // Broadcast trading state (balance, active position, stats)
+    broadcastEvent({
+      type: "trading-status",
+      data: gainersManager.getTradingStatus(),
     });
   }
 
@@ -279,6 +305,16 @@ app.get("/api/trading/position", (req, res) => {
 
   const activeObserver = tradingManager.getActiveObserver();
   res.json(activeObserver ? activeObserver.getState() : null);
+});
+
+// Get trading state from GainersManager (balance, stats)
+app.get("/api/trading/state", (req, res) => {
+  res.json(gainersManager.getTradingState());
+});
+
+// Get detailed trading status (with additional info)
+app.get("/api/trading/state/status", (req, res) => {
+  res.json(gainersManager.getTradingStatus());
 });
 
 // ── Error Handler ──────────────────────────────────────────────────────────

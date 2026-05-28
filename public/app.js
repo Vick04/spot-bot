@@ -7,6 +7,20 @@ class GainersDashboard {
     this.ws = null;
     this.topGainers = [];
     this.lastUpdate = null;
+    this.tradingState = {
+      balance: 0,
+      activeCandleObserver: null,
+      completedOrders: [],
+      stats: {
+        totalTrades: 0,
+        totalProfit: 0,
+        totalProfitPercent: 0,
+        winTrades: 0,
+        lossTrades: 0,
+        totalFees: 0,
+        avgProfitPercent: 0,
+      },
+    };
 
     this.connectWebSocket();
     this.setupConnectionStatus();
@@ -53,6 +67,15 @@ class GainersDashboard {
     switch (message.type) {
       case "gainers-update":
         this.updateGainers(message.gainers, message.timestamp);
+        break;
+      case "trading-status":
+        this.updateTradingStatus(message.data);
+        break;
+      case "position-update":
+        this.updatePositionData(message.data);
+        break;
+      case "trading-order":
+        this.updateTradingOrder(message);
         break;
       default:
         console.log("[Dashboard] Unknown message type:", message.type);
@@ -194,6 +217,93 @@ class GainersDashboard {
   setupConnectionStatus() {
     // Initial status
     this.updateConnectionStatus(false);
+  }
+
+  // ── Trading Status Updates ─────────────────────────────────────────
+  updateTradingStatus(data) {
+    if (!data) return;
+    this.tradingState = data;
+    this.renderTradingStatus();
+    this.renderPosition();
+  }
+
+  updatePositionData(data) {
+    if (!data) return;
+    if (this.tradingState.activeCandleObserver) {
+      Object.assign(this.tradingState.activeCandleObserver, data);
+    }
+    this.renderPosition();
+  }
+
+  updateTradingOrder(message) {
+    console.log("[Dashboard] Trading order:", message.action, message.data);
+    // Refresh trading status
+    this.renderTradingStatus();
+    this.renderPosition();
+  }
+
+  renderTradingStatus() {
+    const balance = document.getElementById("balance");
+    const activePosition = document.getElementById("activePosition");
+    const totalTrades = document.getElementById("totalTrades");
+    const totalProfit = document.getElementById("totalProfit");
+
+    if (balance) {
+      balance.textContent = `$${this.tradingState.balance.toFixed(2)}`;
+    }
+
+    if (activePosition) {
+      if (this.tradingState.activeCandleObserver) {
+        activePosition.textContent = this.tradingState.activeCandleObserver.symbol;
+      } else {
+        activePosition.textContent = "None";
+      }
+    }
+
+    if (totalTrades) {
+      totalTrades.textContent = this.tradingState.stats.totalTrades;
+    }
+
+    if (totalProfit) {
+      const profitClass = this.tradingState.stats.totalProfit >= 0 ? "positive" : "negative";
+      totalProfit.innerHTML = `<span style="color: ${this.tradingState.stats.totalProfit >= 0 ? '#48bb78' : '#f56565'}">$${this.tradingState.stats.totalProfit.toFixed(2)}</span>`;
+    }
+  }
+
+  renderPosition() {
+    const section = document.getElementById("positionSection");
+    const position = this.tradingState.activeCandleObserver;
+
+    if (!position) {
+      if (section) section.style.display = "none";
+      return;
+    }
+
+    if (section) section.style.display = "block";
+
+    // Calculate time in trade
+    const buyTime = new Date(position.buyTime);
+    const now = new Date();
+    const timeInTrade = Math.floor((now - buyTime) / 1000 / 60); // minutes
+
+    // Update all position fields
+    const fields = {
+      posSymbol: position.symbol || "-",
+      posBuyPrice: position.buyPrice ? position.buyPrice.toFixed(8) : "-",
+      posCurrentPrice: position.currentPrice ? position.currentPrice.toFixed(8) : "-",
+      posQuantity: position.quantity ? position.quantity.toFixed(8) : "-",
+      posSellTarget: position.buyPrice ? (position.buyPrice * 1.005).toFixed(8) : "-",
+      posPnL: position.pnlValue ? `$${position.pnlValue.toFixed(2)} (${position.pnlPercent.toFixed(2)}%)` : "-",
+      posBuyTime: position.buyTime ? new Date(position.buyTime).toLocaleTimeString() : "-",
+      posTimeInTrade: `${timeInTrade} min`,
+    };
+
+    for (const [id, value] of Object.entries(fields)) {
+      const element = document.getElementById(id);
+      if (element) {
+        element.textContent = value;
+      }
+    }
   }
 }
 

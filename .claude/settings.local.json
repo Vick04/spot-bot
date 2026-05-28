@@ -79,7 +79,15 @@
       "Bash(node -e \"const data = JSON.parse\\(require\\('fs'\\).readFileSync\\(0, 'utf-8'\\)\\); data.gainers.forEach\\(g => console.log\\(\\\\`\\\\${g.symbol}: UP[\\\\${g.conditions.upCondition1_ZonaFuerte ? '✓' : '✗'}Zona Fuerte, \\\\${g.conditions.upCondition2_BreakoutAlcista ? '✓' : '✗'}Breakout]=\\\\${g.conditions.canBuyUP ? '✅' : '—'} | DOWN[\\\\${g.conditions.downCondition1_ZonaDebil ? '✓' : '✗'}Debil, \\\\${g.conditions.downCondition2_PrecioDeprimido ? '✓' : '✗'}Deprimido]=\\\\${g.conditions.canBuyDOWN ? '✅' : '—'}\\\\`\\)\\)\")",
       "Bash(curl -s \"http://localhost:4445/api/gainers?limit=5\")",
       "Bash(curl -s \"http://localhost:4445/api/gainers?limit=3\")",
-      "Bash(curl -s \"http://localhost:4445/api/gainers?limit=10\")"
+      "Bash(curl -s \"http://localhost:4445/api/gainers?limit=10\")",
+      "PowerShell(cd C:\\\\Projects\\\\spot-bot; git status; Write-Host \"`n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`n\" -ForegroundColor Green; Write-Host \"✅ ACTUALIZACIÓN COMPLETADA`n\" -ForegroundColor Green; git log -1 --pretty=format:\"%H - %s\" | ForEach-Object { Write-Host \"Commit: $_`n\" -ForegroundColor Cyan }; Write-Host \"Remote: origin/main\" -ForegroundColor Cyan)",
+      "Bash(curl -s \"http://localhost:4445/api/trading/state\")",
+      "Bash(node -e \"const data = JSON.parse\\(require\\('fs'\\).readFileSync\\(0, 'utf-8'\\)\\); console.log\\(JSON.stringify\\(data, null, 2\\)\\)\")",
+      "Bash(curl -s \"http://localhost:4445/api/trading/state/status\")",
+      "Bash(Get-Process node *)",
+      "Bash(Select-Object ProcessName, Id, Handles)",
+      "Bash(curl -s http://localhost:4445/api/trading/state)",
+      "Bash(git add *)"
     ]
   }
 }
