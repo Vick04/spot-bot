@@ -274,6 +274,75 @@ class GainersDashboard {
       const profitClass = this.tradingState.stats.totalProfit >= 0 ? "positive" : "negative";
       totalProfit.innerHTML = `<span style="color: ${this.tradingState.stats.totalProfit >= 0 ? '#48bb78' : '#f56565'}">$${this.tradingState.stats.totalProfit.toFixed(2)}</span>`;
     }
+
+    // Render orders history
+    this.renderOrdersHistory();
+  }
+
+  // ── Orders History Rendering ─────────────────────────────────────
+  renderOrdersHistory() {
+    const container = document.getElementById("ordersHistory");
+    if (!container) return;
+
+    const orders = this.tradingState.completedOrders || [];
+
+    if (orders.length === 0) {
+      container.innerHTML = '<div class="no-orders">No orders yet</div>';
+      return;
+    }
+
+    // Group orders by pairs (BUY followed by SELL)
+    let html = '<table class="orders-table"><thead><tr>';
+    html += '<th>#</th>';
+    html += '<th>Symbol</th>';
+    html += '<th>Type</th>';
+    html += '<th>Price</th>';
+    html += '<th>Quantity</th>';
+    html += '<th>Value/Profit</th>';
+    html += '<th>Fee</th>';
+    html += '<th>Time</th>';
+    html += '</tr></thead><tbody>';
+
+    // Display orders in reverse order (newest first)
+    const reversedOrders = [...orders].reverse();
+
+    reversedOrders.forEach((order, index) => {
+      const orderNum = orders.length - index;
+      const orderType = order.type === 'BUY' ? 'buy' : 'sell';
+      const time = new Date(order.timestamp).toLocaleTimeString();
+
+      let priceValue = '-';
+      let quantityValue = order.quantity ? order.quantity.toFixed(8) : '-';
+      let valueProfit = '-';
+      let feeValue = '-';
+
+      if (order.type === 'BUY') {
+        priceValue = order.buyPrice ? `$${order.buyPrice.toFixed(8)}` : '-';
+        valueProfit = order.investedUSDT ? `$${order.investedUSDT.toFixed(2)}` : '-';
+        feeValue = order.feeOnBuy ? `$${order.feeOnBuy.toFixed(2)}` : '-';
+      } else { // SELL
+        priceValue = order.sellPrice ? `$${order.sellPrice.toFixed(8)}` : '-';
+        const profitColor = (order.profit >= 0) ? '#48bb78' : '#f56565';
+        valueProfit = order.profit !== undefined
+          ? `<span style="color: ${profitColor}; font-weight: 700;">${order.profit >= 0 ? '+' : ''}$${order.profit.toFixed(2)} (${order.profitPercent >= 0 ? '+' : ''}${order.profitPercent.toFixed(4)}%)</span>`
+          : '-';
+        feeValue = order.feeOnSell ? `$${order.feeOnSell.toFixed(2)}` : '-';
+      }
+
+      html += '<tr>';
+      html += `<td style="color: var(--text-secondary); font-weight: 600;">${orderNum}</td>`;
+      html += `<td class="order-symbol">${order.symbol}</td>`;
+      html += `<td><span class="order-type ${orderType}">${order.type}</span></td>`;
+      html += `<td class="order-price">${priceValue}</td>`;
+      html += `<td>${quantityValue}</td>`;
+      html += `<td class="order-profit">${valueProfit}</td>`;
+      html += `<td>${feeValue}</td>`;
+      html += `<td class="order-time">${time}</td>`;
+      html += '</tr>';
+    });
+
+    html += '</tbody></table>';
+    container.innerHTML = html;
   }
 
   renderPosition() {

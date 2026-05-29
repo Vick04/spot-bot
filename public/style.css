@@ -348,6 +348,118 @@ body {
   font-family: 'Courier New', monospace;
 }
 
+/* Orders History Section */
+.orders-history-section {
+  margin-bottom: 30px;
+}
+
+.orders-history-section h2 {
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.orders-history {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.orders-table thead {
+  background-color: var(--bg-tertiary);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.orders-table th {
+  padding: 12px 16px;
+  text-align: left;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.orders-table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
+}
+
+.orders-table tbody tr:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.orders-table td {
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+}
+
+.order-symbol {
+  font-weight: 700;
+  color: var(--info);
+  min-width: 100px;
+}
+
+.order-type {
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  font-size: 11px;
+}
+
+.order-type.buy {
+  background-color: rgba(72, 187, 120, 0.2);
+  color: var(--success);
+  text-transform: uppercase;
+}
+
+.order-type.sell {
+  background-color: rgba(245, 101, 101, 0.2);
+  color: var(--danger);
+  text-transform: uppercase;
+}
+
+.order-price {
+  font-size: 12px;
+}
+
+.order-profit {
+  font-weight: 600;
+  min-width: 100px;
+}
+
+.order-profit.positive {
+  color: var(--success);
+}
+
+.order-profit.negative {
+  color: var(--danger);
+}
+
+.order-time {
+  color: var(--text-secondary);
+  font-size: 12px;
+  min-width: 140px;
+}
+
+.no-orders {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
 /* Gainers Section */
 .gainers-section {
   margin-bottom: 30px;
