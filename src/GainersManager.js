@@ -281,11 +281,6 @@ class GainersManager extends EventEmitter {
     // Store reference to the CryptoObserver (1m buffer) for monitoring sell conditions
     candleObserver.cryptoObserver = observer;
 
-    // Listen for sell completion
-    candleObserver.on("sell", (sellInfo) => {
-      this._onSellCompleted(sellInfo);
-    });
-
     // Update trading state
     this.tradingState.activeCandleObserver = candleObserver;
     this.tradingState.balance = 0; // All balance invested
