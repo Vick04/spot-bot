@@ -100,7 +100,9 @@
       "Bash(node -c src/GainersManager.js)",
       "Bash(cat > *)",
       "Bash(xargs echo \"   Calls to _updateUpConditionState:\")",
-      "Bash(awk '{print \"   File size: \" $5}')"
+      "Bash(awk '{print \"   File size: \" $5}')",
+      "Bash(node -c C:\\\\Projects\\\\spot-bot\\\\public\\\\app.js)",
+      "Bash(node -c public/app.js)"
     ]
   }
 }

@@ -100,15 +100,15 @@ class GainersDashboard {
     const gainersElement = document.getElementById("gainers");
     if (!gainersElement) return;
 
-    // Ensure maximum 10 items
-    const topTen = this.topGainers.slice(0, 10);
+    // Ensure maximum 30 items
+    const topThirty = this.topGainers.slice(0, 30);
 
-    if (topTen.length === 0) {
+    if (topThirty.length === 0) {
       gainersElement.innerHTML = '<div class="no-data">No gainers data available</div>';
       return;
     }
 
-    gainersElement.innerHTML = topTen
+    gainersElement.innerHTML = topThirty
       .map((gainer, index) => {
         const percentClass = gainer.gainer1h > 0 ? "positive" : gainer.gainer1h < 0 ? "negative" : "neutral";
         const changeSign = gainer.gainer1h > 0 ? "+" : "";
@@ -122,9 +122,10 @@ class GainersDashboard {
         // Conditions from observer
         const conditions = gainer.conditions || {};
 
-        // UP Conditions: Zona Fuerte (MA20 > MA99) + Breakout Alcista (price > MA99 × 1.015)
-        const upZonaFuerte = conditions.upCondition1_ZonaFuerte ? "✓" : "✗";
-        const upBreakout = conditions.upCondition2_BreakoutAlcista ? "✓" : "✗";
+        // UP Conditions: Sequential state machine (Piso → Zona Fuerte → Breakout Alcista)
+        const upPiso = conditions.upCondition1_Piso ? "✓" : "✗";
+        const upZonaFuerte = conditions.upCondition2_ZonaFuerte ? "✓" : "✗";
+        const upBreakout = conditions.upCondition3_BreakoutAlcista ? "✓" : "✗";
         const canBuyUP = conditions.canBuyUP ? "✅" : "—";
 
         // DOWN Conditions: Zona Débil (MA20 < MA99) + Precio Deprimido (price < MA99 × 0.970)
@@ -162,12 +163,16 @@ class GainersDashboard {
                 <span class="detail-value">${canBuyUP}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">Zona Fuerte:</span>
-                <span class="detail-value">${upZonaFuerte}</span>
+                <span class="detail-label">① Piso (MA20 &lt; MA99):</span>
+                <span class="detail-value condition-step ${conditions.upCondition1_Piso ? 'step-met' : 'step-pending'}">${upPiso}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">Breakout:</span>
-                <span class="detail-value">${upBreakout}</span>
+                <span class="detail-label">② Zona Fuerte (MA20 &gt; MA99):</span>
+                <span class="detail-value condition-step ${conditions.upCondition2_ZonaFuerte ? 'step-met' : 'step-pending'}">${upZonaFuerte}</span>
+              </div>
+              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
+                <span class="detail-label">③ Breakout (Price ±1%):</span>
+                <span class="detail-value condition-step ${conditions.upCondition3_BreakoutAlcista ? 'step-met' : 'step-pending'}">${upBreakout}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">BUY DOWN:</span>
