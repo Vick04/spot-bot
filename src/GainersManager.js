@@ -5,7 +5,7 @@
 
 const { EventEmitter } = require("events");
 const CryptoObserver = require("./CryptoObserver");
-const CandleObserver = require("./CandleObserver");
+const OrderObserver = require("./OrderObserver");
 const { getAvailableSymbols } = require("./binanceAPI");
 
 const FEE = 0.001; // 0.1% fee
@@ -131,9 +131,10 @@ class GainersManager extends EventEmitter {
 
     observer.updateCandle(candle);
 
-    // Monitor active position (sell condition)
+    // Monitor active position (sell condition) using 1m candles
+    // Only if the active order is for this symbol
     if (this.tradingState.activeCandleObserver && this.tradingState.activeCandleObserver.symbol === symbol) {
-      this._monitorActivePosition(symbol, observer, candle);
+      this.monitorActivePosition(symbol, candle);
     }
 
     // Check for trading signals ONLY if this symbol is in top 30 gainers
@@ -272,17 +273,15 @@ class GainersManager extends EventEmitter {
     const btcAfterFee = btcBeforeFee * (1 - FEE);
     const feeAmount = btcBeforeFee * FEE;
 
-    // Create CandleObserver for this position
-    const candleObserver = new CandleObserver(symbol, buyPrice, btcAfterFee);
+    // Create OrderObserver for this position
+    // This lightweight observer tracks 1-second candles only
+    const orderObserver = new OrderObserver(symbol, buyPrice, btcAfterFee);
 
     // Store signal type for sell condition logic
-    candleObserver.signalType = signalType;
-
-    // Store reference to the CryptoObserver (1m buffer) for monitoring sell conditions
-    candleObserver.cryptoObserver = observer;
+    orderObserver.signalType = signalType;
 
     // Update trading state
-    this.tradingState.activeCandleObserver = candleObserver;
+    this.tradingState.activeCandleObserver = orderObserver;
     this.tradingState.balance = 0; // All balance invested
 
     // Record buy order
@@ -305,48 +304,40 @@ class GainersManager extends EventEmitter {
   }
 
   /**
-   * Monitor active trading position using 1m candle buffer
-   * Checks sell conditions on each new candle from the buffer
-   * @private
+   * Monitor active trading position using OrderObserver
+   * Receives 1-second candles and evaluates sell condition
+   * Public method so server.js can call it with 1s candles
    */
-  _monitorActivePosition(symbol, observer, candle) {
-    const candleObserver = this.tradingState.activeCandleObserver;
-    const cryptoObserverBuffer = candleObserver.cryptoObserver;
+  monitorActivePosition(symbol, candle) {
+    const orderObserver = this.tradingState.activeCandleObserver;
 
-    // Update with latest candle data from the 1m buffer
-    candleObserver.updateWithCandle({
-      close: observer.currentPrice,
-      ma20: observer.ma20,
-      ma99: observer.ma99,
-      bbUpper: observer.bbUpper,
-      bbLower: observer.bbLower,
+    // Update OrderObserver with new 1-second candle price
+    orderObserver.updateWithCandle({
+      close: candle.close,
     });
 
-    // Monitor sell condition: simple price-based target
-    // Sell when: currentPrice >= buyPrice * 1.005 (0.5% profit target)
-    const sellTarget = candleObserver.buyPrice * 1.005;
-    const currentPrice = observer.currentPrice;
-    const shouldSell = currentPrice >= sellTarget;
+    // Check if sell condition is met
+    const shouldSell = orderObserver.checkSellCondition();
 
     if (shouldSell) {
+      const gap = orderObserver.sellTarget - orderObserver.currentPrice;
       console.log(
         `[GainersManager] 📊 Sell target reached for ${symbol}:`,
-        `currentPrice=${currentPrice.toFixed(8)} >= sellTarget=${sellTarget.toFixed(8)}`
+        `currentPrice=${orderObserver.currentPrice.toFixed(8)} >= sellTarget=${orderObserver.sellTarget.toFixed(8)}`
       );
-    }
 
-    if (shouldSell) {
-      this._executeSellOrder(candleObserver, cryptoObserverBuffer);
+      this._executeSellOrder(orderObserver);
     }
   }
 
   /**
-   * Execute sell order when condition is met in 1m candle buffer
+   * Execute sell order when condition is met
    * Applies 0.1% fee on USDT received
+   * Cleans up OrderObserver from memory after sell
    * @private
    */
-  _executeSellOrder(candleObserver, cryptoObserverBuffer) {
-    const sellInfo = candleObserver.executeSell();
+  _executeSellOrder(orderObserver) {
+    const sellInfo = orderObserver.executeSell();
 
     // Update balance
     this.tradingState.balance = sellInfo.sellValueAfterFee;

@@ -12,7 +12,8 @@ class BinanceWebSocket extends EventEmitter {
   constructor() {
     super();
     this.ws = null;
-    this.subscribedSymbols = new Set();
+    this.subscribedSymbols = new Set(); // 1m klines
+    this.subscribedSymbols1s = new Set(); // 1s klines for active orders
     this._reconnectAttempts = 0;
     this._maxReconnectAttempts = 5;
     this._reconnectDelay = 3000; // ms
@@ -68,7 +69,8 @@ class BinanceWebSocket extends EventEmitter {
 
   /**
    * Handle incoming WebSocket messages
-   * Emits 'candle' event with the new candle data
+   * Differentiates between 1m and 1s candles
+   * Emits 'candle' for 1m and 'candle1s' for 1s
    * @private
    */
   _handleMessage(message) {
@@ -76,22 +78,29 @@ class BinanceWebSocket extends EventEmitter {
       // Handle kline data from stream
       if (message.data && message.data.k) {
         const k = message.data.k;
+        const interval = k.i; // "1m", "1s", etc.
 
-        // Only emit closed candles (k.x === true means candle just closed)
-        if (k.x === true) {
-          const candle = {
-            symbol: k.s,
-            openTime: k.t,
-            open: parseFloat(k.o),
-            high: parseFloat(k.h),
-            low: parseFloat(k.l),
-            close: parseFloat(k.c),
-            volume: parseFloat(k.v),
-            closeTime: k.T,
-            quoteAssetVolume: parseFloat(k.q),
-          };
+        // Build candle object
+        const candle = {
+          symbol: k.s,
+          openTime: k.t,
+          open: parseFloat(k.o),
+          high: parseFloat(k.h),
+          low: parseFloat(k.l),
+          close: parseFloat(k.c),
+          volume: parseFloat(k.v),
+          closeTime: k.T,
+          quoteAssetVolume: parseFloat(k.q),
+          interval: interval,
+        };
 
+        // For 1m candles: emit only when closed
+        if (interval === "1m" && k.x === true) {
           this.emit("candle", candle);
+        }
+        // For 1s candles: emit for any new price (don't wait for close)
+        else if (interval === "1s") {
+          this.emit("candle1s", candle);
         }
       }
     } catch (error) {
@@ -126,6 +135,71 @@ class BinanceWebSocket extends EventEmitter {
   }
 
   /**
+   * Subscribe to 1-second candles for active order monitoring
+   * Uses dynamic subscription on existing WebSocket connection
+   *
+   * @param {string} symbol - Symbol to subscribe (e.g., 'BTCUSDT')
+   */
+  subscribe1s(symbol) {
+    if (!this.isConnected) {
+      console.warn(`[BinanceWS] Cannot subscribe to 1s - not connected`);
+      return;
+    }
+
+    if (this.subscribedSymbols1s.has(symbol)) {
+      console.warn(`[BinanceWS] Already subscribed to 1s for ${symbol}`);
+      return;
+    }
+
+    const stream = `${symbol.toLowerCase()}@kline_1s`;
+    const message = {
+      method: "SUBSCRIBE",
+      params: [stream],
+      id: Date.now(),
+    };
+
+    try {
+      this.ws.send(JSON.stringify(message));
+      this.subscribedSymbols1s.add(symbol);
+      console.log(`[BinanceWS] ✅ Subscribed to 1s candles for ${symbol}`);
+    } catch (error) {
+      console.error(`[BinanceWS] Failed to subscribe 1s for ${symbol}:`, error.message);
+    }
+  }
+
+  /**
+   * Unsubscribe from 1-second candles when order closes
+   *
+   * @param {string} symbol - Symbol to unsubscribe
+   */
+  unsubscribe1s(symbol) {
+    if (!this.isConnected) {
+      console.warn(`[BinanceWS] Cannot unsubscribe from 1s - not connected`);
+      return;
+    }
+
+    if (!this.subscribedSymbols1s.has(symbol)) {
+      console.warn(`[BinanceWS] Not subscribed to 1s for ${symbol}`);
+      return;
+    }
+
+    const stream = `${symbol.toLowerCase()}@kline_1s`;
+    const message = {
+      method: "UNSUBSCRIBE",
+      params: [stream],
+      id: Date.now(),
+    };
+
+    try {
+      this.ws.send(JSON.stringify(message));
+      this.subscribedSymbols1s.delete(symbol);
+      console.log(`[BinanceWS] ✅ Unsubscribed from 1s candles for ${symbol}`);
+    } catch (error) {
+      console.error(`[BinanceWS] Failed to unsubscribe 1s for ${symbol}:`, error.message);
+    }
+  }
+
+  /**
    * Close the WebSocket connection
    */
   close() {
@@ -134,6 +208,7 @@ class BinanceWebSocket extends EventEmitter {
       this.ws = null;
     }
     this.subscribedSymbols.clear();
+    this.subscribedSymbols1s.clear();
     console.log("[BinanceWS] Connection closed");
   }
 

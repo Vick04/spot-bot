@@ -1,0 +1,113 @@
+// ─────────────────────────────────────────────
+// src/OrderObserver.js
+// Lightweight observer for active trading positions
+// Monitors 1-second candles and evaluates sell conditions only
+// No buffer, no technical indicators, just price tracking
+// ─────────────────────────────────────────────
+
+class OrderObserver {
+  constructor(symbol, buyPrice, quantity) {
+    this.symbol = symbol;
+    this.buyPrice = buyPrice;
+    this.quantity = quantity;
+    this.currentPrice = buyPrice; // Start with buy price
+    this.lastUpdateTime = Date.now();
+    this.buyTime = new Date().toISOString();
+
+    // Sell target: 0.5% profit
+    this.sellTarget = buyPrice * 1.005;
+  }
+
+  /**
+   * Update with a new 1-second candle
+   * Only tracks the close price - no buffer needed
+   *
+   * @param {Object} candle - Candle data with close price
+   */
+  updateWithCandle(candle) {
+    this.currentPrice = candle.close;
+    this.lastUpdateTime = Date.now();
+  }
+
+  /**
+   * Check if sell condition has been met
+   * Returns true when currentPrice >= sellTarget
+   *
+   * @returns {boolean} Whether sell target has been reached
+   */
+  checkSellCondition() {
+    return this.currentPrice >= this.sellTarget;
+  }
+
+  /**
+   * Get current P&L information
+   * Useful for real-time UI updates
+   *
+   * @returns {Object} { pnlValue, pnlPercent, timeInTrade }
+   */
+  getPnLInfo() {
+    const pnlValue = (this.currentPrice - this.buyPrice) * this.quantity;
+    const pnlPercent = ((this.currentPrice - this.buyPrice) / this.buyPrice) * 100;
+    const timeInTrade = Math.floor((Date.now() - new Date(this.buyTime).getTime()) / 1000 / 60); // minutes
+
+    return {
+      pnlValue,
+      pnlPercent,
+      timeInTrade,
+      gapToTarget: this.sellTarget - this.currentPrice,
+      progressPercent: ((this.currentPrice - this.buyPrice) / (this.sellTarget - this.buyPrice)) * 100,
+    };
+  }
+
+  /**
+   * Execute sell order and return profit summary
+   * Called when sell condition is met
+   * Applies 0.1% fee on USDT received
+   *
+   * @returns {Object} Sell order summary with profit calculations
+   */
+  executeSell() {
+    const FEE = 0.001; // 0.1% fee
+    const sellValue = this.quantity * this.currentPrice;
+    const sellValueAfterFee = sellValue * (1 - FEE);
+    const boughtValue = this.quantity * this.buyPrice;
+    const profit = sellValueAfterFee - boughtValue;
+    const profitPercent = (profit / boughtValue) * 100;
+
+    const sellInfo = {
+      symbol: this.symbol,
+      buyPrice: this.buyPrice,
+      sellPrice: this.currentPrice,
+      quantity: this.quantity,
+      buyValue: boughtValue,
+      sellValue: sellValue,
+      feeOnSell: sellValue * FEE,
+      sellValueAfterFee: sellValueAfterFee,
+      profit: profit,
+      profitPercent: profitPercent,
+      buyTime: this.buyTime,
+      sellTime: new Date().toISOString(),
+      timeInTrade: Math.floor((Date.now() - new Date(this.buyTime).getTime()) / 1000 / 60),
+    };
+
+    return sellInfo;
+  }
+
+  /**
+   * Get complete state for debugging
+   */
+  getState() {
+    return {
+      symbol: this.symbol,
+      buyPrice: this.buyPrice,
+      currentPrice: this.currentPrice,
+      quantity: this.quantity,
+      sellTarget: this.sellTarget,
+      buyTime: this.buyTime,
+      lastUpdate: new Date(this.lastUpdateTime).toISOString(),
+      ...this.getPnLInfo(),
+    };
+  }
+}
+
+module.exports = OrderObserver;

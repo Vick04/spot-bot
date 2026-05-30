@@ -98,6 +98,10 @@ gainersManager.on("initialized", (data) => {
 // Listen for trading signals (BUYUP/BUYDOWN) - BUY orders executed
 gainersManager.on("trading-signal", (signalData) => {
   console.log(`[Server] Trading signal detected: ${signalData.type} ${signalData.symbol}`);
+
+  // Subscribe to 1-second candles for active order monitoring
+  binanceWS.subscribe1s(signalData.symbol);
+
   broadcastEvent({
     type: "trading-signal",
     signal: signalData,
@@ -108,6 +112,10 @@ gainersManager.on("trading-signal", (signalData) => {
 // Listen for closed orders (SELL completed)
 gainersManager.on("order-closed", (orderData) => {
   console.log(`[Server] Order closed: ${orderData.type} ${orderData.orderInfo.symbol}`);
+
+  // Unsubscribe from 1-second candles - order complete
+  binanceWS.unsubscribe1s(orderData.orderInfo.symbol);
+
   broadcastEvent({
     type: "order-closed",
     order: orderData.orderInfo,
@@ -216,6 +224,44 @@ binanceWS.on("candle", (candle) => {
       };
       tradingManager.processCandle(candle.symbol, candleWithIndicators);
     }
+  }
+});
+
+// Listen to BinanceWebSocket 1-second candles for active order monitoring
+binanceWS.on("candle1s", (candle) => {
+  // Only process if there's an active order for this symbol
+  if (gainersManager.tradingState.activeCandleObserver &&
+      gainersManager.tradingState.activeCandleObserver.symbol === candle.symbol) {
+    // Pass 1s candle to GainersManager for sell condition checking
+    gainersManager.monitorActivePosition(candle.symbol, {
+      close: candle.close,
+      openTime: candle.openTime,
+      open: candle.open,
+      high: candle.high,
+      low: candle.low,
+    });
+
+    // Broadcast real-time position update with 1s price data
+    const position = gainersManager.tradingState.activeCandleObserver;
+    const pnlInfo = position.getPnLInfo();
+
+    broadcastEvent({
+      type: "order-progress",
+      position: {
+        symbol: position.symbol,
+        buyPrice: position.buyPrice,
+        currentPrice: position.currentPrice,
+        quantity: position.quantity,
+        sellTarget: position.sellTarget,
+        pnlValue: pnlInfo.pnlValue,
+        pnlPercent: pnlInfo.pnlPercent,
+        timeInTrade: pnlInfo.timeInTrade,
+        progressPercent: Math.min(Math.max(pnlInfo.progressPercent, 0), 100),
+        priceGapToTarget: pnlInfo.gapToTarget,
+        buyTime: position.buyTime,
+      },
+      timestamp: new Date().toISOString(),
+    });
   }
 });
 
