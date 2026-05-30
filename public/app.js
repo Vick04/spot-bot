@@ -113,6 +113,11 @@ class GainersDashboard {
         const percentClass = gainer.gainer1h > 0 ? "positive" : gainer.gainer1h < 0 ? "negative" : "neutral";
         const changeSign = gainer.gainer1h > 0 ? "+" : "";
 
+        // Multi-timeframe gainers
+        const gainer5m = gainer.gainer5m || 0;
+        const gainer15m = gainer.gainer15m || 0;
+        const gainer30m = gainer.gainer30m || 0;
+
         // Indicators from observer
         const ma20 = gainer.ma20 || 0;
         const ma99 = gainer.ma99 || 0;
@@ -142,6 +147,17 @@ class GainersDashboard {
               <span class="gainer-change ${percentClass}">${changeSign}${gainer.gainer1h.toFixed(2)}%</span>
             </div>
             <div class="gainer-price">Price: $${gainer.price.toFixed(8)}</div>
+
+            <!-- Multi-timeframe Gainers -->
+            <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(100, 200, 100, 0.05); border-radius: 6px;">
+              <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px; text-transform: uppercase;">Performance:</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
+                <div><span style="color: var(--text-secondary);">5m:</span> <span style="color: ${gainer5m > 0 ? 'var(--success)' : gainer5m < 0 ? 'var(--danger)' : 'var(--text-primary)'}; font-weight: 600;">${gainer5m > 0 ? '+' : ''}${gainer5m.toFixed(2)}%</span></div>
+                <div><span style="color: var(--text-secondary);">15m:</span> <span style="color: ${gainer15m > 0 ? 'var(--success)' : gainer15m < 0 ? 'var(--danger)' : 'var(--text-primary)'}; font-weight: 600;">${gainer15m > 0 ? '+' : ''}${gainer15m.toFixed(2)}%</span></div>
+                <div><span style="color: var(--text-secondary);">30m:</span> <span style="color: ${gainer30m > 0 ? 'var(--success)' : gainer30m < 0 ? 'var(--danger)' : 'var(--text-primary)'}; font-weight: 600;">${gainer30m > 0 ? '+' : ''}${gainer30m.toFixed(2)}%</span></div>
+                <div><span style="color: var(--text-secondary);">1h:</span> <span style="color: ${percentClass === 'positive' ? 'var(--success)' : percentClass === 'negative' ? 'var(--danger)' : 'var(--text-primary)'}; font-weight: 600;">${changeSign}${gainer.gainer1h.toFixed(2)}%</span></div>
+              </div>
+            </div>
 
             <!-- UP Conditions Progress -->
             <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(66, 153, 225, 0.05); border-radius: 6px;">

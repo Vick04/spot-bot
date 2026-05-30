@@ -11,7 +11,13 @@ class CryptoObserver {
     this.symbol = symbol;
     this.bufferSize = config.GAINERS_BUFFER_SIZE; // Configurable (default: 60 for 1 hour)
     this.buffer = []; // Queue of last N candles
-    this._gainer1h = 0; // % change in last 1 hour
+
+    // Multi-timeframe gainer percentages (calculated from same 1m buffer)
+    this._gainer5m = 0;   // % change in last 5 minutes
+    this._gainer15m = 0;  // % change in last 15 minutes
+    this._gainer30m = 0;  // % change in last 30 minutes
+    this._gainer1h = 0;   // % change in last 1 hour
+
     this._initialized = false;
     this._loading = false;
 
@@ -96,31 +102,54 @@ class CryptoObserver {
   }
 
   /**
-   * Calculate 1-hour gainer percentage (exactly 1 hour)
-   * Formula: ((close[latest] - close[1h ago]) / close[1h ago]) * 100
-   * Uses index 39 for 1h ago (buffer[99] - 60min = buffer[39])
+   * Calculate gainer percentage for a specific timeframe
+   * Formula: ((close[latest] - close[N min ago]) / close[N min ago]) * 100
+   * Buffer has 60 1-minute candles, so max lookback is 60 minutes
+   *
+   * @param {number} minutesAgo - How many minutes back to look (5, 15, 30, 60)
+   * @returns {number} Percentage change
    * @private
    */
-  _recalculateGainer() {
+  _calculateGainerForTimeframe(minutesAgo) {
     if (this.buffer.length < 2) {
-      this._gainer1h = 0;
-      return;
+      return 0;
     }
 
     const latestCandle = this.buffer[this.buffer.length - 1];
 
-    // Use candle from exactly 1 hour ago (index 39 in 99-candle buffer)
-    // This is precise: 99 - 60 = 39
-    const oneHourAgoIndex = Math.min(39, this.buffer.length - 1);
-    const oneHourAgoCandle = this.buffer[oneHourAgoIndex];
+    // Calculate index: minutesAgo minutes back from the end
+    // If buffer has 60 candles and we want 30 min ago: index = 60 - 30 = 30
+    const indexAgo = Math.max(0, this.buffer.length - minutesAgo);
+    const candleAgo = this.buffer[indexAgo];
 
-    if (!oneHourAgoCandle) {
+    if (!candleAgo || candleAgo.close === 0) {
+      return 0;
+    }
+
+    const change = (latestCandle.close - candleAgo.close) / candleAgo.close;
+    return change * 100;
+  }
+
+  /**
+   * Recalculate all gainer percentages (5m, 15m, 30m, 1h)
+   * Called whenever a new candle is added
+   * Uses the same buffer data for all timeframes
+   * @private
+   */
+  _recalculateGainer() {
+    if (this.buffer.length < 2) {
+      this._gainer5m = 0;
+      this._gainer15m = 0;
+      this._gainer30m = 0;
       this._gainer1h = 0;
       return;
     }
 
-    const change = (latestCandle.close - oneHourAgoCandle.close) / oneHourAgoCandle.close;
-    this._gainer1h = change * 100;
+    // Calculate all timeframes from the same 1m buffer
+    this._gainer5m = this._calculateGainerForTimeframe(5);
+    this._gainer15m = this._calculateGainerForTimeframe(15);
+    this._gainer30m = this._calculateGainerForTimeframe(30);
+    this._gainer1h = this._calculateGainerForTimeframe(60);
   }
 
   /**
@@ -169,6 +198,27 @@ class CryptoObserver {
         this.currentPrice > (ma99 * 1.015)) {
       this._upConditionState.step4_priceExceeded = true;
     }
+  }
+
+  /**
+   * Get current 5-minute gainer percentage
+   */
+  get gainer5m() {
+    return this._gainer5m;
+  }
+
+  /**
+   * Get current 15-minute gainer percentage
+   */
+  get gainer15m() {
+    return this._gainer15m;
+  }
+
+  /**
+   * Get current 30-minute gainer percentage
+   */
+  get gainer30m() {
+    return this._gainer30m;
   }
 
   /**
@@ -266,13 +316,21 @@ class CryptoObserver {
 
   /**
    * Get all technical indicators as object
+   * Includes multi-timeframe gainer percentages
    */
   getIndicators() {
     return {
+      // Moving averages
       ma20: this.ma20,
       ma99: this.ma99,
+      // Bollinger Bands
       bbUpper: this.bbUpper,
       bbLower: this.bbLower,
+      // Multi-timeframe gainer percentages
+      gainer5m: this.gainer5m,
+      gainer15m: this.gainer15m,
+      gainer30m: this.gainer30m,
+      gainer1h: this.gainer1h,
     };
   }
 

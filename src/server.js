@@ -184,10 +184,16 @@ binanceWS.on("candle", (candle) => {
       const observer = gainersManager.observers.get(gainer.symbol);
       return {
         ...gainer,
+        // Technical indicators
         ma20: observer?.ma20 || 0,
         ma99: observer?.ma99 || 0,
         bbUpper: observer?.bbUpper || 0,
         bbLower: observer?.bbLower || 0,
+        // Multi-timeframe gainer percentages
+        gainer5m: observer?.gainer5m || 0,
+        gainer15m: observer?.gainer15m || 0,
+        gainer30m: observer?.gainer30m || 0,
+        // Trading conditions
         conditions: observer?.getConditions() || {},
       };
     });
@@ -293,10 +299,16 @@ app.get("/api/gainers", (req, res) => {
     const observer = gainersManager.observers.get(gainer.symbol);
     return {
       ...gainer,
+      // Technical indicators
       ma20: observer?.ma20 || 0,
       ma99: observer?.ma99 || 0,
       bbUpper: observer?.bbUpper || 0,
       bbLower: observer?.bbLower || 0,
+      // Multi-timeframe gainer percentages
+      gainer5m: observer?.gainer5m || 0,
+      gainer15m: observer?.gainer15m || 0,
+      gainer30m: observer?.gainer30m || 0,
+      // Trading conditions
       conditions: observer?.getConditions() || {},
     };
   });
