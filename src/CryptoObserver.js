@@ -266,12 +266,14 @@ class CryptoObserver {
   }
 
   /**
-   * Price above MA99 breakout level (MA99 × 1.005)
-   * Breakout Alcista condition
+   * Price in breakout range (MA99 × 1.002 to MA99 × 1.010)
+   * Breakout Alcista condition: Price between 0.2% and 1.0% above MA99
    */
   get priceAboveMA99Breakout() {
     if (this.ma99 === 0) return false;
-    return this.currentPrice > (this.ma99 * 1.005);
+    const lowerBound = this.ma99 * 1.002;
+    const upperBound = this.ma99 * 1.010;
+    return this.currentPrice > lowerBound && this.currentPrice < upperBound;
   }
 
   /**
