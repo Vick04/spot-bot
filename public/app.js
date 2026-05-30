@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────
-// app.js - SPOT-BOT Top 10 Gainers Dashboard
+// app.js - SPOT-BOT Top 30 Gainers Dashboard
 // ─────────────────────────────────────────────
 
 class GainersDashboard {

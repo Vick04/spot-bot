@@ -117,7 +117,7 @@ class GainersManager extends EventEmitter {
   /**
    * Update a crypto with a new candle
    * Called when a 1-minute candle closes from WebSocket
-   * Monitors: trading signals for top 10, and sell conditions for active position
+   * Monitors: trading signals for top 30, and sell conditions for active position
    *
    * @param {string} symbol - Trading pair
    * @param {Object} candle - New candle data
@@ -136,19 +136,19 @@ class GainersManager extends EventEmitter {
       this._monitorActivePosition(symbol, observer, candle);
     }
 
-    // Check for trading signals ONLY if this symbol is in top 10 gainers
-    if (this._isInTop10(symbol)) {
+    // Check for trading signals ONLY if this symbol is in top 30 gainers
+    if (this._isInTop30(symbol)) {
       this._checkTradingSignals(symbol, observer);
     }
   }
 
   /**
-   * Check if a symbol is in the current top 10 gainers
+   * Check if a symbol is in the current top 30 gainers
    * @private
    */
-  _isInTop10(symbol) {
-    const top10 = this.getTop1hGainers(10);
-    return top10.some((gainer) => gainer.symbol === symbol);
+  _isInTop30(symbol) {
+    const top30 = this.getTop1hGainers(30);
+    return top30.some((gainer) => gainer.symbol === symbol);
   }
 
   /**
@@ -401,10 +401,10 @@ class GainersManager extends EventEmitter {
    * Get top N gainers in the last 1 hour
    * Sorted descending (largest gains first)
    *
-   * @param {number} limit - Number of gainers to return (default: 10)
+   * @param {number} limit - Number of gainers to return (default: 30)
    * @returns {Array<Object>} Array of top gainers
    */
-  getTop1hGainers(limit = 10) {
+  getTop1hGainers(limit = 30) {
     const gainers = Array.from(this.observers.values())
       .filter((observer) => observer.isReady) // Only ready observers
       .map((observer) => ({
@@ -476,7 +476,7 @@ class GainersManager extends EventEmitter {
       totalSymbols: this.totalSymbols,
       readyCount: this.readyCount,
       isReady: this.isReady,
-      topGainers: this.getTop1hGainers(10),
+      topGainers: this.getTop1hGainers(30),
     };
   }
 

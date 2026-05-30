@@ -95,7 +95,12 @@
       "Bash(curl -s --connect-timeout 2 http://localhost:4445/api/health)",
       "Bash(lsof -ti:4445)",
       "Bash(curl -s --connect-timeout 1 http://localhost:4445/api/health)",
-      "Bash(python3 -c \"import sys, json; data = json.load\\(sys.stdin\\); print\\('POSICIÓN ACTIVA:'\\); print\\(f' Símbolo: {data.get\\(\\\\\"activeCandleObserver\\\\\", {}\\).get\\(\\\\\"symbol\\\\\", \\\\\"None\\\\\"\\)}'\\); print\\(f' Buy Price: {data.get\\(\\\\\"activeCandleObserver\\\\\", {}\\).get\\(\\\\\"buyPrice\\\\\"\\)}'\\); print\\(f' Sell Target: {data.get\\(\\\\\"activeCandleObserver\\\\\", {}\\).get\\(\\\\\"sellTarget\\\\\"\\)}'\\); print\\(f' Current Price: {data.get\\(\\\\\"activeCandleObserver\\\\\", {}\\).get\\(\\\\\"currentPrice\\\\\"\\)}'\\); print\\(f' Tiempo en Trade \\(min\\): {data.get\\(\\\\\"activeCandleObserver\\\\\", {}\\).get\\(\\\\\"timeInTrade\\\\\"\\)}'\\); print\\(f' Buy Time: {data.get\\(\\\\\"activeCandleObserver\\\\\", {}\\).get\\(\\\\\"buyTime\\\\\"\\)}'\\)\")"
+      "Bash(python3 -c \"import sys, json; data = json.load\\(sys.stdin\\); print\\('POSICIÓN ACTIVA:'\\); print\\(f' Símbolo: {data.get\\(\\\\\"activeCandleObserver\\\\\", {}\\).get\\(\\\\\"symbol\\\\\", \\\\\"None\\\\\"\\)}'\\); print\\(f' Buy Price: {data.get\\(\\\\\"activeCandleObserver\\\\\", {}\\).get\\(\\\\\"buyPrice\\\\\"\\)}'\\); print\\(f' Sell Target: {data.get\\(\\\\\"activeCandleObserver\\\\\", {}\\).get\\(\\\\\"sellTarget\\\\\"\\)}'\\); print\\(f' Current Price: {data.get\\(\\\\\"activeCandleObserver\\\\\", {}\\).get\\(\\\\\"currentPrice\\\\\"\\)}'\\); print\\(f' Tiempo en Trade \\(min\\): {data.get\\(\\\\\"activeCandleObserver\\\\\", {}\\).get\\(\\\\\"timeInTrade\\\\\"\\)}'\\); print\\(f' Buy Time: {data.get\\(\\\\\"activeCandleObserver\\\\\", {}\\).get\\(\\\\\"buyTime\\\\\"\\)}'\\)\")",
+      "Bash(pkill -f \"npm run dev:start\")",
+      "Bash(node -c src/GainersManager.js)",
+      "Bash(cat > *)",
+      "Bash(xargs echo \"   Calls to _updateUpConditionState:\")",
+      "Bash(awk '{print \"   File size: \" $5}')"
     ]
   }
 }
