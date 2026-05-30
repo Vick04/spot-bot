@@ -276,6 +276,7 @@ class GainersDashboard {
     const activePosition = document.getElementById("activePosition");
     const totalTrades = document.getElementById("totalTrades");
     const totalProfit = document.getElementById("totalProfit");
+    const pnlPercent = document.getElementById("pnlPercent");
 
     if (balance) {
       balance.textContent = `$${this.tradingState.balance.toFixed(2)}`;
@@ -296,6 +297,12 @@ class GainersDashboard {
     if (totalProfit) {
       const profitClass = this.tradingState.stats.totalProfit >= 0 ? "positive" : "negative";
       totalProfit.innerHTML = `<span style="color: ${this.tradingState.stats.totalProfit >= 0 ? '#48bb78' : '#f56565'}">$${this.tradingState.stats.totalProfit.toFixed(2)}</span>`;
+    }
+
+    if (pnlPercent) {
+      const percentValue = this.tradingState.stats.totalProfitPercent || 0;
+      const percentSign = percentValue >= 0 ? "+" : "";
+      pnlPercent.innerHTML = `<span style="color: ${percentValue >= 0 ? '#48bb78' : '#f56565'}">${percentSign}${percentValue.toFixed(2)}%</span>`;
     }
 
     // Render orders history
