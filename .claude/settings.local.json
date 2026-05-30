@@ -102,7 +102,8 @@
       "Bash(xargs echo \"   Calls to _updateUpConditionState:\")",
       "Bash(awk '{print \"   File size: \" $5}')",
       "Bash(node -c C:\\\\Projects\\\\spot-bot\\\\public\\\\app.js)",
-      "Bash(node -c public/app.js)"
+      "Bash(node -c public/app.js)",
+      "Bash(node -c src/CryptoObserver.js)"
     ]
   }
 }

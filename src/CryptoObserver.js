@@ -20,6 +20,7 @@ class CryptoObserver {
       step1_pisoMet: false,       // Piso: MA20 < MA99
       step2_zonaFuerteMet: false, // Zona Fuerte: MA20 > MA99 (after step1)
       step3_breakoutMet: false,   // Breakout Alcista: Price in range (after step2)
+      step4_priceExceeded: false, // Invalidation: Price > MA99 × 1.015 (disqualifies purchase)
     };
   }
 
@@ -128,6 +129,7 @@ class CryptoObserver {
    * - Step 1 (Piso): MA20 < MA99
    * - Step 2 (Zona Fuerte): MA20 > MA99 (only after step1 was true)
    * - Step 3 (Breakout Alcista): Price in range (only after step2 is true)
+   * - Step 4 (Invalidation): Price > MA99 × 1.015 (disqualifies purchase permanently)
    * All steps reset when DOWN condition is met
    * @private
    */
@@ -140,6 +142,7 @@ class CryptoObserver {
       this._upConditionState.step1_pisoMet = false;
       this._upConditionState.step2_zonaFuerteMet = false;
       this._upConditionState.step3_breakoutMet = false;
+      this._upConditionState.step4_priceExceeded = false;
       return;
     }
 
@@ -158,6 +161,13 @@ class CryptoObserver {
     if (this._upConditionState.step2_zonaFuerteMet && !this._upConditionState.step3_breakoutMet &&
         this.priceAboveMA99Breakout) {
       this._upConditionState.step3_breakoutMet = true;
+    }
+
+    // Step 4: Invalidation - Price exceeded max threshold (disqualifies purchase)
+    // Once triggered, stays true until DOWN signal resets it
+    if (!this._upConditionState.step4_priceExceeded && ma99 > 0 &&
+        this.currentPrice > (ma99 * 1.015)) {
+      this._upConditionState.step4_priceExceeded = true;
     }
   }
 
@@ -342,11 +352,12 @@ class CryptoObserver {
    * Step 1 (Piso): MA20 < MA99 must be met first
    * Step 2 (Zona Fuerte): MA20 > MA99 transitions from step 1
    * Step 3 (Breakout Alcista): Price in range (MA99 × 1.002 to 1.010) after step 2
-   * Returns true when all three steps are sequentially completed
+   * Step 4 (Invalidation): Price > MA99 × 1.015 disqualifies the purchase permanently
+   * Returns true when all three steps are sequentially completed AND price hasn't exceeded limit
    * All steps reset when DOWN condition is met
    */
   get canBuyUP() {
-    return this._upConditionState.step3_breakoutMet;
+    return this._upConditionState.step3_breakoutMet && !this._upConditionState.step4_priceExceeded;
   }
 
   /**
@@ -369,6 +380,8 @@ class CryptoObserver {
       upCondition2_ZonaFuerte: this._upConditionState.step2_zonaFuerteMet,
       // Step 3: Breakout Alcista - Price in range (after step 2)
       upCondition3_BreakoutAlcista: this._upConditionState.step3_breakoutMet,
+      // Step 4: Invalidation - Price exceeded max threshold (disqualifies purchase)
+      upCondition4_PriceExceeded: this._upConditionState.step4_priceExceeded,
       canBuyUP: this.canBuyUP,
 
       // DOWN Condition breakdown

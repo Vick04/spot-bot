@@ -122,10 +122,11 @@ class GainersDashboard {
         // Conditions from observer
         const conditions = gainer.conditions || {};
 
-        // UP Conditions: Sequential state machine (Piso → Zona Fuerte → Breakout Alcista)
+        // UP Conditions: Sequential state machine (Piso → Zona Fuerte → Breakout Alcista → Not Exceeded)
         const upPiso = conditions.upCondition1_Piso ? "✓" : "✗";
         const upZonaFuerte = conditions.upCondition2_ZonaFuerte ? "✓" : "✗";
         const upBreakout = conditions.upCondition3_BreakoutAlcista ? "✓" : "✗";
+        const upPriceExceeded = conditions.upCondition4_PriceExceeded ? "✗" : "✓";
         const canBuyUP = conditions.canBuyUP ? "✅" : "—";
 
         // DOWN Conditions: Zona Débil (MA20 < MA99) + Precio Deprimido (price < MA99 × 0.970)
@@ -186,6 +187,10 @@ class GainersDashboard {
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
                 <span class="detail-label">③ Breakout (Price ±1%):</span>
                 <span class="detail-value condition-step ${conditions.upCondition3_BreakoutAlcista ? 'step-met' : 'step-pending'}">${upBreakout}</span>
+              </div>
+              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
+                <span class="detail-label">④ Price OK (Price ≤ MA99 × 1.015):</span>
+                <span class="detail-value condition-step ${!conditions.upCondition4_PriceExceeded ? 'step-met' : 'step-pending'}" style="background-color: ${!conditions.upCondition4_PriceExceeded ? 'rgba(72, 187, 120, 0.2)' : 'rgba(245, 101, 101, 0.2)'}; color: ${!conditions.upCondition4_PriceExceeded ? 'var(--success)' : 'var(--danger)'};">${upPriceExceeded}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">BUY DOWN:</span>
