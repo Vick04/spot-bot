@@ -172,7 +172,7 @@ binanceWS.on("candle", (candle) => {
 
   // Broadcast updated top gainers and trading state to all WebSocket clients
   if (candleCount % 10 === 0) {
-    const gainersToSend = gainersManager.getTop1hGainers(10).map(gainer => {
+    const gainersToSend = gainersManager.getTop1hGainers(30).map(gainer => {
       const observer = gainersManager.observers.get(gainer.symbol);
       return {
         ...gainer,
