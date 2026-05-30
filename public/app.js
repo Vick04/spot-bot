@@ -141,6 +141,19 @@ class GainersDashboard {
               <span class="gainer-change ${percentClass}">${changeSign}${gainer.gainer1h.toFixed(2)}%</span>
             </div>
             <div class="gainer-price">Price: $${gainer.price.toFixed(8)}</div>
+
+            <!-- UP Conditions Progress -->
+            <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(66, 153, 225, 0.05); border-radius: 6px;">
+              <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">BUY UP Sequence:</div>
+              <div style="display: flex; gap: 4px; align-items: center;">
+                <div style="flex: 1; height: 20px; background-color: ${conditions.upCondition1_Piso ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${conditions.upCondition1_Piso ? 'var(--success)' : 'var(--text-secondary)'};"><span>①</span></div>
+                <div style="width: 16px; height: 2px; background-color: ${conditions.upCondition1_Piso ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; height: 20px; background-color: ${conditions.upCondition2_ZonaFuerte ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${conditions.upCondition2_ZonaFuerte ? 'var(--success)' : 'var(--text-secondary)'};"><span>②</span></div>
+                <div style="width: 16px; height: 2px; background-color: ${conditions.upCondition2_ZonaFuerte && conditions.upCondition3_BreakoutAlcista ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; height: 20px; background-color: ${conditions.upCondition3_BreakoutAlcista ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${conditions.upCondition3_BreakoutAlcista ? 'var(--success)' : 'var(--text-secondary)'};"><span>③</span></div>
+              </div>
+            </div>
+
             <div class="gainer-details">
               <div class="detail-row">
                 <span class="detail-label">Indicators:</span>
