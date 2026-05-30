@@ -131,16 +131,14 @@ class GainersManager extends EventEmitter {
 
     observer.updateCandle(candle);
 
-    // Monitor active position (sell condition) using 1m candles
-    // Only if the active order is for this symbol
-    if (this.tradingState.activeCandleObserver && this.tradingState.activeCandleObserver.symbol === symbol) {
-      this.monitorActivePosition(symbol, candle);
-    }
-
     // Check for trading signals ONLY if this symbol is in top 30 gainers
+    // Uses 1m candles and CryptoObserver indicators
     if (this._isInTop30(symbol)) {
       this._checkTradingSignals(symbol, observer);
     }
+
+    // NOTE: Active position monitoring now handled via 1s candles from server.js
+    // Don't monitor positions here with 1m candles - OrderObserver uses 1s only
   }
 
   /**
