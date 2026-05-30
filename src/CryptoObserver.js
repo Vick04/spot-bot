@@ -14,6 +14,13 @@ class CryptoObserver {
     this._gainer1h = 0; // % change in last 1 hour
     this._initialized = false;
     this._loading = false;
+
+    // State machine for sequential BUY UP conditions
+    this._upConditionState = {
+      step1_pisoMet: false,       // Piso: MA20 < MA99
+      step2_zonaFuerteMet: false, // Zona Fuerte: MA20 > MA99 (after step1)
+      step3_breakoutMet: false,   // Breakout Alcista: Price in range (after step2)
+    };
   }
 
   /**
@@ -43,6 +50,9 @@ class CryptoObserver {
 
       // Calculate initial gainer
       this._recalculateGainer();
+
+      // Update UP condition state machine
+      this._updateUpConditionState();
 
       this._initialized = true;
       console.log(
@@ -79,6 +89,9 @@ class CryptoObserver {
 
     // Recalculate gainer
     this._recalculateGainer();
+
+    // Update UP condition state machine
+    this._updateUpConditionState();
   }
 
   /**
@@ -107,6 +120,45 @@ class CryptoObserver {
 
     const change = (latestCandle.close - oneHourAgoCandle.close) / oneHourAgoCandle.close;
     this._gainer1h = change * 100;
+  }
+
+  /**
+   * Update UP condition state machine
+   * Implements sequential logic:
+   * - Step 1 (Piso): MA20 < MA99
+   * - Step 2 (Zona Fuerte): MA20 > MA99 (only after step1 was true)
+   * - Step 3 (Breakout Alcista): Price in range (only after step2 is true)
+   * All steps reset when DOWN condition is met
+   * @private
+   */
+  _updateUpConditionState() {
+    const ma20 = this.ma20;
+    const ma99 = this.ma99;
+
+    // Check if DOWN condition is met - if so, reset all UP states
+    if (this.ma20BelowMA99 && this.priceBelowMA99Depressed) {
+      this._upConditionState.step1_pisoMet = false;
+      this._upConditionState.step2_zonaFuerteMet = false;
+      this._upConditionState.step3_breakoutMet = false;
+      return;
+    }
+
+    // Step 1: Piso - MA20 < MA99
+    if (!this._upConditionState.step1_pisoMet && ma99 > 0 && ma20 < ma99) {
+      this._upConditionState.step1_pisoMet = true;
+    }
+
+    // Step 2: Zona Fuerte - MA20 > MA99 (only if step1 was already met)
+    if (this._upConditionState.step1_pisoMet && !this._upConditionState.step2_zonaFuerteMet &&
+        ma99 > 0 && ma20 > ma99) {
+      this._upConditionState.step2_zonaFuerteMet = true;
+    }
+
+    // Step 3: Breakout Alcista - Price in range (only if step2 is active)
+    if (this._upConditionState.step2_zonaFuerteMet && !this._upConditionState.step3_breakoutMet &&
+        this.priceAboveMA99Breakout) {
+      this._upConditionState.step3_breakoutMet = true;
+    }
   }
 
   /**
@@ -286,11 +338,15 @@ class CryptoObserver {
   }
 
   /**
-   * BUY condition UP: Zona Fuerte + Breakout Alcista
-   * Requires BOTH: MA20 > MA99 AND Price > (MA99 × 1.015)
+   * BUY condition UP: Sequential state machine
+   * Step 1 (Piso): MA20 < MA99 must be met first
+   * Step 2 (Zona Fuerte): MA20 > MA99 transitions from step 1
+   * Step 3 (Breakout Alcista): Price in range (MA99 × 1.002 to 1.010) after step 2
+   * Returns true when all three steps are sequentially completed
+   * All steps reset when DOWN condition is met
    */
   get canBuyUP() {
-    return this.ma20AboveMA99 && this.priceAboveMA99Breakout;
+    return this._upConditionState.step3_breakoutMet;
   }
 
   /**
@@ -306,11 +362,13 @@ class CryptoObserver {
    */
   getConditions() {
     return {
-      // UP Condition breakdown
-      // Zona Fuerte: MA20 > MA99
-      upCondition1_ZonaFuerte: this.ma20AboveMA99,
-      // Breakout Alcista: Price > (MA99 × 1.015)
-      upCondition2_BreakoutAlcista: this.priceAboveMA99Breakout,
+      // UP Condition breakdown (sequential state machine)
+      // Step 1: Piso - MA20 < MA99
+      upCondition1_Piso: this._upConditionState.step1_pisoMet,
+      // Step 2: Zona Fuerte - MA20 > MA99 (after step 1)
+      upCondition2_ZonaFuerte: this._upConditionState.step2_zonaFuerteMet,
+      // Step 3: Breakout Alcista - Price in range (after step 2)
+      upCondition3_BreakoutAlcista: this._upConditionState.step3_breakoutMet,
       canBuyUP: this.canBuyUP,
 
       // DOWN Condition breakdown
