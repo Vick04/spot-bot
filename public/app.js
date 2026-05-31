@@ -205,7 +205,7 @@ class GainersDashboard {
                 <span class="detail-value condition-step ${conditions.upCondition3_BreakoutAlcista ? 'step-met' : 'step-pending'}">${upBreakout}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">④ Price OK (Price ≤ MA99 × 1.015):</span>
+                <span class="detail-label">④ Price OK (Price > MA99 × 1.015):</span>
                 <span class="detail-value condition-step ${!conditions.upCondition4_PriceExceeded ? 'step-met' : 'step-pending'}" style="background-color: ${!conditions.upCondition4_PriceExceeded ? 'rgba(72, 187, 120, 0.2)' : 'rgba(245, 101, 101, 0.2)'}; color: ${!conditions.upCondition4_PriceExceeded ? 'var(--success)' : 'var(--danger)'};">${upPriceExceeded}</span>
               </div>
               <div class="detail-row">

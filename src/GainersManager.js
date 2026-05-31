@@ -387,8 +387,8 @@ class GainersManager extends EventEmitter {
   }
 
   /**
-   * Get top N gainers in the last 1 hour
-   * Sorted descending (largest gains first)
+   * Get top N gainers with 5-minute performance > 0.5%
+   * Filtered by gainer5m > 0.5% and sorted descending
    *
    * @param {number} limit - Number of gainers to return (default: 30)
    * @returns {Array<Object>} Array of top gainers
@@ -396,13 +396,17 @@ class GainersManager extends EventEmitter {
   getTop1hGainers(limit = 30) {
     const gainers = Array.from(this.observers.values())
       .filter((observer) => observer.isReady) // Only ready observers
+      .filter((observer) => observer.gainer5m > 0.5) // Filter: 5m gain > 0.5%
       .map((observer) => ({
         symbol: observer.symbol,
         gainer1h: observer.gainer1h,
+        gainer5m: observer.gainer5m,
+        gainer15m: observer.gainer15m,
+        gainer30m: observer.gainer30m,
         price: observer.currentPrice,
         bufferSize: observer.bufferSize,
       }))
-      .sort((a, b) => b.gainer1h - a.gainer1h) // Descending
+      .sort((a, b) => b.gainer5m - a.gainer5m) // Sort by 5m gainer descending
       .slice(0, limit);
 
     return gainers;
