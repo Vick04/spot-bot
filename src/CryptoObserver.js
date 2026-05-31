@@ -386,14 +386,14 @@ class CryptoObserver {
   }
 
   /**
-   * Price in breakout range (MA99 × 1.002 to MA99 × 1.010)
-   * Breakout Alcista condition: Price between 0.2% and 1.0% above MA99
+   * Price in breakout range (MA99 × 0.97 to MA99 × 1.03)
+   * Breakout Alcista condition: Price between -3% and +3% relative to MA99
    */
   get priceAboveMA99Breakout() {
     if (this.ma99 === 0) return false;
-    const lowerBound = this.ma99 * 1.002;
-    const upperBound = this.ma99 * 1.010;
-    return this.currentPrice > lowerBound && this.currentPrice < upperBound;
+    const lowerBound = this.ma99 * 0.97;
+    const upperBound = this.ma99 * 1.03;
+    return this.currentPrice >= lowerBound && this.currentPrice <= upperBound;
   }
 
   /**
@@ -406,15 +406,16 @@ class CryptoObserver {
   }
 
   /**
-   * BUY condition UP: Simplified - Only steps 1 and 4
-   * Step 1 (Piso): MA20 < MA99 must be met
-   * Step 4 (Invalidation): Price <= MA99 × 1.015 (disqualifies if exceeded)
-   *
-   * TEMPORARY: Steps 2 (Zona Fuerte) and 3 (Breakout Alcista) are disabled
-   * Returns true when step 1 is met AND price hasn't exceeded limit
+   * BUY condition UP: Sequential state machine
+   * Step 1 (Piso): MA20 < MA99 must be met first
+   * Step 2 (Zona Fuerte): MA20 > MA99 transitions from step 1
+   * Step 3 (Breakout Alcista): Price in range (MA99 × 0.97 to MA99 × 1.03) after step 2
+   * Step 4 (Invalidation): Price > MA99 × 1.015 disqualifies the purchase permanently
+   * Returns true when steps 1, 2, and 3 are sequentially completed AND price hasn't exceeded limit
+   * All steps reset when DOWN condition is met
    */
   get canBuyUP() {
-    return this._upConditionState.step1_pisoMet && !this._upConditionState.step4_priceExceeded;
+    return this._upConditionState.step3_breakoutMet && !this._upConditionState.step4_priceExceeded;
   }
 
   /**
