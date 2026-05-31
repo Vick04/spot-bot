@@ -409,13 +409,13 @@ class CryptoObserver {
    * BUY condition UP: Steps 1, 3, and 4 (Step 2 temporarily disabled)
    * Step 1 (Piso): MA20 < MA99 must be met
    * Step 2 (Zona Fuerte): TEMPORARILY DISABLED
-   * Step 3 (Breakout Alcista): Price in range (MA99 × 0.97 to MA99 × 1.03)
+   * Step 3 (Breakout Alcista): Price in range (MA99 × 0.97 to MA99 × 1.03) - ACTIVE
    * Step 4 (Invalidation): Price > MA99 × 1.015 disqualifies the purchase permanently
-   * Returns true when step 1 is met AND price hasn't exceeded limit
+   * Returns true when step 1 AND step 3 are met AND price hasn't exceeded limit
    * All steps reset when DOWN condition is met
    */
   get canBuyUP() {
-    return this._upConditionState.step1_pisoMet && !this._upConditionState.step4_priceExceeded;
+    return this._upConditionState.step1_pisoMet && this._upConditionState.step3_breakoutMet && !this._upConditionState.step4_priceExceeded;
   }
 
   /**
