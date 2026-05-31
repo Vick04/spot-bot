@@ -6,10 +6,12 @@
 // ─────────────────────────────────────────────
 
 class OrderObserver {
-  constructor(symbol, buyPrice, quantity) {
+  constructor(symbol, buyPrice, quantity, feeOnBuy = 0, investedAmount = 0) {
     this.symbol = symbol;
     this.buyPrice = buyPrice;
     this.quantity = quantity;
+    this.investedAmount = investedAmount; // USDT invested before fee
+    this.feeOnBuy = feeOnBuy; // Fee applied during buy
     this.currentPrice = buyPrice; // Start with buy price
     this.lastUpdateTime = Date.now();
     this.buyTime = new Date().toISOString();
@@ -64,30 +66,46 @@ class OrderObserver {
    * Called when sell condition is met
    * Applies 0.1% fee on USDT received
    *
-   * @returns {Object} Sell order summary with profit calculations
+   * @returns {Object} Sell order summary with complete fee breakdown
    */
   executeSell() {
     const FEE = 0.001; // 0.1% fee
+
+    // Sell calculation
     const sellValue = this.quantity * this.currentPrice;
-    const sellValueAfterFee = sellValue * (1 - FEE);
+    const feeOnSell = sellValue * FEE;
+    const sellValueAfterFee = sellValue - feeOnSell;
+
+    // Profit calculation
+    // boughtValue = quantity * buyPrice (the actual USDT spent before buy fee)
     const boughtValue = this.quantity * this.buyPrice;
-    const profit = sellValueAfterFee - boughtValue;
-    const profitPercent = (profit / boughtValue) * 100;
+    const totalProfit = sellValueAfterFee - this.investedAmount;
+    const profitPercent = (totalProfit / this.investedAmount) * 100;
 
     const sellInfo = {
+      // Trade info
       symbol: this.symbol,
-      buyPrice: this.buyPrice,
-      sellPrice: this.currentPrice,
-      quantity: this.quantity,
-      buyValue: boughtValue,
-      sellValue: sellValue,
-      feeOnSell: sellValue * FEE,
-      sellValueAfterFee: sellValueAfterFee,
-      profit: profit,
-      profitPercent: profitPercent,
       buyTime: this.buyTime,
       sellTime: new Date().toISOString(),
       timeInTrade: Math.floor((Date.now() - new Date(this.buyTime).getTime()) / 1000 / 60),
+
+      // Buy info
+      buyPrice: this.buyPrice,
+      quantity: this.quantity,
+      investedUSDT: this.investedAmount,
+      feeOnBuy: this.feeOnBuy,
+
+      // Sell info
+      sellPrice: this.currentPrice,
+      sellValue: sellValue,
+      feeOnSell: feeOnSell,
+      sellValueAfterFee: sellValueAfterFee,
+
+      // Profit info
+      totalFees: this.feeOnBuy + feeOnSell,
+      profit: totalProfit,
+      profitPercent: profitPercent,
+      newBalance: sellValueAfterFee,
     };
 
     return sellInfo;

@@ -273,7 +273,8 @@ class GainersManager extends EventEmitter {
 
     // Create OrderObserver for this position
     // This lightweight observer tracks 1-second candles only
-    const orderObserver = new OrderObserver(symbol, buyPrice, btcAfterFee);
+    // Pass: symbol, buyPrice, quantity (after fee), feeAmount, investedUSDT
+    const orderObserver = new OrderObserver(symbol, buyPrice, btcAfterFee, feeAmount, usdtToInvest);
 
     // Store signal type for sell condition logic
     orderObserver.signalType = signalType;

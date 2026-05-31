@@ -102,9 +102,17 @@ gainersManager.on("trading-signal", (signalData) => {
   // Subscribe to 1-second candles for active order monitoring
   binanceWS.subscribe1s(signalData.symbol);
 
+  // Get the active order observer for fee information
+  const position = gainersManager.tradingState.activeCandleObserver;
+  const signalWithFees = {
+    ...signalData,
+    feeOnBuy: position?.feeOnBuy || 0,
+    investedAmount: position?.investedAmount || 0,
+  };
+
   broadcastEvent({
     type: "trading-signal",
-    signal: signalData,
+    signal: signalWithFees,
     tradingState: gainersManager.getTradingStatus(),
   });
 });
@@ -265,6 +273,9 @@ binanceWS.on("candle1s", (candle) => {
         progressPercent: Math.min(Math.max(pnlInfo.progressPercent, 0), 100),
         priceGapToTarget: pnlInfo.gapToTarget,
         buyTime: position.buyTime,
+        // Fee information
+        feeOnBuy: position.feeOnBuy,
+        investedAmount: position.investedAmount,
       },
       timestamp: new Date().toISOString(),
     });

@@ -146,23 +146,62 @@ body {
   font-weight: 600;
 }
 
-.position-details {
-  background-color: var(--bg-secondary);
+.position-card {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(72, 187, 120, 0.05) 100%);
   border: 2px solid var(--success);
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 24px rgba(72, 187, 120, 0.1);
 }
 
-.position-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-.position-item {
+.position-header {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.position-symbol {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--success);
+  font-family: 'Courier New', monospace;
+}
+
+.position-time {
+  padding: 8px 16px;
+  background-color: var(--success);
+  color: #000;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.position-info {
+  margin-bottom: 20px;
+  background-color: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.position-info:last-child {
+  margin-bottom: 0;
+}
+
+.position-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.position-row:last-child {
+  border-bottom: none;
 }
 
 .position-label {
@@ -175,9 +214,20 @@ body {
 
 .position-value {
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   font-family: 'Courier New', monospace;
+}
+
+.position-value.highlight {
+  color: var(--success);
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.position-value.target {
+  color: var(--success);
+  font-weight: 700;
 }
 
 /* Order Progress Section */

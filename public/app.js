@@ -205,7 +205,7 @@ class GainersDashboard {
                 <span class="detail-value condition-step ${conditions.upCondition3_BreakoutAlcista ? 'step-met' : 'step-pending'}">${upBreakout}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">④ Price OK (Price > MA99 × 1.015):</span>
+                <span class="detail-label">④ Price OK (Price ≤ MA99 × 1.015):</span>
                 <span class="detail-value condition-step ${!conditions.upCondition4_PriceExceeded ? 'step-met' : 'step-pending'}" style="background-color: ${!conditions.upCondition4_PriceExceeded ? 'rgba(72, 187, 120, 0.2)' : 'rgba(245, 101, 101, 0.2)'}; color: ${!conditions.upCondition4_PriceExceeded ? 'var(--success)' : 'var(--danger)'};">${upPriceExceeded}</span>
               </div>
               <div class="detail-row">
@@ -365,7 +365,9 @@ class GainersDashboard {
       if (order.type === 'BUY') {
         priceValue = order.buyPrice ? `$${order.buyPrice.toFixed(8)}` : '-';
         valueProfit = order.investedUSDT ? `$${order.investedUSDT.toFixed(2)}` : '-';
-        feeValue = order.feeOnBuy ? `$${order.feeOnBuy.toFixed(2)}` : '-';
+        // Convert feeOnBuy (in BTC) to USDT equivalent: fee_btc * buy_price
+        const feeOnBuyUSDT = order.feeOnBuy && order.buyPrice ? (order.feeOnBuy * order.buyPrice) : 0;
+        feeValue = feeOnBuyUSDT > 0 ? `$${feeOnBuyUSDT.toFixed(2)}` : '-';
       } else { // SELL
         priceValue = order.sellPrice ? `$${order.sellPrice.toFixed(8)}` : '-';
         const profitColor = (order.profit >= 0) ? '#48bb78' : '#f56565';
@@ -407,6 +409,14 @@ class GainersDashboard {
     const now = new Date();
     const timeInTrade = Math.floor((now - buyTime) / 1000 / 60); // minutes
 
+    // Calculate projected sell fee (for reference)
+    const currentSellValue = position.quantity * position.currentPrice;
+    const projectedSellFee = currentSellValue * 0.001;
+    const projectedReturn = currentSellValue - projectedSellFee;
+
+    // Format fee on buy in BTC
+    const feeOnBuyDisplay = position.feeOnBuy ? `${position.feeOnBuy.toFixed(8)} BTC` : "-";
+
     // Update all position fields
     const fields = {
       posSymbol: position.symbol || "-",
@@ -417,6 +427,10 @@ class GainersDashboard {
       posPnL: position.pnlValue ? `$${position.pnlValue.toFixed(2)} (${position.pnlPercent.toFixed(2)}%)` : "-",
       posBuyTime: position.buyTime ? new Date(position.buyTime).toLocaleTimeString() : "-",
       posTimeInTrade: `${timeInTrade} min`,
+      posFeeOnBuy: feeOnBuyDisplay,
+      posProjectedSellFee: `$${projectedSellFee.toFixed(2)}`,
+      posProjectedReturn: `$${projectedReturn.toFixed(2)}`,
+      posInvestedAmount: position.investedAmount ? `$${position.investedAmount.toFixed(2)}` : "-",
     };
 
     for (const [id, value] of Object.entries(fields)) {
