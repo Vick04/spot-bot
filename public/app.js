@@ -72,9 +72,6 @@ class GainersDashboard {
       case "trading-status":
         this.updateTradingStatus(message.data);
         break;
-      case "position-update":
-        this.updatePositionData(message.data);
-        break;
       case "trading-order":
         this.updateTradingOrder(message);
         break;
@@ -503,30 +500,53 @@ class GainersDashboard {
     document.body.appendChild(tooltip);
 
     // Create chart with TradingView (wait for library to load if needed)
-    if (window.LightweightCharts) {
-      this.createChart(symbol, chartContainer);
-    } else {
-      console.warn(`[Dashboard] LightweightCharts not loaded, waiting...`);
-      // Wait for LightweightCharts to load (max 2 seconds)
-      let attempts = 0;
-      const checkInterval = setInterval(() => {
-        if (window.LightweightCharts || attempts > 20) {
-          clearInterval(checkInterval);
-          if (window.LightweightCharts) {
-            this.createChart(symbol, chartContainer);
-          } else {
-            console.error(`[Dashboard] LightweightCharts failed to load`);
-          }
-        }
-        attempts++;
-      }, 100);
-    }
+    this.waitForLightweightCharts(() => {
+      if (window.LightweightCharts) {
+        this.createChart(symbol, chartContainer);
+      } else {
+        console.error(`[Dashboard] LightweightCharts failed to load after waiting`);
+        chartContainer.innerHTML = '<div style="color: red; padding: 20px; text-align: center;">Chart library failed to load</div>';
+      }
+    });
 
     this.currentChartContainer = tooltip;
   }
 
   // Storage para datos de buffer
   bufferData = {};
+
+  /**
+   * Wait for LightweightCharts library to load
+   * @param {Function} callback - Called when library is ready or timeout
+   */
+  waitForLightweightCharts(callback) {
+    if (window.LightweightCharts) {
+      console.log("[Dashboard] LightweightCharts already loaded");
+      callback();
+      return;
+    }
+
+    console.warn("[Dashboard] LightweightCharts not loaded, waiting...");
+    let attempts = 0;
+    const maxAttempts = 40; // 4 seconds max
+    const checkInterval = setInterval(() => {
+      attempts++;
+
+      if (window.LightweightCharts) {
+        console.log("[Dashboard] ✅ LightweightCharts loaded successfully");
+        clearInterval(checkInterval);
+        callback();
+        return;
+      }
+
+      if (attempts >= maxAttempts) {
+        console.error("[Dashboard] ⏱️ Timeout waiting for LightweightCharts");
+        clearInterval(checkInterval);
+        callback(); // Call anyway, let createChart handle the error
+        return;
+      }
+    }, 100);
+  }
 
   /**
    * Create TradingView Lightweight Chart with stored buffer data
