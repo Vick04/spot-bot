@@ -99,6 +99,15 @@ class GainersDashboard {
     });
 
     console.log(`[Dashboard] Stored buffer data for ${Object.keys(this.bufferData).length} symbols`);
+    console.log("[Dashboard] Available symbols:", Object.keys(this.bufferData));
+
+    // Try to render BTC chart if we have data
+    if (this.bufferData["BTCUSDT"]) {
+      console.log(`[Dashboard] BTC data available! Candles: ${this.bufferData["BTCUSDT"].length}`);
+      this.renderBTCChart();
+    } else {
+      console.warn("[Dashboard] BTC data not available yet");
+    }
 
     this.renderGainers();
     this.updateDebugInfo();
@@ -803,6 +812,97 @@ class GainersDashboard {
     this.tradingState.activeCandleObserver = null;
 
     console.log(`[Dashboard] ✅ Order closed - New Balance: $${this.tradingState.balance.toFixed(2)}`);
+  }
+
+  // ── BTC Chart Test ────────────────────────────────────────────────
+  btcChart = null;
+
+  renderBTCChart() {
+    const container = document.getElementById("btcChart");
+    const status = document.getElementById("chartStatus");
+
+    if (!container) {
+      console.warn("[Dashboard] BTC chart container not found");
+      return;
+    }
+
+    // Wait for LightweightCharts
+    this.waitForLightweightCharts(() => {
+      if (!window.LightweightCharts) {
+        status.textContent = "❌ LightweightCharts library failed to load";
+        status.style.color = "var(--danger)";
+        console.error("[Dashboard] LightweightCharts not available");
+        return;
+      }
+
+      try {
+        const candleData = this.bufferData["BTCUSDT"];
+        if (!candleData || candleData.length === 0) {
+          status.textContent = "❌ No BTC candle data available";
+          status.style.color = "var(--danger)";
+          return;
+        }
+
+        console.log(`[Dashboard] 🎯 Creating BTC chart with ${candleData.length} candles`);
+        console.log("[Dashboard] First candle:", candleData[0]);
+        console.log("[Dashboard] Last candle:", candleData[candleData.length - 1]);
+
+        // Destroy previous chart if exists
+        if (this.btcChart) {
+          this.btcChart.remove();
+          this.btcChart = null;
+        }
+
+        // Create chart
+        this.btcChart = window.LightweightCharts.createChart(container, {
+          layout: {
+            background: { color: "transparent" },
+            textColor: "#9ca3af",
+          },
+          width: container.clientWidth,
+          height: container.clientHeight,
+          timeScale: {
+            timeVisible: true,
+            secondsVisible: false,
+          },
+          rightPriceScale: {
+            visible: true,
+            ticksVisible: true,
+          },
+          localization: {
+            timeFormatter: (businessDayOrTimestamp) => {
+              const date = new Date(businessDayOrTimestamp * 1000);
+              return `${date.getHours()}:${String(date.getMinutes()).padStart(2, "0")}`;
+            },
+          },
+        });
+
+        // Add candlestick series
+        const candleSeries = this.btcChart.addCandlestickSeries({
+          upColor: "#48bb78",
+          downColor: "#f56565",
+          borderVisible: false,
+          wickUpColor: "#48bb78",
+          wickDownColor: "#f56565",
+          borderUpColor: "#48bb78",
+          borderDownColor: "#f56565",
+        });
+
+        // Set data
+        candleSeries.setData(candleData);
+
+        // Auto scale
+        this.btcChart.timeScale().fitContent();
+
+        status.textContent = `✅ Chart loaded with ${candleData.length} candles`;
+        status.style.color = "var(--success)";
+        console.log("[Dashboard] ✅ BTC chart created successfully");
+      } catch (error) {
+        console.error("[Dashboard] Error creating BTC chart:", error);
+        status.textContent = `❌ Error: ${error.message}`;
+        status.style.color = "var(--danger)";
+      }
+    });
   }
 }
 
