@@ -99,15 +99,6 @@ class GainersDashboard {
     });
 
     console.log(`[Dashboard] Stored buffer data for ${Object.keys(this.bufferData).length} symbols`);
-    console.log("[Dashboard] Available symbols:", Object.keys(this.bufferData));
-
-    // Try to render BTC chart if we have data
-    if (this.bufferData["BTCUSDT"]) {
-      console.log(`[Dashboard] BTC data available! Candles: ${this.bufferData["BTCUSDT"].length}`);
-      this.renderBTCChart();
-    } else {
-      console.warn("[Dashboard] BTC data not available yet");
-    }
 
     this.renderGainers();
     this.updateDebugInfo();
@@ -511,7 +502,7 @@ class GainersDashboard {
     // Create chart with TradingView (wait for library to load if needed)
     this.waitForLightweightCharts(() => {
       if (window.LightweightCharts) {
-        this.createChart(symbol, chartContainer);
+        this.createChart(symbol, chartContainer, gainer);
       } else {
         console.error(`[Dashboard] LightweightCharts failed to load after waiting`);
         chartContainer.innerHTML = '<div style="color: red; padding: 20px; text-align: center;">Chart library failed to load</div>';
@@ -558,9 +549,9 @@ class GainersDashboard {
   }
 
   /**
-   * Create TradingView Lightweight Chart with stored buffer data
+   * Create TradingView Lightweight Chart with candlesticks and indicator lines
    */
-  createChart(symbol, container) {
+  createChart(symbol, container, gainer = null) {
     try {
       if (!container || !container.clientWidth || !container.clientHeight) {
         console.warn(`[Dashboard] Chart container invalid for ${symbol}`);
@@ -617,8 +608,82 @@ class GainersDashboard {
         borderDownColor: '#f56565',
       });
 
-      // Set data
+      // Set candle data
       candleSeries.setData(candleData);
+
+      // Add indicator lines if gainer data available
+      if (gainer) {
+        // Calculate indicator values for each candle based on close price
+        // For simplicity, create line data with indicator values
+
+        // MA20 Line (Blue)
+        if (gainer.ma20 && gainer.ma20 > 0) {
+          const ma20Series = chart.addLineSeries({
+            color: '#4a90e2',
+            lineWidth: 1,
+            title: 'MA20',
+          });
+
+          // Create data points for MA20 line
+          const ma20Data = candleData.map(candle => ({
+            time: candle.time,
+            value: gainer.ma20,
+          }));
+          ma20Series.setData(ma20Data);
+        }
+
+        // MA99 Line (Orange)
+        if (gainer.ma99 && gainer.ma99 > 0) {
+          const ma99Series = chart.addLineSeries({
+            color: '#ffa500',
+            lineWidth: 1,
+            title: 'MA99',
+          });
+
+          // Create data points for MA99 line
+          const ma99Data = candleData.map(candle => ({
+            time: candle.time,
+            value: gainer.ma99,
+          }));
+          ma99Series.setData(ma99Data);
+        }
+
+        // Bollinger Band Upper (Red dashed)
+        if (gainer.bbUpper && gainer.bbUpper > 0) {
+          const bbUpperSeries = chart.addLineSeries({
+            color: '#e74c3c',
+            lineWidth: 1,
+            lineStyle: 2, // Dashed line
+            title: 'BB Upper',
+          });
+
+          // Create data points for Bollinger Upper line
+          const bbUpperData = candleData.map(candle => ({
+            time: candle.time,
+            value: gainer.bbUpper,
+          }));
+          bbUpperSeries.setData(bbUpperData);
+        }
+
+        // Bollinger Band Lower (Red dashed)
+        if (gainer.bbLower && gainer.bbLower > 0) {
+          const bbLowerSeries = chart.addLineSeries({
+            color: '#e74c3c',
+            lineWidth: 1,
+            lineStyle: 2, // Dashed line
+            title: 'BB Lower',
+          });
+
+          // Create data points for Bollinger Lower line
+          const bbLowerData = candleData.map(candle => ({
+            time: candle.time,
+            value: gainer.bbLower,
+          }));
+          bbLowerSeries.setData(bbLowerData);
+        }
+
+        console.log(`[Dashboard] Added indicators - MA20: ${gainer.ma20?.toFixed(8)}, MA99: ${gainer.ma99?.toFixed(8)}, BB: ${gainer.bbLower?.toFixed(8)}-${gainer.bbUpper?.toFixed(8)}`);
+      }
 
       // Auto scale
       chart.timeScale().fitContent();
@@ -812,97 +877,6 @@ class GainersDashboard {
     this.tradingState.activeCandleObserver = null;
 
     console.log(`[Dashboard] ✅ Order closed - New Balance: $${this.tradingState.balance.toFixed(2)}`);
-  }
-
-  // ── BTC Chart Test ────────────────────────────────────────────────
-  btcChart = null;
-
-  renderBTCChart() {
-    const container = document.getElementById("btcChart");
-    const status = document.getElementById("chartStatus");
-
-    if (!container) {
-      console.warn("[Dashboard] BTC chart container not found");
-      return;
-    }
-
-    // Wait for LightweightCharts
-    this.waitForLightweightCharts(() => {
-      if (!window.LightweightCharts) {
-        status.textContent = "❌ LightweightCharts library failed to load";
-        status.style.color = "var(--danger)";
-        console.error("[Dashboard] LightweightCharts not available");
-        return;
-      }
-
-      try {
-        const candleData = this.bufferData["BTCUSDT"];
-        if (!candleData || candleData.length === 0) {
-          status.textContent = "❌ No BTC candle data available";
-          status.style.color = "var(--danger)";
-          return;
-        }
-
-        console.log(`[Dashboard] 🎯 Creating BTC chart with ${candleData.length} candles`);
-        console.log("[Dashboard] First candle:", candleData[0]);
-        console.log("[Dashboard] Last candle:", candleData[candleData.length - 1]);
-
-        // Destroy previous chart if exists
-        if (this.btcChart) {
-          this.btcChart.remove();
-          this.btcChart = null;
-        }
-
-        // Create chart
-        this.btcChart = window.LightweightCharts.createChart(container, {
-          layout: {
-            background: { color: "transparent" },
-            textColor: "#9ca3af",
-          },
-          width: container.clientWidth,
-          height: container.clientHeight,
-          timeScale: {
-            timeVisible: true,
-            secondsVisible: false,
-          },
-          rightPriceScale: {
-            visible: true,
-            ticksVisible: true,
-          },
-          localization: {
-            timeFormatter: (businessDayOrTimestamp) => {
-              const date = new Date(businessDayOrTimestamp * 1000);
-              return `${date.getHours()}:${String(date.getMinutes()).padStart(2, "0")}`;
-            },
-          },
-        });
-
-        // Add candlestick series
-        const candleSeries = this.btcChart.addCandlestickSeries({
-          upColor: "#48bb78",
-          downColor: "#f56565",
-          borderVisible: false,
-          wickUpColor: "#48bb78",
-          wickDownColor: "#f56565",
-          borderUpColor: "#48bb78",
-          borderDownColor: "#f56565",
-        });
-
-        // Set data
-        candleSeries.setData(candleData);
-
-        // Auto scale
-        this.btcChart.timeScale().fitContent();
-
-        status.textContent = `✅ Chart loaded with ${candleData.length} candles`;
-        status.style.color = "var(--success)";
-        console.log("[Dashboard] ✅ BTC chart created successfully");
-      } catch (error) {
-        console.error("[Dashboard] Error creating BTC chart:", error);
-        status.textContent = `❌ Error: ${error.message}`;
-        status.style.color = "var(--danger)";
-      }
-    });
   }
 }
 
