@@ -517,7 +517,7 @@ class GainersDashboard {
 
   /**
    * Calculate Simple Moving Average
-   * @param {Array} prices - Array of prices
+   * @param {Array} prices - Array of prices (must be numbers)
    * @param {number} period - MA period (20, 99, etc)
    * @returns {Array} Array of MA values (with nulls for insufficient data)
    */
@@ -528,8 +528,14 @@ class GainersDashboard {
         sma.push(null);
       } else {
         const slice = prices.slice(i - period + 1, i + 1);
-        const sum = slice.reduce((a, b) => a + b, 0);
-        sma.push(sum / period);
+        const validPrices = slice.filter(p => typeof p === 'number' && isFinite(p));
+        if (validPrices.length > 0) {
+          const sum = validPrices.reduce((a, b) => a + b, 0);
+          const avg = sum / validPrices.length;
+          sma.push(isFinite(avg) ? avg : null);
+        } else {
+          sma.push(null);
+        }
       }
     }
     return sma;
@@ -537,7 +543,7 @@ class GainersDashboard {
 
   /**
    * Calculate Bollinger Bands
-   * @param {Array} prices - Array of prices
+   * @param {Array} prices - Array of prices (must be numbers)
    * @param {number} period - SMA period
    * @param {number} multiplier - Standard deviation multiplier (default 2)
    * @returns {Object} { sma, upper, lower }
@@ -548,16 +554,29 @@ class GainersDashboard {
     const lower = [];
 
     for (let i = 0; i < prices.length; i++) {
-      if (i < period - 1) {
+      if (i < period - 1 || sma[i] === null) {
         upper.push(null);
         lower.push(null);
       } else {
         const slice = prices.slice(i - period + 1, i + 1);
+        const validPrices = slice.filter(p => typeof p === 'number' && isFinite(p));
         const mean = sma[i];
-        const variance = slice.reduce((sum, price) => sum + Math.pow(price - mean, 2), 0) / period;
-        const stdDev = Math.sqrt(variance);
-        upper.push(mean + stdDev * multiplier);
-        lower.push(mean - stdDev * multiplier);
+
+        if (validPrices.length > 0 && isFinite(mean)) {
+          const variance = validPrices.reduce((sum, price) => sum + Math.pow(price - mean, 2), 0) / validPrices.length;
+          const stdDev = Math.sqrt(variance);
+
+          if (isFinite(stdDev)) {
+            upper.push(mean + stdDev * multiplier);
+            lower.push(mean - stdDev * multiplier);
+          } else {
+            upper.push(null);
+            lower.push(null);
+          }
+        } else {
+          upper.push(null);
+          lower.push(null);
+        }
       }
     }
 
@@ -662,67 +681,83 @@ class GainersDashboard {
 
       // Add indicator lines if we have enough candles
       if (candleData && candleData.length > 0) {
-        // Extract close prices from candles
-        const closePrices = candleData.map(c => c.close);
+        try {
+          // Extract close prices from candles
+          const closePrices = candleData.map(c => parseFloat(c.close) || 0);
 
-        // Calculate MA20 (Yellow)
-        const ma20Values = this.calculateSMA(closePrices, 20);
-        const ma20Data = candleData
-          .map((candle, i) => ma20Values[i] !== null ? { time: candle.time, value: ma20Values[i] } : null)
-          .filter(d => d !== null);
+          // Calculate MA20 (Yellow)
+          const ma20Values = this.calculateSMA(closePrices, 20);
+          const ma20Data = [];
+          for (let i = 0; i < candleData.length; i++) {
+            if (ma20Values[i] !== null && ma20Values[i] !== undefined && isFinite(ma20Values[i])) {
+              ma20Data.push({ time: candleData[i].time, value: ma20Values[i] });
+            }
+          }
 
-        if (ma20Data.length > 0) {
-          const ma20Series = chart.addLineSeries({
-            color: '#FFD700', // Amarillo
-            lineWidth: 1,
-          });
-          ma20Series.setData(ma20Data);
+          if (ma20Data.length > 1) {
+            const ma20Series = chart.addLineSeries({
+              color: '#FFD700', // Amarillo
+              lineWidth: 1,
+            });
+            ma20Series.setData(ma20Data);
+          }
+
+          // Calculate MA99 (Blanco, más grueso)
+          const ma99Values = this.calculateSMA(closePrices, 99);
+          const ma99Data = [];
+          for (let i = 0; i < candleData.length; i++) {
+            if (ma99Values[i] !== null && ma99Values[i] !== undefined && isFinite(ma99Values[i])) {
+              ma99Data.push({ time: candleData[i].time, value: ma99Values[i] });
+            }
+          }
+
+          if (ma99Data.length > 1) {
+            const ma99Series = chart.addLineSeries({
+              color: '#FFFFFF', // Blanco
+              lineWidth: 2, // Más grueso
+            });
+            ma99Series.setData(ma99Data);
+          }
+
+          // Calculate Bollinger Bands (20, 2 std devs)
+          const bb = this.calculateBollingerBands(closePrices, 20, 2);
+
+          // Bollinger Upper (Rosa)
+          const bbUpperData = [];
+          for (let i = 0; i < candleData.length; i++) {
+            if (bb.upper[i] !== null && bb.upper[i] !== undefined && isFinite(bb.upper[i])) {
+              bbUpperData.push({ time: candleData[i].time, value: bb.upper[i] });
+            }
+          }
+
+          if (bbUpperData.length > 1) {
+            const bbUpperSeries = chart.addLineSeries({
+              color: '#FF69B4', // Rosa
+              lineWidth: 1,
+            });
+            bbUpperSeries.setData(bbUpperData);
+          }
+
+          // Bollinger Lower (Rojo suave)
+          const bbLowerData = [];
+          for (let i = 0; i < candleData.length; i++) {
+            if (bb.lower[i] !== null && bb.lower[i] !== undefined && isFinite(bb.lower[i])) {
+              bbLowerData.push({ time: candleData[i].time, value: bb.lower[i] });
+            }
+          }
+
+          if (bbLowerData.length > 1) {
+            const bbLowerSeries = chart.addLineSeries({
+              color: '#CD5C5C', // Rojo suave (Indian Red)
+              lineWidth: 1,
+            });
+            bbLowerSeries.setData(bbLowerData);
+          }
+
+          console.log(`[Dashboard] Added indicators - MA20: ${ma20Data.length} points, MA99: ${ma99Data.length} points, BB: ${bbUpperData.length} points`);
+        } catch (indicatorError) {
+          console.warn(`[Dashboard] Error adding indicators: ${indicatorError.message}`);
         }
-
-        // Calculate MA99 (Blanco, más grueso)
-        const ma99Values = this.calculateSMA(closePrices, 99);
-        const ma99Data = candleData
-          .map((candle, i) => ma99Values[i] !== null ? { time: candle.time, value: ma99Values[i] } : null)
-          .filter(d => d !== null);
-
-        if (ma99Data.length > 0) {
-          const ma99Series = chart.addLineSeries({
-            color: '#FFFFFF', // Blanco
-            lineWidth: 2, // Más grueso
-          });
-          ma99Series.setData(ma99Data);
-        }
-
-        // Calculate Bollinger Bands (20, 2 std devs)
-        const bb = this.calculateBollingerBands(closePrices, 20, 2);
-
-        // Bollinger Upper (Rosa)
-        const bbUpperData = candleData
-          .map((candle, i) => bb.upper[i] !== null ? { time: candle.time, value: bb.upper[i] } : null)
-          .filter(d => d !== null);
-
-        if (bbUpperData.length > 0) {
-          const bbUpperSeries = chart.addLineSeries({
-            color: '#FF69B4', // Rosa
-            lineWidth: 1,
-          });
-          bbUpperSeries.setData(bbUpperData);
-        }
-
-        // Bollinger Lower (Rojo suave)
-        const bbLowerData = candleData
-          .map((candle, i) => bb.lower[i] !== null ? { time: candle.time, value: bb.lower[i] } : null)
-          .filter(d => d !== null);
-
-        if (bbLowerData.length > 0) {
-          const bbLowerSeries = chart.addLineSeries({
-            color: '#CD5C5C', // Rojo suave (Indian Red)
-            lineWidth: 1,
-          });
-          bbLowerSeries.setData(bbLowerData);
-        }
-
-        console.log(`[Dashboard] Added indicators - MA20: ${ma20Data.length} points, MA99: ${ma99Data.length} points, BB: ${bbUpperData.length} points`);
       }
 
       // Auto scale
