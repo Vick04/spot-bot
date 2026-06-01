@@ -502,8 +502,25 @@ class GainersDashboard {
     tooltip.appendChild(infoContainer);
     document.body.appendChild(tooltip);
 
-    // Create chart with TradingView
-    this.createChart(symbol, chartContainer);
+    // Create chart with TradingView (wait for library to load if needed)
+    if (window.LightweightCharts) {
+      this.createChart(symbol, chartContainer);
+    } else {
+      console.warn(`[Dashboard] LightweightCharts not loaded, waiting...`);
+      // Wait for LightweightCharts to load (max 2 seconds)
+      let attempts = 0;
+      const checkInterval = setInterval(() => {
+        if (window.LightweightCharts || attempts > 20) {
+          clearInterval(checkInterval);
+          if (window.LightweightCharts) {
+            this.createChart(symbol, chartContainer);
+          } else {
+            console.error(`[Dashboard] LightweightCharts failed to load`);
+          }
+        }
+        attempts++;
+      }, 100);
+    }
 
     this.currentChartContainer = tooltip;
   }
@@ -521,6 +538,12 @@ class GainersDashboard {
         return;
       }
 
+      // Verificar que LightweightCharts esté disponible
+      if (!window.LightweightCharts) {
+        console.warn(`[Dashboard] LightweightCharts not loaded yet for ${symbol}`);
+        return;
+      }
+
       // Get stored buffer data
       const candleData = this.bufferData[symbol];
       if (!candleData || candleData.length === 0) {
@@ -530,8 +553,8 @@ class GainersDashboard {
 
       console.log(`[Dashboard] Creating chart for ${symbol} with ${candleData.length} candles`);
 
-      // Crear chart
-      const chart = LightweightCharts.createChart(container, {
+      // Crear chart usando window.LightweightCharts
+      const chart = window.LightweightCharts.createChart(container, {
         layout: {
           background: { color: 'transparent' },
           textColor: '#9ca3af',
