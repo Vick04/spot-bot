@@ -7,6 +7,7 @@ class GainersDashboard {
     this.ws = null;
     this.topGainers = [];
     this.lastUpdate = null;
+    this.gainersManager = null; // Will reference backend manager data
     this.tradingState = {
       balance: 0,
       activeCandleObserver: null,
@@ -127,37 +128,21 @@ class GainersDashboard {
         // Conditions from observer
         const conditions = gainer.conditions || {};
 
-        // UP Conditions: Sequential state machine (Piso → Zona Fuerte → Breakout Alcista → Not Exceeded)
+        // UP Conditions
         const upPiso = conditions.upCondition1_Piso ? "✓" : "✗";
         const upZonaFuerte = conditions.upCondition2_ZonaFuerte ? "✓" : "✗";
         const upBreakout = conditions.upCondition3_BreakoutAlcista ? "✓" : "✗";
         const upPriceExceeded = conditions.upCondition4_PriceExceeded ? "✗" : "✓";
         const canBuyUP = conditions.canBuyUP ? "✅" : "—";
 
-        // DOWN Conditions: Zona Débil (MA20 < MA99) + Precio Deprimido (price < MA99 × 0.970)
-        const downZonaDebil = conditions.downCondition1_ZonaDebil ? "✓" : "✗";
-        const downDeprimido = conditions.downCondition2_PrecioDeprimido ? "✓" : "✗";
-        const canBuyDOWN = conditions.canBuyDOWN ? "✅" : "—";
-
         return `
-          <div class="gainer-card">
+          <div class="gainer-card" data-symbol="${gainer.symbol}">
             <div class="gainer-rank">#${index + 1}</div>
             <div class="gainer-symbol">
               <span>${gainer.symbol}</span>
               <span class="gainer-change ${percentClass}">${changeSign}${gainer.gainer1h.toFixed(2)}%</span>
             </div>
             <div class="gainer-price">Price: $${gainer.price.toFixed(8)}</div>
-
-            <!-- Multi-timeframe Gainers -->
-            <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(100, 200, 100, 0.05); border-radius: 6px;">
-              <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px; text-transform: uppercase;">Performance:</div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px;">
-                <div><span style="color: var(--text-secondary);">5m:</span> <span style="color: ${gainer5m > 0 ? 'var(--success)' : gainer5m < 0 ? 'var(--danger)' : 'var(--text-primary)'}; font-weight: 600;">${gainer5m > 0 ? '+' : ''}${gainer5m.toFixed(2)}%</span></div>
-                <div><span style="color: var(--text-secondary);">15m:</span> <span style="color: ${gainer15m > 0 ? 'var(--success)' : gainer15m < 0 ? 'var(--danger)' : 'var(--text-primary)'}; font-weight: 600;">${gainer15m > 0 ? '+' : ''}${gainer15m.toFixed(2)}%</span></div>
-                <div><span style="color: var(--text-secondary);">30m:</span> <span style="color: ${gainer30m > 0 ? 'var(--success)' : gainer30m < 0 ? 'var(--danger)' : 'var(--text-primary)'}; font-weight: 600;">${gainer30m > 0 ? '+' : ''}${gainer30m.toFixed(2)}%</span></div>
-                <div><span style="color: var(--text-secondary);">1h:</span> <span style="color: ${percentClass === 'positive' ? 'var(--success)' : percentClass === 'negative' ? 'var(--danger)' : 'var(--text-primary)'}; font-weight: 600;">${changeSign}${gainer.gainer1h.toFixed(2)}%</span></div>
-              </div>
-            </div>
 
             <!-- UP Conditions Progress -->
             <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(66, 153, 225, 0.05); border-radius: 6px;">
@@ -208,23 +193,39 @@ class GainersDashboard {
                 <span class="detail-label">④ Price OK (Price ≤ MA99 × 1.015):</span>
                 <span class="detail-value condition-step ${!conditions.upCondition4_PriceExceeded ? 'step-met' : 'step-pending'}" style="background-color: ${!conditions.upCondition4_PriceExceeded ? 'rgba(72, 187, 120, 0.2)' : 'rgba(245, 101, 101, 0.2)'}; color: ${!conditions.upCondition4_PriceExceeded ? 'var(--success)' : 'var(--danger)'};">${upPriceExceeded}</span>
               </div>
-              <div class="detail-row">
-                <span class="detail-label">BUY DOWN:</span>
-                <span class="detail-value">${canBuyDOWN}</span>
-              </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">Zona Débil:</span>
-                <span class="detail-value">${downZonaDebil}</span>
-              </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">Deprimido:</span>
-                <span class="detail-value">${downDeprimido}</span>
-              </div>
             </div>
           </div>
         `;
       })
       .join("");
+
+    // Agregar event listeners para mostrar gráficos en hover
+    this.attachChartListeners(topThirty);
+  }
+
+  /**
+   * Attach hover listeners to gainer cards for chart tooltips
+   */
+  attachChartListeners(gainers) {
+    const gainersElement = document.getElementById("gainers");
+    if (!gainersElement) return;
+
+    const cards = gainersElement.querySelectorAll(".gainer-card");
+
+    cards.forEach((card, index) => {
+      const symbol = card.dataset.symbol;
+      const gainer = gainers.find(g => g.symbol === symbol);
+
+      if (!gainer) return;
+
+      card.addEventListener("mouseenter", () => {
+        this.showChartTooltip(symbol, gainer, card);
+      });
+
+      card.addEventListener("mouseleave", () => {
+        this.hideChartTooltip();
+      });
+    });
   }
 
   updateDebugInfo() {
@@ -269,22 +270,12 @@ class GainersDashboard {
     if (!data) return;
     this.tradingState = data;
     this.renderTradingStatus();
-    this.renderPosition();
-  }
-
-  updatePositionData(data) {
-    if (!data) return;
-    if (this.tradingState.activeCandleObserver) {
-      Object.assign(this.tradingState.activeCandleObserver, data);
-    }
-    this.renderPosition();
   }
 
   updateTradingOrder(message) {
     console.log("[Dashboard] Trading order:", message.action, message.data);
     // Refresh trading status
     this.renderTradingStatus();
-    this.renderPosition();
   }
 
   renderTradingStatus() {
@@ -393,51 +384,191 @@ class GainersDashboard {
     container.innerHTML = html;
   }
 
-  renderPosition() {
-    const section = document.getElementById("positionSection");
-    const position = this.tradingState.activeCandleObserver;
+  // ── Chart Tooltip Management ────────────────────────────────────
+  currentChart = null;
+  currentChartContainer = null;
 
-    if (!position) {
-      if (section) section.style.display = "none";
-      return;
+  /**
+   * Show chart tooltip on hover
+   * @param {string} symbol - Trading pair symbol
+   * @param {Object} gainer - Gainer data with all info
+   * @param {HTMLElement} element - The gainer card element
+   */
+  showChartTooltip(symbol, gainer, element) {
+    // Destroy previous chart if exists
+    if (this.currentChart) {
+      this.currentChart.remove();
+      this.currentChart = null;
     }
 
-    if (section) section.style.display = "block";
+    // Create tooltip container
+    const tooltip = document.createElement("div");
+    tooltip.id = "chartTooltip";
+    tooltip.style.cssText = `
+      position: fixed;
+      background: linear-gradient(135deg, rgba(26, 26, 26, 0.98), rgba(45, 45, 45, 0.98));
+      border: 1px solid rgba(66, 153, 225, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      z-index: 10000;
+      width: 380px;
+      backdrop-filter: blur(10px);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
 
-    // Calculate time in trade
-    const buyTime = new Date(position.buyTime);
-    const now = new Date();
-    const timeInTrade = Math.floor((now - buyTime) / 1000 / 60); // minutes
+    // Get position for tooltip (above or below the element)
+    const rect = element.getBoundingClientRect();
+    const tooltipHeight = 280;
+    let top = rect.top - tooltipHeight - 10;
 
-    // Calculate projected sell fee (for reference)
-    const currentSellValue = position.quantity * position.currentPrice;
-    const projectedSellFee = currentSellValue * 0.001;
-    const projectedReturn = currentSellValue - projectedSellFee;
+    if (top < 10) {
+      top = rect.bottom + 10; // Show below if not enough space
+    }
 
-    // Format fee on buy in BTC
-    const feeOnBuyDisplay = position.feeOnBuy ? `${position.feeOnBuy.toFixed(8)} BTC` : "-";
+    tooltip.style.top = `${top}px`;
+    tooltip.style.left = `${Math.max(10, rect.left - 50)}px`;
 
-    // Update all position fields
-    const fields = {
-      posSymbol: position.symbol || "-",
-      posBuyPrice: position.buyPrice ? position.buyPrice.toFixed(8) : "-",
-      posCurrentPrice: position.currentPrice ? position.currentPrice.toFixed(8) : "-",
-      posQuantity: position.quantity ? position.quantity.toFixed(8) : "-",
-      posSellTarget: position.buyPrice ? (position.buyPrice * 1.005).toFixed(8) : "-",
-      posPnL: position.pnlValue ? `$${position.pnlValue.toFixed(2)} (${position.pnlPercent.toFixed(2)}%)` : "-",
-      posBuyTime: position.buyTime ? new Date(position.buyTime).toLocaleTimeString() : "-",
-      posTimeInTrade: `${timeInTrade} min`,
-      posFeeOnBuy: feeOnBuyDisplay,
-      posProjectedSellFee: `$${projectedSellFee.toFixed(2)}`,
-      posProjectedReturn: `$${projectedReturn.toFixed(2)}`,
-      posInvestedAmount: position.investedAmount ? `$${position.investedAmount.toFixed(2)}` : "-",
-    };
+    // Chart container
+    const chartContainer = document.createElement("div");
+    chartContainer.style.cssText = `
+      width: 100%;
+      height: 180px;
+      margin-bottom: 12px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(0, 0, 0, 0.2);
+    `;
 
-    for (const [id, value] of Object.entries(fields)) {
-      const element = document.getElementById(id);
-      if (element) {
-        element.textContent = value;
-      }
+    // Info container
+    const infoContainer = document.createElement("div");
+    infoContainer.style.cssText = `
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 0 8px;
+    `;
+
+    // Symbol header
+    const header = document.createElement("div");
+    header.style.cssText = `
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      padding: 0 8px;
+    `;
+    header.textContent = `${symbol} - Últimos 60 minutos`;
+
+    // Tooltip content
+    tooltip.appendChild(header);
+    tooltip.appendChild(chartContainer);
+
+    // Info rows
+    const priceRow = document.createElement("div");
+    priceRow.textContent = `Price: $${gainer.price.toFixed(8)}`;
+    priceRow.style.cssText = `color: var(--primary); font-weight: 600; grid-column: 1 / -1;`;
+
+    infoContainer.appendChild(priceRow);
+
+    // Stats
+    const stats = [
+      [`1h: ${gainer.gainer1h > 0 ? '+' : ''}${gainer.gainer1h.toFixed(2)}%`, gainer.gainer1h > 0 ? 'var(--success)' : 'var(--danger)'],
+      [`5m: ${gainer.gainer5m > 0 ? '+' : ''}${gainer.gainer5m.toFixed(2)}%`, gainer.gainer5m > 0 ? 'var(--success)' : 'var(--danger)'],
+      [`15m: ${gainer.gainer15m > 0 ? '+' : ''}${gainer.gainer15m.toFixed(2)}%`, gainer.gainer15m > 0 ? 'var(--success)' : 'var(--danger)'],
+      [`30m: ${gainer.gainer30m > 0 ? '+' : ''}${gainer.gainer30m.toFixed(2)}%`, gainer.gainer30m > 0 ? 'var(--success)' : 'var(--danger)'],
+    ];
+
+    stats.forEach(([text, color]) => {
+      const row = document.createElement("div");
+      row.textContent = text;
+      row.style.color = color;
+      row.style.fontWeight = '600';
+      infoContainer.appendChild(row);
+    });
+
+    tooltip.appendChild(infoContainer);
+    document.body.appendChild(tooltip);
+
+    // Create chart with TradingView
+    this.createChart(symbol, chartContainer);
+
+    this.currentChartContainer = tooltip;
+  }
+
+  /**
+   * Create TradingView Lightweight Chart
+   */
+  createChart(symbol, container) {
+    try {
+      const observer = this.gainersManager?.observers?.get(symbol);
+      if (!observer) return;
+
+      // Get candle data from observer buffer
+      const candleData = observer.buffer.map(candle => ({
+        time: Math.floor(candle.openTime / 1000),
+        open: parseFloat(candle.open),
+        high: parseFloat(candle.high),
+        low: parseFloat(candle.low),
+        close: parseFloat(candle.close),
+      }));
+
+      if (candleData.length === 0) return;
+
+      // Create chart
+      const chart = LightweightCharts.createChart(container, {
+        layout: {
+          background: { color: 'transparent' },
+          textColor: '#9ca3af',
+        },
+        width: container.clientWidth,
+        height: container.clientHeight,
+        timeScale: {
+          timeVisible: true,
+          secondsVisible: false,
+        },
+        rightPriceScale: {
+          visible: true,
+        },
+      });
+
+      // Candlestick series
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: '#48bb78',
+        downColor: '#f56565',
+        borderVisible: false,
+        wickUpColor: '#48bb78',
+        wickDownColor: '#f56565',
+        borderUpColor: '#48bb78',
+        borderDownColor: '#f56565',
+      });
+
+      // Set data
+      candleSeries.setData(candleData);
+
+      // Auto scale
+      chart.timeScale().fitContent();
+
+      // Store reference
+      this.currentChart = chart;
+    } catch (error) {
+      console.error('[Dashboard] Error creating chart:', error);
+    }
+  }
+
+  /**
+   * Hide chart tooltip
+   */
+  hideChartTooltip() {
+    if (this.currentChartContainer) {
+      this.currentChartContainer.remove();
+      this.currentChartContainer = null;
+    }
+    if (this.currentChart) {
+      this.currentChart.remove();
+      this.currentChart = null;
     }
   }
 
@@ -452,8 +583,13 @@ class GainersDashboard {
 
     if (section) section.style.display = "block";
 
-    // Update symbol and status
-    document.getElementById("orderSymbol").textContent = position.symbol || "-";
+    // Update symbol and status - make symbol clickable
+    const orderSymbolElement = document.getElementById("orderSymbol");
+    if (orderSymbolElement) {
+      const symbol = position.symbol || "-";
+      const binanceUrl = `https://www.binance.com/es-AR/trade/${symbol}_USDT?type=spot`;
+      orderSymbolElement.innerHTML = `<a href="${binanceUrl}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer;">${symbol}</a>`;
+    }
     document.getElementById("orderStatus").textContent = "IN PROGRESS";
 
     // Update prices
@@ -479,6 +615,48 @@ class GainersDashboard {
     document.getElementById("orderProgressPercent").textContent =
       progressPercent.toFixed(1) + "%";
 
+    // Add SELL button if not already present
+    let sellButton = document.getElementById("orderManualSellBtn");
+    if (!sellButton && document.getElementById("orderProgressSection")) {
+      const section = document.getElementById("orderProgressSection");
+      if (section && !section.querySelector("#orderManualSellBtn")) {
+        sellButton = document.createElement("button");
+        sellButton.id = "orderManualSellBtn";
+        sellButton.textContent = "💰 SELL NOW";
+        sellButton.style.cssText = `
+          padding: 10px 16px;
+          margin-top: 12px;
+          background-color: #f56565;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-weight: 600;
+          cursor: pointer;
+          font-size: 13px;
+          transition: background-color 0.2s;
+          width: 100%;
+        `;
+        sellButton.onmouseover = () => sellButton.style.backgroundColor = '#e53e3e';
+        sellButton.onmouseout = () => sellButton.style.backgroundColor = '#f56565';
+        // Use arrow function to always get current position from tradingState
+        sellButton.onclick = () => {
+          if (this.tradingState.activeCandleObserver) {
+            this.executeManualSell(this.tradingState.activeCandleObserver);
+          } else {
+            alert("❌ No active position to sell");
+          }
+        };
+
+        // Insert button into Order in Progress section
+        const lastChild = section.lastElementChild;
+        if (lastChild) {
+          section.insertBefore(sellButton, lastChild);
+        } else {
+          section.appendChild(sellButton);
+        }
+      }
+    }
+
     // Update P&L info
     const pnlColor = position.pnlValue >= 0 ? '#48bb78' : '#f56565';
 
@@ -493,6 +671,52 @@ class GainersDashboard {
 
     document.getElementById("orderTimeInTrade").textContent =
       position.timeInTrade ? position.timeInTrade + " min" : "-";
+  }
+
+  // ── Manual Sell Execution ──────────────────────────────────────────
+  async executeManualSell(position) {
+    if (!position) return;
+
+    const symbol = position.symbol;
+    const confirmed = confirm(`Are you sure you want to SELL ${symbol} at current market price?\n\nCurrent Price: $${position.currentPrice.toFixed(8)}\nQuantity: ${position.quantity.toFixed(8)}`);
+
+    if (!confirmed) return;
+
+    try {
+      console.log(`[Dashboard] Executing manual SELL for ${symbol}...`);
+      console.log("[Dashboard] Position data:", position);
+
+      // Send manual sell request to server
+      const response = await fetch("/api/sell-manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          symbol: symbol,
+          currentPrice: position.currentPrice,
+          quantity: position.quantity,
+        }),
+      });
+
+      const result = await response.json();
+      console.log("[Dashboard] Server response:", result);
+
+      if (!response.ok) {
+        const errorMsg = result.error || `HTTP error! status: ${response.status}`;
+        throw new Error(errorMsg);
+      }
+
+      console.log("[Dashboard] Manual SELL executed successfully:", result);
+
+      // Show success message
+      alert(`✅ SELL Order Executed!\n\nSymbol: ${symbol}\nSell Price: $${position.currentPrice.toFixed(8)}\nQuantity: ${position.quantity.toFixed(8)}\nProfit: ${result.orderInfo.profitPercent.toFixed(4)}%`);
+
+      // Hide Order in Progress section
+      const section = document.getElementById("orderProgressSection");
+      if (section) section.style.display = "none";
+    } catch (error) {
+      console.error("[Dashboard] Manual SELL failed:", error);
+      alert(`❌ Manual SELL failed:\n\n${error.message}`);
+    }
   }
 
   // ── Order Closed Handler ───────────────────────────────────────────

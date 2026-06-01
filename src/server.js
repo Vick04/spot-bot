@@ -420,6 +420,109 @@ app.get("/api/trading/state/status", (req, res) => {
   res.json(gainersManager.getTradingStatus());
 });
 
+// Manual SELL order - Close active position immediately at current price
+app.post("/api/sell-manual", (req, res) => {
+  const { symbol, currentPrice, quantity } = req.body;
+
+  console.log("[Server] Manual SELL request:", { symbol, currentPrice, quantity });
+
+  // Validate there's an active position
+  const activePosition = gainersManager.tradingState.activeCandleObserver;
+  if (!activePosition) {
+    console.warn("[Server] Manual SELL failed: No active position");
+    return res.status(400).json({
+      error: "No active position to sell. Use the symbol link to check Binance.",
+      status: "error",
+      activePosition: null
+    });
+  }
+
+  console.log("[Server] Active position found:", { symbol: activePosition.symbol, buyPrice: activePosition.buyPrice });
+
+  // Verify the symbol matches
+  if (activePosition.symbol !== symbol) {
+    console.warn(`[Server] Manual SELL failed: Symbol mismatch. Expected ${activePosition.symbol}, got ${symbol}`);
+    return res.status(400).json({
+      error: `Symbol mismatch. Active position is ${activePosition.symbol}, requested ${symbol}`,
+      status: "error",
+      activeSymbol: activePosition.symbol,
+      requestedSymbol: symbol
+    });
+  }
+
+  try {
+    console.log(`[Server] Manual SELL order received for ${symbol} at $${currentPrice.toFixed(8)}`);
+
+    // Execute the sell order using the current price provided by the client
+    const sellResult = activePosition.executeSellManual(currentPrice);
+
+    // Update balance in trading state
+    gainersManager.tradingState.balance = sellResult.sellValueAfterFee;
+
+    // Update stats
+    gainersManager.tradingState.stats.totalProfit += sellResult.profit;
+    gainersManager.tradingState.stats.totalProfitPercent += sellResult.profitPercent;
+    gainersManager.tradingState.stats.totalFees += sellResult.feeOnSell;
+
+    if (sellResult.profit > 0) {
+      gainersManager.tradingState.stats.winTrades++;
+    } else if (sellResult.profit < 0) {
+      gainersManager.tradingState.stats.lossTrades++;
+    }
+
+    if (gainersManager.tradingState.stats.totalTrades > 0) {
+      gainersManager.tradingState.stats.avgProfitPercent =
+        gainersManager.tradingState.stats.totalProfitPercent / gainersManager.tradingState.stats.totalTrades;
+    }
+
+    // Record sell order
+    const sellOrder = {
+      type: "SELL",
+      timestamp: new Date().toISOString(),
+      symbol: sellResult.symbol,
+      sellPrice: sellResult.sellPrice,
+      quantity: sellResult.quantity,
+      profit: sellResult.profit,
+      profitPercent: sellResult.profitPercent,
+      feeOnSell: sellResult.feeOnSell,
+      status: "closed",
+      manualSell: true, // Flag this as a manual sell
+    };
+
+    gainersManager.tradingState.completedOrders.push(sellOrder);
+
+    // Clear active position
+    gainersManager.tradingState.activeCandleObserver = null;
+
+    // Unsubscribe from 1-second candles
+    binanceWS.unsubscribe1s(symbol);
+
+    console.log(`[Server] ✅ Manual SELL completed: ${symbol} @ $${sellResult.sellPrice.toFixed(8)} | Profit: ${sellResult.profitPercent.toFixed(4)}% | New Balance: $${gainersManager.tradingState.balance.toFixed(2)}`);
+
+    // Broadcast order closed event
+    broadcastEvent({
+      type: "order-closed",
+      order: sellOrder,
+      orderInfo: sellResult,
+      tradingState: gainersManager.getTradingStatus(),
+    });
+
+    res.json({
+      status: "success",
+      message: "Manual sell order executed",
+      orderInfo: sellResult,
+      newBalance: gainersManager.tradingState.balance,
+      tradingStats: gainersManager.tradingState.stats,
+    });
+  } catch (error) {
+    console.error(`[Server] Manual SELL failed:`, error.message);
+    res.status(500).json({
+      error: error.message,
+      status: "error"
+    });
+  }
+});
+
 // ── Error Handler ──────────────────────────────────────────────────────────
 
 app.use((err, req, res, next) => {

@@ -112,6 +112,56 @@ class OrderObserver {
   }
 
   /**
+   * Execute manual sell order at a specific price
+   * Used when user clicks SELL button to close position immediately
+   * Applies 0.1% fee on USDT received
+   *
+   * @param {number} sellPrice - Custom sell price (usually current market price)
+   * @returns {Object} Sell order summary with complete fee breakdown
+   */
+  executeSellManual(sellPrice) {
+    const FEE = 0.001; // 0.1% fee
+
+    // Sell calculation at custom price
+    const sellValue = this.quantity * sellPrice;
+    const feeOnSell = sellValue * FEE;
+    const sellValueAfterFee = sellValue - feeOnSell;
+
+    // Profit calculation
+    const totalProfit = sellValueAfterFee - this.investedAmount;
+    const profitPercent = (totalProfit / this.investedAmount) * 100;
+
+    const sellInfo = {
+      // Trade info
+      symbol: this.symbol,
+      buyTime: this.buyTime,
+      sellTime: new Date().toISOString(),
+      timeInTrade: Math.floor((Date.now() - new Date(this.buyTime).getTime()) / 1000 / 60),
+
+      // Buy info
+      buyPrice: this.buyPrice,
+      quantity: this.quantity,
+      investedUSDT: this.investedAmount,
+      feeOnBuy: this.feeOnBuy,
+
+      // Sell info (using the provided sell price)
+      sellPrice: sellPrice,
+      sellValue: sellValue,
+      feeOnSell: feeOnSell,
+      sellValueAfterFee: sellValueAfterFee,
+
+      // Profit info
+      totalFees: this.feeOnBuy + feeOnSell,
+      profit: totalProfit,
+      profitPercent: profitPercent,
+      newBalance: sellValueAfterFee,
+      manualSell: true, // Flag indicating this was a manual sell
+    };
+
+    return sellInfo;
+  }
+
+  /**
    * Get complete state for debugging
    */
   getState() {

@@ -114,72 +114,6 @@
       </div>
     </section>
 
-    <!-- Active Position Details -->
-    <section class="position-section" id="positionSection" style="display: none;">
-      <h2>📍 Active Position Details</h2>
-      <div class="position-card">
-        <div class="position-header">
-          <div class="position-symbol" id="posSymbol">-</div>
-          <div class="position-time" id="posTimeInTrade">0 min</div>
-        </div>
-
-        <!-- Entry Information -->
-        <div class="position-info">
-          <h3 style="font-size: 12px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px;">Entry Info</h3>
-          <div class="position-row">
-            <span class="position-label">Buy Price:</span>
-            <span class="position-value" id="posBuyPrice">-</span>
-          </div>
-          <div class="position-row">
-            <span class="position-label">Quantity (After Fee):</span>
-            <span class="position-value" id="posQuantity">-</span>
-          </div>
-          <div class="position-row">
-            <span class="position-label">Invested Amount:</span>
-            <span class="position-value" id="posInvestedAmount">-</span>
-          </div>
-          <div class="position-row">
-            <span class="position-label">Buy Fee:</span>
-            <span class="position-value" id="posFeeOnBuy">-</span>
-          </div>
-          <div class="position-row">
-            <span class="position-label">Entry Time:</span>
-            <span class="position-value" id="posBuyTime">-</span>
-          </div>
-        </div>
-
-        <!-- Current Position -->
-        <div class="position-info">
-          <h3 style="font-size: 12px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px;">Current Position</h3>
-          <div class="position-row">
-            <span class="position-label">Current Price:</span>
-            <span class="position-value highlight" id="posCurrentPrice">-</span>
-          </div>
-          <div class="position-row">
-            <span class="position-label">Sell Target (0.5%):</span>
-            <span class="position-value target" id="posSellTarget">-</span>
-          </div>
-          <div class="position-row">
-            <span class="position-label">P&L:</span>
-            <span class="position-value" id="posPnL">-</span>
-          </div>
-        </div>
-
-        <!-- Exit Projection -->
-        <div class="position-info">
-          <h3 style="font-size: 12px; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px;">Exit Projection (at target)</h3>
-          <div class="position-row">
-            <span class="position-label">Projected Sell Fee:</span>
-            <span class="position-value" id="posProjectedSellFee">-</span>
-          </div>
-          <div class="position-row">
-            <span class="position-label">Projected Return (After Fee):</span>
-            <span class="position-value" id="posProjectedReturn">-</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- Orders History -->
     <section class="orders-history-section">
       <h2>📋 Orders History</h2>
@@ -205,6 +139,7 @@
     </section>
   </div>
 
+  <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
