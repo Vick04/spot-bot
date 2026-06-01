@@ -93,6 +93,16 @@ class GainersDashboard {
   updateGainers(gainers, timestamp) {
     this.topGainers = gainers;
     this.lastUpdate = timestamp;
+
+    // Capture buffer data from each gainer
+    gainers.forEach(gainer => {
+      if (gainer.bufferData && gainer.bufferData.length > 0) {
+        this.bufferData[gainer.symbol] = gainer.bufferData;
+      }
+    });
+
+    console.log(`[Dashboard] Stored buffer data for ${Object.keys(this.bufferData).length} symbols`);
+
     this.renderGainers();
     this.updateDebugInfo();
   }
@@ -498,26 +508,29 @@ class GainersDashboard {
     this.currentChartContainer = tooltip;
   }
 
+  // Storage para datos de buffer
+  bufferData = {};
+
   /**
-   * Create TradingView Lightweight Chart
+   * Create TradingView Lightweight Chart with stored buffer data
    */
   createChart(symbol, container) {
     try {
-      const observer = this.gainersManager?.observers?.get(symbol);
-      if (!observer) return;
+      if (!container || !container.clientWidth || !container.clientHeight) {
+        console.warn(`[Dashboard] Chart container invalid for ${symbol}`);
+        return;
+      }
 
-      // Get candle data from observer buffer
-      const candleData = observer.buffer.map(candle => ({
-        time: Math.floor(candle.openTime / 1000),
-        open: parseFloat(candle.open),
-        high: parseFloat(candle.high),
-        low: parseFloat(candle.low),
-        close: parseFloat(candle.close),
-      }));
+      // Get stored buffer data
+      const candleData = this.bufferData[symbol];
+      if (!candleData || candleData.length === 0) {
+        console.warn(`[Dashboard] No candle data for ${symbol}. Available symbols:`, Object.keys(this.bufferData));
+        return;
+      }
 
-      if (candleData.length === 0) return;
+      console.log(`[Dashboard] Creating chart for ${symbol} with ${candleData.length} candles`);
 
-      // Create chart
+      // Crear chart
       const chart = LightweightCharts.createChart(container, {
         layout: {
           background: { color: 'transparent' },
@@ -531,6 +544,13 @@ class GainersDashboard {
         },
         rightPriceScale: {
           visible: true,
+          ticksVisible: true,
+        },
+        localization: {
+          timeFormatter: (businessDayOrTimestamp) => {
+            const date = new Date(businessDayOrTimestamp * 1000);
+            return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
+          },
         },
       });
 
@@ -553,8 +573,10 @@ class GainersDashboard {
 
       // Store reference
       this.currentChart = chart;
+
+      console.log(`[Dashboard] ✅ Chart created for ${symbol}`);
     } catch (error) {
-      console.error('[Dashboard] Error creating chart:', error);
+      console.error(`[Dashboard] Error creating chart for ${symbol}:`, error);
     }
   }
 

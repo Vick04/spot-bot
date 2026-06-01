@@ -190,6 +190,16 @@ binanceWS.on("candle", (candle) => {
   if (candleCount % 10 === 0) {
     const gainersToSend = gainersManager.getTop1hGainers(30).map(gainer => {
       const observer = gainersManager.observers.get(gainer.symbol);
+
+      // Get buffer data for charts
+      const bufferData = observer?.buffer?.map(candle => ({
+        time: Math.floor(candle.openTime / 1000),
+        open: parseFloat(candle.open),
+        high: parseFloat(candle.high),
+        low: parseFloat(candle.low),
+        close: parseFloat(candle.close),
+      })) || [];
+
       return {
         ...gainer,
         // Technical indicators
@@ -203,6 +213,8 @@ binanceWS.on("candle", (candle) => {
         gainer30m: observer?.gainer30m || 0,
         // Trading conditions
         conditions: observer?.getConditions() || {},
+        // Buffer data for charts
+        bufferData: bufferData,
       };
     });
     console.log(`[Server] Broadcasting gainers update #${candleCount} - Top gainer: ${gainersToSend[0]?.symbol} ${gainersToSend[0]?.gainer1h.toFixed(2)}%`);
