@@ -105,7 +105,8 @@
       "Bash(node -c public/app.js)",
       "Bash(node -c src/CryptoObserver.js)",
       "Bash(curl -X POST http://localhost:4445/api/sell-manual -H 'Content-Type: application/json' -d '{\"symbol\":\"BTCUSDT\",\"currentPrice\":45000.5,\"quantity\":0.001}')",
-      "Bash(curl -s -X POST http://localhost:4445/api/sell-manual -H 'Content-Type: application/json' -d '{\"symbol\":\"RENDERUSDT\",\"currentPrice\":15.5,\"quantity\":5.0}')"
+      "Bash(curl -s -X POST http://localhost:4445/api/sell-manual -H 'Content-Type: application/json' -d '{\"symbol\":\"RENDERUSDT\",\"currentPrice\":15.5,\"quantity\":5.0}')",
+      "Bash(git show *)"
     ]
   }
 }
