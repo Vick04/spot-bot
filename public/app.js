@@ -759,28 +759,28 @@ class GainersDashboard {
             }
           }
 
-          // Calculate MA50 (Blanco, más grueso) - changed from MA99 because we only have 60 candles
-          const ma50Values = this.calculateSMA(closePrices, 50);
-          const ma50Data = [];
+          // Calculate MA99 (Blanco, más grueso)
+          const ma99Values = this.calculateSMA(closePrices, 99);
+          const ma99Data = [];
           for (let i = 0; i < validCandleData.length; i++) {
-            const val = ma50Values[i];
+            const val = ma99Values[i];
             const time = validCandleData[i].time;
 
             if (val !== null && val !== undefined && typeof val === 'number' && isFinite(val) && time) {
-              ma50Data.push({ time, value: val });
+              ma99Data.push({ time, value: val });
             }
           }
 
-          if (ma50Data.length > 1) {
+          if (ma99Data.length > 1) {
             try {
-              const ma50Series = chart.addLineSeries({
+              const ma99Series = chart.addLineSeries({
                 color: '#FFFFFF', // Blanco
                 lineWidth: 2, // Más grueso
               });
-              console.log(`[Dashboard] MA50 data sample:`, { first: ma50Data[0], last: ma50Data[ma50Data.length - 1] });
-              ma50Series.setData(ma50Data);
+              console.log(`[Dashboard] MA99 data sample:`, { first: ma99Data[0], last: ma99Data[ma99Data.length - 1] });
+              ma99Series.setData(ma99Data);
             } catch (e) {
-              console.error(`[Dashboard] MA50 error:`, e.message, ma50Data);
+              console.error(`[Dashboard] MA99 error:`, e.message, ma99Data);
             }
           }
 
@@ -835,7 +835,7 @@ class GainersDashboard {
             }
           }
 
-          console.log(`[Dashboard] Added indicators - MA20: ${ma20Data.length} points, MA50: ${ma50Data.length} points, BB: ${bbUpperData.length} points`);
+          console.log(`[Dashboard] Added indicators - MA20: ${ma20Data.length} points, MA99: ${ma99Data.length} points, BB: ${bbUpperData.length} points`);
         } catch (indicatorError) {
           console.warn(`[Dashboard] Error adding indicators: ${indicatorError.message}`);
         }
