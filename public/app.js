@@ -402,11 +402,8 @@ class GainersDashboard {
    * @param {HTMLElement} element - The gainer card element
    */
   showChartTooltip(symbol, gainer, element) {
-    // Destroy previous chart if exists
-    if (this.currentChart) {
-      this.currentChart.remove();
-      this.currentChart = null;
-    }
+    // Clean up previous tooltip and chart completely
+    this.hideChartTooltip();
 
     // Create tooltip container
     const tooltip = document.createElement("div");
@@ -844,13 +841,34 @@ class GainersDashboard {
    * Hide chart tooltip
    */
   hideChartTooltip() {
+    // Remove chart
+    if (this.currentChart) {
+      try {
+        this.currentChart.remove();
+      } catch (e) {
+        console.warn("[Dashboard] Error removing chart:", e.message);
+      }
+      this.currentChart = null;
+    }
+
+    // Remove tooltip container from DOM
     if (this.currentChartContainer) {
-      this.currentChartContainer.remove();
+      try {
+        this.currentChartContainer.remove();
+      } catch (e) {
+        console.warn("[Dashboard] Error removing tooltip container:", e.message);
+      }
       this.currentChartContainer = null;
     }
-    if (this.currentChart) {
-      this.currentChart.remove();
-      this.currentChart = null;
+
+    // Also remove any orphaned tooltip from DOM
+    const orphanedTooltip = document.getElementById("chartTooltip");
+    if (orphanedTooltip) {
+      try {
+        orphanedTooltip.remove();
+      } catch (e) {
+        console.warn("[Dashboard] Error removing orphaned tooltip:", e.message);
+      }
     }
   }
 
