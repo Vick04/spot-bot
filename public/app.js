@@ -689,34 +689,51 @@ class GainersDashboard {
           const ma20Values = this.calculateSMA(closePrices, 20);
           const ma20Data = [];
           for (let i = 0; i < candleData.length; i++) {
-            if (ma20Values[i] !== null && ma20Values[i] !== undefined && isFinite(ma20Values[i])) {
-              ma20Data.push({ time: candleData[i].time, value: ma20Values[i] });
+            const val = ma20Values[i];
+            const time = candleData[i].time;
+
+            // Strict validation
+            if (val !== null && val !== undefined && typeof val === 'number' && isFinite(val) && time) {
+              ma20Data.push({ time, value: val });
             }
           }
 
           if (ma20Data.length > 1) {
-            const ma20Series = chart.addLineSeries({
-              color: '#FFD700', // Amarillo
-              lineWidth: 1,
-            });
-            ma20Series.setData(ma20Data);
+            try {
+              const ma20Series = chart.addLineSeries({
+                color: '#FFD700', // Amarillo
+                lineWidth: 1,
+              });
+              console.log(`[Dashboard] MA20 data sample:`, { first: ma20Data[0], last: ma20Data[ma20Data.length - 1] });
+              ma20Series.setData(ma20Data);
+            } catch (e) {
+              console.error(`[Dashboard] MA20 error:`, e.message, ma20Data);
+            }
           }
 
           // Calculate MA99 (Blanco, más grueso)
           const ma99Values = this.calculateSMA(closePrices, 99);
           const ma99Data = [];
           for (let i = 0; i < candleData.length; i++) {
-            if (ma99Values[i] !== null && ma99Values[i] !== undefined && isFinite(ma99Values[i])) {
-              ma99Data.push({ time: candleData[i].time, value: ma99Values[i] });
+            const val = ma99Values[i];
+            const time = candleData[i].time;
+
+            if (val !== null && val !== undefined && typeof val === 'number' && isFinite(val) && time) {
+              ma99Data.push({ time, value: val });
             }
           }
 
           if (ma99Data.length > 1) {
-            const ma99Series = chart.addLineSeries({
-              color: '#FFFFFF', // Blanco
-              lineWidth: 2, // Más grueso
-            });
-            ma99Series.setData(ma99Data);
+            try {
+              const ma99Series = chart.addLineSeries({
+                color: '#FFFFFF', // Blanco
+                lineWidth: 2, // Más grueso
+              });
+              console.log(`[Dashboard] MA99 data sample:`, { first: ma99Data[0], last: ma99Data[ma99Data.length - 1] });
+              ma99Series.setData(ma99Data);
+            } catch (e) {
+              console.error(`[Dashboard] MA99 error:`, e.message, ma99Data);
+            }
           }
 
           // Calculate Bollinger Bands (20, 2 std devs)
@@ -725,33 +742,49 @@ class GainersDashboard {
           // Bollinger Upper (Rosa)
           const bbUpperData = [];
           for (let i = 0; i < candleData.length; i++) {
-            if (bb.upper[i] !== null && bb.upper[i] !== undefined && isFinite(bb.upper[i])) {
-              bbUpperData.push({ time: candleData[i].time, value: bb.upper[i] });
+            const val = bb.upper[i];
+            const time = candleData[i].time;
+
+            if (val !== null && val !== undefined && typeof val === 'number' && isFinite(val) && time) {
+              bbUpperData.push({ time, value: val });
             }
           }
 
           if (bbUpperData.length > 1) {
-            const bbUpperSeries = chart.addLineSeries({
-              color: '#FF69B4', // Rosa
-              lineWidth: 1,
-            });
-            bbUpperSeries.setData(bbUpperData);
+            try {
+              const bbUpperSeries = chart.addLineSeries({
+                color: '#FF69B4', // Rosa
+                lineWidth: 1,
+              });
+              console.log(`[Dashboard] BB Upper data sample:`, { first: bbUpperData[0], last: bbUpperData[bbUpperData.length - 1] });
+              bbUpperSeries.setData(bbUpperData);
+            } catch (e) {
+              console.error(`[Dashboard] BB Upper error:`, e.message, bbUpperData);
+            }
           }
 
           // Bollinger Lower (Rojo suave)
           const bbLowerData = [];
           for (let i = 0; i < candleData.length; i++) {
-            if (bb.lower[i] !== null && bb.lower[i] !== undefined && isFinite(bb.lower[i])) {
-              bbLowerData.push({ time: candleData[i].time, value: bb.lower[i] });
+            const val = bb.lower[i];
+            const time = candleData[i].time;
+
+            if (val !== null && val !== undefined && typeof val === 'number' && isFinite(val) && time) {
+              bbLowerData.push({ time, value: val });
             }
           }
 
           if (bbLowerData.length > 1) {
-            const bbLowerSeries = chart.addLineSeries({
-              color: '#CD5C5C', // Rojo suave (Indian Red)
-              lineWidth: 1,
-            });
-            bbLowerSeries.setData(bbLowerData);
+            try {
+              const bbLowerSeries = chart.addLineSeries({
+                color: '#CD5C5C', // Rojo suave (Indian Red)
+                lineWidth: 1,
+              });
+              console.log(`[Dashboard] BB Lower data sample:`, { first: bbLowerData[0], last: bbLowerData[bbLowerData.length - 1] });
+              bbLowerSeries.setData(bbLowerData);
+            } catch (e) {
+              console.error(`[Dashboard] BB Lower error:`, e.message, bbLowerData);
+            }
           }
 
           console.log(`[Dashboard] Added indicators - MA20: ${ma20Data.length} points, MA99: ${ma99Data.length} points, BB: ${bbUpperData.length} points`);
