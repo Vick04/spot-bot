@@ -397,7 +397,7 @@ class GainersManager extends EventEmitter {
   getTop1hGainers(limit = 30) {
     const gainers = Array.from(this.observers.values())
       .filter((observer) => observer.isReady) // Only ready observers
-      .filter((observer) => observer.gainer5m > 0.5) // Filter: 5m gain > 0.5%
+      .filter((observer) => observer.gainer5m > 1.5) // Filter: 5m gain > 1.5%
       .map((observer) => ({
         symbol: observer.symbol,
         gainer1h: observer.gainer1h,
