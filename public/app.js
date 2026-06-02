@@ -641,6 +641,35 @@ class GainersDashboard {
 
       console.log(`[Dashboard] Creating chart for ${symbol} with ${candleData.length} candles`);
 
+      // Validate candle data - remove any with invalid values
+      const validCandleData = candleData.filter(candle => {
+        const o = parseFloat(candle.open);
+        const h = parseFloat(candle.high);
+        const l = parseFloat(candle.low);
+        const c = parseFloat(candle.close);
+        const t = candle.time;
+
+        return (
+          typeof t === 'number' && isFinite(t) &&
+          isFinite(o) && isFinite(h) && isFinite(l) && isFinite(c) &&
+          o > 0 && h > 0 && l > 0 && c > 0
+        );
+      }).map(candle => ({
+        time: candle.time,
+        open: parseFloat(candle.open),
+        high: parseFloat(candle.high),
+        low: parseFloat(candle.low),
+        close: parseFloat(candle.close),
+      }));
+
+      if (validCandleData.length === 0) {
+        console.error(`[Dashboard] No valid candle data for ${symbol}`);
+        return;
+      }
+
+      console.log(`[Dashboard] Valid candles: ${validCandleData.length}/${candleData.length}`);
+      console.log(`[Dashboard] Candle sample:`, { first: validCandleData[0], last: validCandleData[validCandleData.length - 1] });
+
       // Crear chart usando window.LightweightCharts
       const chart = window.LightweightCharts.createChart(container, {
         layout: {
@@ -677,20 +706,26 @@ class GainersDashboard {
       });
 
       // Set candle data
-      candleSeries.setData(candleData);
+      try {
+        candleSeries.setData(validCandleData);
+      } catch (e) {
+        console.error(`[Dashboard] Error setting candle data:`, e.message);
+        console.error(`[Dashboard] Data sample:`, validCandleData.slice(0, 3));
+        return;
+      }
 
       // Add indicator lines if we have enough candles
-      if (candleData && candleData.length > 0) {
+      if (validCandleData && validCandleData.length > 0) {
         try {
-          // Extract close prices from candles
-          const closePrices = candleData.map(c => parseFloat(c.close) || 0);
+          // Extract close prices from valid candles
+          const closePrices = validCandleData.map(c => c.close);
 
           // Calculate MA20 (Yellow)
           const ma20Values = this.calculateSMA(closePrices, 20);
           const ma20Data = [];
-          for (let i = 0; i < candleData.length; i++) {
+          for (let i = 0; i < validCandleData.length; i++) {
             const val = ma20Values[i];
-            const time = candleData[i].time;
+            const time = validCandleData[i].time;
 
             // Strict validation
             if (val !== null && val !== undefined && typeof val === 'number' && isFinite(val) && time) {
@@ -714,9 +749,9 @@ class GainersDashboard {
           // Calculate MA99 (Blanco, más grueso)
           const ma99Values = this.calculateSMA(closePrices, 99);
           const ma99Data = [];
-          for (let i = 0; i < candleData.length; i++) {
+          for (let i = 0; i < validCandleData.length; i++) {
             const val = ma99Values[i];
-            const time = candleData[i].time;
+            const time = validCandleData[i].time;
 
             if (val !== null && val !== undefined && typeof val === 'number' && isFinite(val) && time) {
               ma99Data.push({ time, value: val });
@@ -741,9 +776,9 @@ class GainersDashboard {
 
           // Bollinger Upper (Rosa)
           const bbUpperData = [];
-          for (let i = 0; i < candleData.length; i++) {
+          for (let i = 0; i < validCandleData.length; i++) {
             const val = bb.upper[i];
-            const time = candleData[i].time;
+            const time = validCandleData[i].time;
 
             if (val !== null && val !== undefined && typeof val === 'number' && isFinite(val) && time) {
               bbUpperData.push({ time, value: val });
@@ -765,9 +800,9 @@ class GainersDashboard {
 
           // Bollinger Lower (Rojo suave)
           const bbLowerData = [];
-          for (let i = 0; i < candleData.length; i++) {
+          for (let i = 0; i < validCandleData.length; i++) {
             const val = bb.lower[i];
-            const time = candleData[i].time;
+            const time = validCandleData[i].time;
 
             if (val !== null && val !== undefined && typeof val === 'number' && isFinite(val) && time) {
               bbLowerData.push({ time, value: val });
