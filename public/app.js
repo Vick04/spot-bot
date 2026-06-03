@@ -124,8 +124,8 @@ class GainersDashboard {
 
     gainersElement.innerHTML = topThirty
       .map((gainer, index) => {
-        const percentClass = gainer.gainer1h > 0 ? "positive" : gainer.gainer1h < 0 ? "negative" : "neutral";
-        const changeSign = gainer.gainer1h > 0 ? "+" : "";
+        const percentClass = gainer.gainer5m > 0 ? "positive" : gainer.gainer5m < 0 ? "negative" : "neutral";
+        const changeSign = gainer.gainer5m > 0 ? "+" : "";
 
         // Multi-timeframe gainers
         const gainer5m = gainer.gainer5m || 0;
@@ -153,9 +153,29 @@ class GainersDashboard {
             <div class="gainer-rank">#${index + 1}</div>
             <div class="gainer-symbol">
               <a href="https://www.binance.com/es-AR/trade/${gainer.symbol}_USDT?type=spot" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer;">${gainer.symbol}</a>
-              <span class="gainer-change ${percentClass}">${changeSign}${gainer.gainer1h.toFixed(2)}%</span>
+              <span class="gainer-change ${percentClass}">${changeSign}${gainer.gainer5m.toFixed(2)}%</span>
             </div>
             <div class="gainer-price">Price: $${gainer.price.toFixed(8)}</div>
+
+            <!-- Gainers by Timeframe -->
+            <div style="margin-bottom: 8px; padding: 6px 8px; background-color: rgba(255, 193, 7, 0.05); border-radius: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+              <div style="text-align: center;">
+                <div style="font-size: 9px; color: var(--text-secondary); font-weight: 600;">5m</div>
+                <div style="font-size: 12px; font-weight: 600; color: ${gainer.gainer5m > 0 ? 'var(--success)' : gainer.gainer5m < 0 ? 'var(--danger)' : 'var(--text-secondary)'};">${gainer.gainer5m > 0 ? '+' : ''}${gainer.gainer5m.toFixed(2)}%</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 9px; color: var(--text-secondary); font-weight: 600;">15m</div>
+                <div style="font-size: 12px; font-weight: 600; color: ${gainer.gainer15m > 0 ? 'var(--success)' : gainer.gainer15m < 0 ? 'var(--danger)' : 'var(--text-secondary)'};">${gainer.gainer15m > 0 ? '+' : ''}${gainer.gainer15m.toFixed(2)}%</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 9px; color: var(--text-secondary); font-weight: 600;">30m</div>
+                <div style="font-size: 12px; font-weight: 600; color: ${gainer.gainer30m > 0 ? 'var(--success)' : gainer.gainer30m < 0 ? 'var(--danger)' : 'var(--text-secondary)'};">${gainer.gainer30m > 0 ? '+' : ''}${gainer.gainer30m.toFixed(2)}%</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 9px; color: var(--text-secondary); font-weight: 600;">1h</div>
+                <div style="font-size: 12px; font-weight: 600; color: ${gainer.gainer1h > 0 ? 'var(--success)' : gainer.gainer1h < 0 ? 'var(--danger)' : 'var(--text-secondary)'};">${gainer.gainer1h > 0 ? '+' : ''}${gainer.gainer1h.toFixed(2)}%</div>
+              </div>
+            </div>
 
             <!-- UP Conditions Progress -->
             <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(66, 153, 225, 0.05); border-radius: 6px;">
