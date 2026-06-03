@@ -273,17 +273,14 @@ class CryptoObserver {
       this._selectionState.step2_bufferFull = true;
     }
 
-    // Step 3: PISO - BBUPPER < MA99 (TEMPORARILY DISABLED)
-    // if (this._selectionState.step2_bufferFull && !this._selectionState.step3_pisoMet &&
-    //     ma99 > 0 && this.bbUpper < ma99) {
-    //   this._selectionState.step3_pisoMet = true;
-    // }
-    // For testing: always set step3 to true (bypass the condition)
-    this._selectionState.step3_pisoMet = true;
+    // Step 3: PISO - BBUPPER < MA99 (requires step2 true)
+    if (this._selectionState.step2_bufferFull && !this._selectionState.step3_pisoMet &&
+        ma99 > 0 && this.bbUpper < ma99) {
+      this._selectionState.step3_pisoMet = true;
+    }
 
-    // Step 4: SUBIDA - gainer1m > 0.3 with buying pressure (ONLY ACTIVE CONDITION)
-    // Now requires only step2 (buffer full), not step3
-    if (this._selectionState.step2_bufferFull && !this._selectionState.step4_subidaMet &&
+    // Step 4: SUBIDA - gainer1m > 0.3 with buying pressure (requires step3 true)
+    if (this._selectionState.step3_pisoMet && !this._selectionState.step4_subidaMet &&
         this._gainer1m > 0.3 && this.isBuyingPressure()) {
       this._selectionState.step4_subidaMet = true;
     }
