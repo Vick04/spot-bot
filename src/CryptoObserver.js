@@ -21,12 +21,16 @@ class CryptoObserver {
     this._initialized = false;
     this._loading = false;
 
-    // State machine for sequential BUY UP conditions
-    this._upConditionState = {
-      step1_pisoMet: false,       // Piso: MA20 < MA99
-      step2_zonaFuerteMet: false, // Zona Fuerte: MA20 > MA99 (after step1)
-      step3_breakoutMet: false,   // Breakout Alcista: Price in range (after step2)
-      step4_priceExceeded: false, // Invalidation: Price > MA99 × 1.015 (disqualifies purchase)
+    // Sequential state machine for symbol selection
+    // Each condition builds on the previous one (must be true to advance)
+    // All reset when Price < MA99
+    this._selectionState = {
+      step1_initialized: false,        // 1) Observer initialized (_initialized = true)
+      step2_bufferFull: false,         // 2) Buffer full (buffer.length === 99)
+      step3_pisoMet: false,            // 3) PISO: BBUPPER < MA99
+      step4_subidaMet: false,          // 4) Subida: BBUPPER < PRICE
+      step5_canBuy: false,             // 5) Puede Comprar: gainer5m > 1.0
+      step6_priceExceeded: false,      // 6) Invalidación: Price > MA99 × 1.015 (permanent disqualification)
     };
   }
 
@@ -59,7 +63,7 @@ class CryptoObserver {
       this._recalculateGainer();
 
       // Update UP condition state machine
-      this._updateUpConditionState();
+      this._updateSelectionState();
 
       this._initialized = true;
       console.log(
@@ -153,50 +157,65 @@ class CryptoObserver {
   }
 
   /**
-   * Update UP condition state machine
-   * Implements sequential logic:
-   * - Step 1 (Piso): MA20 < MA99
-   * - Step 2 (Zona Fuerte): MA20 > MA99 (only after step1 was true)
-   * - Step 3 (Breakout Alcista): Price in range (only after step2 is true)
-   * - Step 4 (Invalidation): Price > MA99 × 1.015 (disqualifies purchase permanently)
-   * All steps reset when DOWN condition is met
+   * Update sequential selection state machine
+   * Sequential progression: each step requires previous step to be true
+   * Step 1: _initialized = true (initial state, no condition required)
+   * Step 2: Buffer full (buffer.length === 99)
+   * Step 3: PISO (BBUPPER < MA99)
+   * Step 4: Subida (BBUPPER < PRICE)
+   * Step 5: Puede Comprar (gainer5m > 1.0)
+   * Step 6: Invalidación (Price > MA99 × 1.015) - permanent disqualification
+   * Step 7: Reset cuando Price < MA99
    * @private
    */
-  _updateUpConditionState() {
-    const ma20 = this.ma20;
+  _updateSelectionState() {
     const ma99 = this.ma99;
+    const price = this.currentPrice;
 
-    // Check if DOWN condition is met - if so, reset all UP states
-    if (this.ma20BelowMA99 && this.priceBelowMA99Depressed) {
-      this._upConditionState.step1_pisoMet = false;
-      this._upConditionState.step2_zonaFuerteMet = false;
-      this._upConditionState.step3_breakoutMet = false;
-      this._upConditionState.step4_priceExceeded = false;
+    // Condition 7: Reset all when Price < MA99
+    if (ma99 > 0 && price < ma99) {
+      this._selectionState.step1_initialized = false;
+      this._selectionState.step2_bufferFull = false;
+      this._selectionState.step3_pisoMet = false;
+      this._selectionState.step4_subidaMet = false;
+      this._selectionState.step5_canBuy = false;
+      this._selectionState.step6_priceExceeded = false;
       return;
     }
 
-    // Step 1: Piso - MA20 < MA99
-    if (!this._upConditionState.step1_pisoMet && ma99 > 0 && ma20 < ma99) {
-      this._upConditionState.step1_pisoMet = true;
+    // Step 1: Initialized (initial state)
+    if (!this._selectionState.step1_initialized && this._initialized) {
+      this._selectionState.step1_initialized = true;
     }
 
-    // Step 2: Zona Fuerte - MA20 > MA99 (only if step1 was already met)
-    if (this._upConditionState.step1_pisoMet && !this._upConditionState.step2_zonaFuerteMet &&
-        ma99 > 0 && ma20 > ma99) {
-      this._upConditionState.step2_zonaFuerteMet = true;
+    // Step 2: Buffer full (requires step1 true)
+    if (this._selectionState.step1_initialized && !this._selectionState.step2_bufferFull &&
+        this.buffer.length === this.bufferSize) {
+      this._selectionState.step2_bufferFull = true;
     }
 
-    // Step 3: Breakout Alcista - Price in range (only if step2 is active)
-    if (this._upConditionState.step2_zonaFuerteMet && !this._upConditionState.step3_breakoutMet &&
-        this.priceAboveMA99Breakout) {
-      this._upConditionState.step3_breakoutMet = true;
+    // Step 3: PISO - BBUPPER < MA99 (requires step2 true)
+    if (this._selectionState.step2_bufferFull && !this._selectionState.step3_pisoMet &&
+        ma99 > 0 && this.bbUpper < ma99) {
+      this._selectionState.step3_pisoMet = true;
     }
 
-    // Step 4: Invalidation - Price exceeded max threshold (disqualifies purchase)
-    // Once triggered, stays true until DOWN signal resets it
-    if (!this._upConditionState.step4_priceExceeded && ma99 > 0 &&
-        this.currentPrice > (ma99 * 1.015)) {
-      this._upConditionState.step4_priceExceeded = true;
+    // Step 4: Subida - BBUPPER < PRICE (requires step3 true)
+    if (this._selectionState.step3_pisoMet && !this._selectionState.step4_subidaMet &&
+        price > 0 && this.bbUpper < price) {
+      this._selectionState.step4_subidaMet = true;
+    }
+
+    // Step 5: Puede Comprar - gainer5m > 1.0 (requires step4 true)
+    if (this._selectionState.step4_subidaMet && !this._selectionState.step5_canBuy &&
+        this._gainer5m > 1.0) {
+      this._selectionState.step5_canBuy = true;
+    }
+
+    // Step 6: Invalidación - Price > MA99 × 1.015 (independent disqualifier)
+    if (!this._selectionState.step6_priceExceeded && ma99 > 0 &&
+        price > (ma99 * 1.015)) {
+      this._selectionState.step6_priceExceeded = true;
     }
   }
 
@@ -406,61 +425,41 @@ class CryptoObserver {
   }
 
   /**
-   * BUY condition UP: Steps 1, 3, and 4 (Step 2 temporarily disabled)
-   * Step 1 (Piso): MA20 < MA99 must be met
-   * Step 2 (Zona Fuerte): TEMPORARILY DISABLED
-   * Step 3 (Breakout Alcista): Price in range (MA99 × 0.97 to MA99 × 1.03) - ACTIVE
-   * Step 4 (Invalidation): Price > MA99 × 1.015 disqualifies the purchase permanently
-   * Returns true when step 1 AND step 3 are met AND price hasn't exceeded limit
-   * All steps reset when DOWN condition is met
+   * CAN BUY: Sequential conditions met (step 5) and not invalidated (step 6 false)
+   * All 5 sequential steps must be true AND price must not exceed MA99 × 1.015
    */
   get canBuyUP() {
-    return this._upConditionState.step1_pisoMet && this._upConditionState.step3_breakoutMet && !this._upConditionState.step4_priceExceeded;
+    return this._selectionState.step5_canBuy && !this._selectionState.step6_priceExceeded;
   }
 
   /**
-   * BUY condition DOWN: Zona Débil + Precio Deprimido
-   * Requires BOTH: MA20 < MA99 AND Price < (MA99 × 0.970)
-   */
-  get canBuyDOWN() {
-    return this.ma20BelowMA99 && this.priceBelowMA99Depressed;
-  }
-
-  /**
-   * Get all condition evaluations
+   * Get all condition evaluations (sequential state machine)
    */
   getConditions() {
     return {
-      // UP Condition breakdown (sequential state machine)
-      // Step 1: Piso - MA20 < MA99
-      upCondition1_Piso: this._upConditionState.step1_pisoMet,
-      // Step 2: Zona Fuerte - MA20 > MA99 (after step 1)
-      upCondition2_ZonaFuerte: this._upConditionState.step2_zonaFuerteMet,
-      // Step 3: Breakout Alcista - Price in range (after step 2)
-      upCondition3_BreakoutAlcista: this._upConditionState.step3_breakoutMet,
-      // Step 4: Invalidation - Price exceeded max threshold (disqualifies purchase)
-      upCondition4_PriceExceeded: this._upConditionState.step4_priceExceeded,
+      // Sequential selection conditions
+      // Step 1: Observer initialized
+      step1_initialized: this._selectionState.step1_initialized,
+      // Step 2: Buffer full (99 candles)
+      step2_bufferFull: this._selectionState.step2_bufferFull,
+      // Step 3: PISO - BBUPPER < MA99
+      step3_pisoMet: this._selectionState.step3_pisoMet,
+      // Step 4: Subida - BBUPPER < PRICE
+      step4_subidaMet: this._selectionState.step4_subidaMet,
+      // Step 5: Puede Comprar - gainer5m > 1.0
+      step5_canBuy: this._selectionState.step5_canBuy,
+      // Step 6: Invalidación - Price > MA99 × 1.015
+      step6_priceExceeded: this._selectionState.step6_priceExceeded,
+      // Final: Can execute buy
       canBuyUP: this.canBuyUP,
 
-      // DOWN Condition breakdown
-      // Zona Débil: MA20 < MA99
-      downCondition1_ZonaDebil: this.ma20BelowMA99,
-      // Precio Deprimido: Price < (MA99 × 0.970)
-      downCondition2_PrecioDeprimido: this.priceBelowMA99Depressed,
-      canBuyDOWN: this.canBuyDOWN,
-
-      // Price vs MA20 (for reference)
-      priceAboveMA20: this.priceAboveMA20,
-      priceBelowMA20: this.priceBelowMA20,
-
-      // MA20 vs MA99 (for reference)
-      ma20AboveMA99: this.ma20AboveMA99,
-      ma20BelowMA99: this.ma20BelowMA99,
-
-      // Price vs Bollinger Bands (for reference)
-      priceAboveBBUpper: this.priceAboveBBUpper,
-      priceBelowBBLower: this.priceBelowBBLower,
-      priceBetweenBB: this.priceBetweenBB,
+      // Technical indicators (for reference)
+      ma20: this.ma20,
+      ma99: this.ma99,
+      bbUpper: this.bbUpper,
+      bbLower: this.bbLower,
+      currentPrice: this.currentPrice,
+      gainer5m: this._gainer5m,
     };
   }
 

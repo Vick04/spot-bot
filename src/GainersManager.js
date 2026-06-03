@@ -388,17 +388,22 @@ class GainersManager extends EventEmitter {
   }
 
   /**
-   * Get top N gainers with 5-minute performance > 0.5%
-   * Filtered by gainer5m > 0.5% and sorted descending
+   * Get top N gainers filtered by sequential selection conditions
+   * Shows only symbols that meet step 3 or higher
+   * Displays symbols grouped by the highest step achieved
    *
    * @param {number} limit - Number of gainers to return (default: 30)
-   * @returns {Array<Object>} Array of top gainers
+   * @returns {Array<Object>} Array of top gainers with condition states
    */
   getTop1hGainers(limit = 30) {
-    const gainers = Array.from(this.observers.values())
-      .filter((observer) => observer.isReady) // Only ready observers
-      .filter((observer) => observer.gainer5m > 1.2) // Filter: 5m gain > 1.2%
-      .map((observer) => ({
+    // Get all ready observers with their conditions
+    const allObservers = Array.from(this.observers.values())
+      .filter((observer) => observer.isReady);
+
+    // Map to include condition data
+    const withConditions = allObservers.map((observer) => {
+      const conditions = observer.getConditions();
+      return {
         symbol: observer.symbol,
         gainer1h: observer.gainer1h,
         gainer5m: observer.gainer5m,
@@ -406,7 +411,32 @@ class GainersManager extends EventEmitter {
         gainer30m: observer.gainer30m,
         price: observer.currentPrice,
         bufferSize: observer.bufferSize,
-      }))
+        // Sequential condition states
+        step1_initialized: conditions.step1_initialized,
+        step2_bufferFull: conditions.step2_bufferFull,
+        step3_pisoMet: conditions.step3_pisoMet,
+        step4_subidaMet: conditions.step4_subidaMet,
+        step5_canBuy: conditions.step5_canBuy,
+        step6_priceExceeded: conditions.step6_priceExceeded,
+        canBuyUP: conditions.canBuyUP,
+        // Calculate highest step reached (3-5, skipping 1-2 as they are prerequisites)
+        highestStep: conditions.step5_canBuy ? 5 : conditions.step4_subidaMet ? 4 : conditions.step3_pisoMet ? 3 : 0,
+      };
+    });
+
+    // Filter: only show symbols that meet step 3 or higher
+    const filtered = withConditions.filter((obs) => obs.step3_pisoMet);
+
+    if (filtered.length === 0) {
+      return [];
+    }
+
+    // Find the highest step among all filtered symbols
+    const maxStep = Math.max(...filtered.map((obs) => obs.highestStep));
+
+    // Show only symbols that reached the max step
+    const gainers = filtered
+      .filter((obs) => obs.highestStep === maxStep)
       .sort((a, b) => b.gainer5m - a.gainer5m) // Sort by 5m gainer descending
       .slice(0, limit);
 

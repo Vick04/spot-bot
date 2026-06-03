@@ -138,15 +138,12 @@ class GainersDashboard {
         const bbUpper = gainer.bbUpper || 0;
         const bbLower = gainer.bbLower || 0;
 
-        // Conditions from observer
-        const conditions = gainer.conditions || {};
-
-        // UP Conditions
-        const upPiso = conditions.upCondition1_Piso ? "✓" : "✗";
-        const upZonaFuerte = conditions.upCondition2_ZonaFuerte ? "✓" : "✗";
-        const upBreakout = conditions.upCondition3_BreakoutAlcista ? "✓" : "✗";
-        const upPriceExceeded = conditions.upCondition4_PriceExceeded ? "✗" : "✓";
-        const canBuyUP = conditions.canBuyUP ? "✅" : "—";
+        // Sequential selection conditions
+        const step3_pisoMet = gainer.step3_pisoMet || false;
+        const step4_subidaMet = gainer.step4_subidaMet || false;
+        const step5_canBuy = gainer.step5_canBuy || false;
+        const step6_priceExceeded = gainer.step6_priceExceeded || false;
+        const canBuyUP = gainer.canBuyUP ? "✅" : "—";
 
         return `
           <div class="gainer-card" data-symbol="${gainer.symbol}">
@@ -177,54 +174,55 @@ class GainersDashboard {
               </div>
             </div>
 
-            <!-- UP Conditions Progress -->
-            <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(66, 153, 225, 0.05); border-radius: 6px;">
-              <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">BUY UP Sequence:</div>
+            <!-- Sequential Selection Progress -->
+            <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(76, 175, 80, 0.05); border-radius: 6px;">
+              <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">Selection Progress:</div>
               <div style="display: flex; gap: 4px; align-items: center;">
-                <div style="flex: 1; height: 20px; background-color: ${conditions.upCondition1_Piso ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${conditions.upCondition1_Piso ? 'var(--success)' : 'var(--text-secondary)'};"><span>①</span></div>
-                <div style="width: 16px; height: 2px; background-color: ${conditions.upCondition1_Piso ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; height: 20px; background-color: ${conditions.upCondition2_ZonaFuerte ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${conditions.upCondition2_ZonaFuerte ? 'var(--success)' : 'var(--text-secondary)'};"><span>②</span></div>
-                <div style="width: 16px; height: 2px; background-color: ${conditions.upCondition2_ZonaFuerte && conditions.upCondition3_BreakoutAlcista ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; height: 20px; background-color: ${conditions.upCondition3_BreakoutAlcista ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${conditions.upCondition3_BreakoutAlcista ? 'var(--success)' : 'var(--text-secondary)'};"><span>③</span></div>
+                <div style="flex: 1; height: 20px; background-color: ${step3_pisoMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step3_pisoMet ? 'var(--success)' : 'var(--text-secondary)'};"><span>③</span></div>
+                <div style="width: 16px; height: 2px; background-color: ${step3_pisoMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; height: 20px; background-color: ${step4_subidaMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step4_subidaMet ? 'var(--success)' : 'var(--text-secondary)'};"><span>④</span></div>
+                <div style="width: 16px; height: 2px; background-color: ${step4_subidaMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; height: 20px; background-color: ${step5_canBuy ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step5_canBuy ? 'var(--success)' : 'var(--text-secondary)'};"><span>⑤</span></div>
               </div>
             </div>
 
             <div class="gainer-details">
               <div class="detail-row">
-                <span class="detail-label">Indicators:</span>
+                <span class="detail-label">Technical:</span>
                 <span class="detail-value"></span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">MA20:</span>
-                <span class="detail-value">${ma20 > 0 ? ma20.toFixed(8) : "—"}</span>
               </div>
               <div class="detail-row">
                 <span class="detail-label">MA99:</span>
                 <span class="detail-value">${ma99 > 0 ? ma99.toFixed(8) : "—"}</span>
               </div>
               <div class="detail-row">
-                <span class="detail-label">BB Range:</span>
-                <span class="detail-value">${bbUpper > 0 ? bbLower.toFixed(8) + "—" + bbUpper.toFixed(8) : "—"}</span>
+                <span class="detail-label">BBUpper:</span>
+                <span class="detail-value">${bbUpper > 0 ? bbUpper.toFixed(8) : "—"}</span>
               </div>
               <div class="detail-row">
-                <span class="detail-label">BUY UP:</span>
-                <span class="detail-value">${canBuyUP}</span>
+                <span class="detail-label">Price vs BBUpper:</span>
+                <span class="detail-value" style="color: ${gainer.price > bbUpper ? 'var(--success)' : 'var(--danger)'};">${gainer.price > bbUpper ? '✓' : '✗'}</span>
+              </div>
+
+              <div class="detail-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
+                <span class="detail-label">Step Details:</span>
+                <span class="detail-value"></span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">① Piso (MA20 &lt; MA99):</span>
-                <span class="detail-value condition-step ${conditions.upCondition1_Piso ? 'step-met' : 'step-pending'}">${upPiso}</span>
+                <span class="detail-label">③ PISO (BBUpper &lt; MA99):</span>
+                <span class="detail-value condition-step ${step3_pisoMet ? 'step-met' : 'step-pending'}">${step3_pisoMet ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">② Zona Fuerte (MA20 &gt; MA99):</span>
-                <span class="detail-value condition-step ${conditions.upCondition2_ZonaFuerte ? 'step-met' : 'step-pending'}">${upZonaFuerte}</span>
+                <span class="detail-label">④ SUBIDA (BBUpper &lt; Price):</span>
+                <span class="detail-value condition-step ${step4_subidaMet ? 'step-met' : 'step-pending'}">${step4_subidaMet ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">③ Breakout (Price ±1%):</span>
-                <span class="detail-value condition-step ${conditions.upCondition3_BreakoutAlcista ? 'step-met' : 'step-pending'}">${upBreakout}</span>
+                <span class="detail-label">⑤ COMPRA (gainer5m &gt; 1.0%):</span>
+                <span class="detail-value condition-step ${step5_canBuy ? 'step-met' : 'step-pending'}">${step5_canBuy ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">④ Price OK (Price ≤ MA99 × 1.015):</span>
-                <span class="detail-value condition-step ${!conditions.upCondition4_PriceExceeded ? 'step-met' : 'step-pending'}" style="background-color: ${!conditions.upCondition4_PriceExceeded ? 'rgba(72, 187, 120, 0.2)' : 'rgba(245, 101, 101, 0.2)'}; color: ${!conditions.upCondition4_PriceExceeded ? 'var(--success)' : 'var(--danger)'};">${upPriceExceeded}</span>
+                <span class="detail-label">⑥ INVALIDA (Price &gt; MA99 × 1.015):</span>
+                <span class="detail-value condition-step ${step6_priceExceeded ? 'step-met' : 'step-pending'}" style="background-color: ${step6_priceExceeded ? 'rgba(245, 101, 101, 0.2)' : 'rgba(72, 187, 120, 0.2)'}; color: ${step6_priceExceeded ? 'var(--danger)' : 'var(--success)'};">${step6_priceExceeded ? '✗' : '✓'}</span>
               </div>
             </div>
           </div>
