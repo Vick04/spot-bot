@@ -123,8 +123,11 @@ class CryptoObserver {
     const latestCandle = this.buffer[this.buffer.length - 1];
 
     // Calculate index: minutesAgo minutes back from the end
-    // If buffer has 60 candles and we want 30 min ago: index = 60 - 30 = 30
-    const indexAgo = Math.max(0, this.buffer.length - minutesAgo);
+    // Buffer indexes: [0, 1, 2, ..., length-1]
+    // buffer[length-1] = current candle (t)
+    // buffer[length-2] = 1 minute ago (t-1)
+    // buffer[length-1-minutesAgo] = minutesAgo minutes ago
+    const indexAgo = Math.max(0, this.buffer.length - minutesAgo - 1);
     const candleAgo = this.buffer[indexAgo];
 
     if (!candleAgo || candleAgo.close === 0) {
