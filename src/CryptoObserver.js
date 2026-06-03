@@ -101,8 +101,8 @@ class CryptoObserver {
     // Recalculate gainer
     this._recalculateGainer();
 
-    // Update UP condition state machine
-    this._updateUpConditionState();
+    // Update sequential selection state machine
+    this._updateSelectionState();
   }
 
   /**
