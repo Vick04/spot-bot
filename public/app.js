@@ -149,7 +149,7 @@ class GainersDashboard {
           <div class="gainer-card" data-symbol="${gainer.symbol}">
             <div class="gainer-rank">#${index + 1}</div>
             <div class="gainer-symbol">
-              <a href="https://www.binance.com/es-AR/trade/${gainer.symbol}_USDT?type=spot" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer;">${gainer.symbol}</a>
+              <a href="https://www.binance.com/es-AR/trade/${gainer.symbol.replace('USDT', '')}_USDT?type=spot" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer;">${gainer.symbol}</a>
               <span class="gainer-change ${percentClass}">${changeSign}${gainer.gainer5m.toFixed(2)}%</span>
             </div>
             <div class="gainer-price">Price: $${gainer.price.toFixed(8)}</div>
@@ -953,7 +953,8 @@ class GainersDashboard {
     const orderSymbolElement = document.getElementById("orderSymbol");
     if (orderSymbolElement) {
       const symbol = position.symbol || "-";
-      const binanceUrl = `https://www.binance.com/es-AR/trade/${symbol}_USDT?type=spot`;
+      const symbolWithoutUSDAT = symbol.replace('USDT', '');
+      const binanceUrl = `https://www.binance.com/es-AR/trade/${symbolWithoutUSDAT}_USDT?type=spot`;
       orderSymbolElement.innerHTML = `<a href="${binanceUrl}" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer;">${symbol}</a>`;
     }
     document.getElementById("orderStatus").textContent = "IN PROGRESS";
