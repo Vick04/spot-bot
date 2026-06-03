@@ -414,18 +414,18 @@ class GainersManager extends EventEmitter {
         // Sequential condition states
         step1_initialized: conditions.step1_initialized,
         step2_bufferFull: conditions.step2_bufferFull,
-        step3_pisoMet: conditions.step3_pisoMet,
-        step4_subidaMet: conditions.step4_subidaMet,
+        step3_subidaMet: conditions.step3_subidaMet,
+        step4_pisoMet: conditions.step4_pisoMet,
         step5_canBuy: conditions.step5_canBuy,
         step6_priceExceeded: conditions.step6_priceExceeded,
         canBuyUP: conditions.canBuyUP,
         // Calculate highest step reached (3-5, skipping 1-2 as they are prerequisites)
-        highestStep: conditions.step5_canBuy ? 5 : conditions.step4_subidaMet ? 4 : conditions.step3_pisoMet ? 3 : 0,
+        highestStep: conditions.step5_canBuy ? 5 : conditions.step4_pisoMet ? 4 : conditions.step3_subidaMet ? 3 : 0,
       };
     });
 
     // Filter: only show symbols that meet step 3 or higher
-    const filtered = withConditions.filter((obs) => obs.step3_pisoMet);
+    const filtered = withConditions.filter((obs) => obs.step3_subidaMet);
 
     if (filtered.length === 0) {
       return [];

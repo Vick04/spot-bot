@@ -139,8 +139,8 @@ class GainersDashboard {
         const bbLower = gainer.bbLower || 0;
 
         // Sequential selection conditions
-        const step3_pisoMet = gainer.step3_pisoMet || false;
-        const step4_subidaMet = gainer.step4_subidaMet || false;
+        const step3_subidaMet = gainer.step3_subidaMet || false;
+        const step4_pisoMet = gainer.step4_pisoMet || false;
         const step5_canBuy = gainer.step5_canBuy || false;
         const step6_priceExceeded = gainer.step6_priceExceeded || false;
         const canBuyUP = gainer.canBuyUP ? "✅" : "—";
@@ -178,10 +178,10 @@ class GainersDashboard {
             <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(76, 175, 80, 0.05); border-radius: 6px;">
               <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">Selection Progress:</div>
               <div style="display: flex; gap: 4px; align-items: center;">
-                <div style="flex: 1; height: 20px; background-color: ${step3_pisoMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step3_pisoMet ? 'var(--success)' : 'var(--text-secondary)'};"><span>③</span></div>
-                <div style="width: 16px; height: 2px; background-color: ${step3_pisoMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; height: 20px; background-color: ${step4_subidaMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step4_subidaMet ? 'var(--success)' : 'var(--text-secondary)'};"><span>④</span></div>
-                <div style="width: 16px; height: 2px; background-color: ${step4_subidaMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; height: 20px; background-color: ${step3_subidaMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step3_subidaMet ? 'var(--success)' : 'var(--text-secondary)'};"><span>③</span></div>
+                <div style="width: 16px; height: 2px; background-color: ${step3_subidaMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; height: 20px; background-color: ${step4_pisoMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step4_pisoMet ? 'var(--success)' : 'var(--text-secondary)'};"><span>④</span></div>
+                <div style="width: 16px; height: 2px; background-color: ${step4_pisoMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
                 <div style="flex: 1; height: 20px; background-color: ${step5_canBuy ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step5_canBuy ? 'var(--success)' : 'var(--text-secondary)'};"><span>⑤</span></div>
               </div>
             </div>
@@ -209,15 +209,15 @@ class GainersDashboard {
                 <span class="detail-value"></span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">③ PISO (BBUpper &lt; MA99):</span>
-                <span class="detail-value condition-step ${step3_pisoMet ? 'step-met' : 'step-pending'}">${step3_pisoMet ? '✓' : '✗'}</span>
+                <span class="detail-label">③ SUBIDA (gainer5m &gt; 1.0%):</span>
+                <span class="detail-value condition-step ${step3_subidaMet ? 'step-met' : 'step-pending'}">${step3_subidaMet ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">④ SUBIDA (BBUpper &lt; Price):</span>
-                <span class="detail-value condition-step ${step4_subidaMet ? 'step-met' : 'step-pending'}">${step4_subidaMet ? '✓' : '✗'}</span>
+                <span class="detail-label">④ PISO (BBUpper &lt; MA99):</span>
+                <span class="detail-value condition-step ${step4_pisoMet ? 'step-met' : 'step-pending'}">${step4_pisoMet ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">⑤ COMPRA (gainer5m &gt; 1.0%):</span>
+                <span class="detail-label">⑤ COMPRA (BBUpper &lt; Price):</span>
                 <span class="detail-value condition-step ${step5_canBuy ? 'step-met' : 'step-pending'}">${step5_canBuy ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
