@@ -405,6 +405,7 @@ class GainersManager extends EventEmitter {
       const conditions = observer.getConditions();
       return {
         symbol: observer.symbol,
+        gainer1m: observer.gainer1m,
         gainer1h: observer.gainer1h,
         gainer5m: observer.gainer5m,
         gainer15m: observer.gainer15m,

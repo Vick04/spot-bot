@@ -13,6 +13,7 @@ class CryptoObserver {
     this.buffer = []; // Queue of last N candles
 
     // Multi-timeframe gainer percentages (calculated from same 1m buffer)
+    this._gainer1m = 0;   // % change in last 1 minute
     this._gainer5m = 0;   // % change in last 5 minutes
     this._gainer15m = 0;  // % change in last 15 minutes
     this._gainer30m = 0;  // % change in last 30 minutes
@@ -135,13 +136,14 @@ class CryptoObserver {
   }
 
   /**
-   * Recalculate all gainer percentages (5m, 15m, 30m, 1h)
+   * Recalculate all gainer percentages (1m, 5m, 15m, 30m, 1h)
    * Called whenever a new candle is added
    * Uses the same buffer data for all timeframes
    * @private
    */
   _recalculateGainer() {
     if (this.buffer.length < 2) {
+      this._gainer1m = 0;
       this._gainer5m = 0;
       this._gainer15m = 0;
       this._gainer30m = 0;
@@ -150,6 +152,7 @@ class CryptoObserver {
     }
 
     // Calculate all timeframes from the same 1m buffer
+    this._gainer1m = this._calculateGainerForTimeframe(1);
     this._gainer5m = this._calculateGainerForTimeframe(5);
     this._gainer15m = this._calculateGainerForTimeframe(15);
     this._gainer30m = this._calculateGainerForTimeframe(30);
@@ -162,8 +165,8 @@ class CryptoObserver {
    * Step 1: _initialized = true (initial state, no condition required)
    * Step 2: Buffer full (buffer.length === 99)
    * Step 3: PISO (BBUPPER < MA99)
-   * Step 4: Subida (BBUPPER < PRICE)
-   * Step 5: Puede Comprar (gainer5m > 1.0)
+   * Step 4: SUBIDA (gainer1m > 1.0)
+   * Step 5: COMPRA (BBUPPER < PRICE)
    * Step 6: Invalidación (Price > MA99 × 1.015) - permanent disqualification
    * Step 7: Reset cuando Price < MA99
    * @private
@@ -200,9 +203,9 @@ class CryptoObserver {
       this._selectionState.step3_pisoMet = true;
     }
 
-    // Step 4: SUBIDA - gainer5m > 1.0 (requires step3 true)
+    // Step 4: SUBIDA - gainer1m > 1.0 (requires step3 true)
     if (this._selectionState.step3_pisoMet && !this._selectionState.step4_subidaMet &&
-        this._gainer5m > 1.0) {
+        this._gainer1m > 1.0) {
       this._selectionState.step4_subidaMet = true;
     }
 
@@ -217,6 +220,13 @@ class CryptoObserver {
         price > (ma99 * 1.015)) {
       this._selectionState.step6_priceExceeded = true;
     }
+  }
+
+  /**
+   * Get current 1-minute gainer percentage
+   */
+  get gainer1m() {
+    return this._gainer1m;
   }
 
   /**
@@ -346,6 +356,7 @@ class CryptoObserver {
       bbUpper: this.bbUpper,
       bbLower: this.bbLower,
       // Multi-timeframe gainer percentages
+      gainer1m: this.gainer1m,
       gainer5m: this.gainer5m,
       gainer15m: this.gainer15m,
       gainer30m: this.gainer30m,
@@ -459,6 +470,7 @@ class CryptoObserver {
       bbUpper: this.bbUpper,
       bbLower: this.bbLower,
       currentPrice: this.currentPrice,
+      gainer1m: this._gainer1m,
       gainer5m: this._gainer5m,
     };
   }

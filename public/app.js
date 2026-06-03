@@ -155,7 +155,11 @@ class GainersDashboard {
             <div class="gainer-price">Price: $${gainer.price.toFixed(8)}</div>
 
             <!-- Gainers by Timeframe -->
-            <div style="margin-bottom: 8px; padding: 6px 8px; background-color: rgba(255, 193, 7, 0.05); border-radius: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <div style="margin-bottom: 8px; padding: 6px 8px; background-color: rgba(255, 193, 7, 0.05); border-radius: 6px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;">
+              <div style="text-align: center;">
+                <div style="font-size: 9px; color: var(--text-secondary); font-weight: 600;">1m</div>
+                <div style="font-size: 12px; font-weight: 600; color: ${gainer.gainer1m > 0 ? 'var(--success)' : gainer.gainer1m < 0 ? 'var(--danger)' : 'var(--text-secondary)'};">${gainer.gainer1m > 0 ? '+' : ''}${gainer.gainer1m.toFixed(2)}%</div>
+              </div>
               <div style="text-align: center;">
                 <div style="font-size: 9px; color: var(--text-secondary); font-weight: 600;">5m</div>
                 <div style="font-size: 12px; font-weight: 600; color: ${gainer.gainer5m > 0 ? 'var(--success)' : gainer.gainer5m < 0 ? 'var(--danger)' : 'var(--text-secondary)'};">${gainer.gainer5m > 0 ? '+' : ''}${gainer.gainer5m.toFixed(2)}%</div>
