@@ -91,6 +91,7 @@ class BinanceWebSocket extends EventEmitter {
           volume: parseFloat(k.v),
           closeTime: k.T,
           quoteAssetVolume: parseFloat(k.q),
+          takerBuyBaseAssetVolume: parseFloat(k.V), // Buy volume for buy ratio calculation
           interval: interval,
         };
 

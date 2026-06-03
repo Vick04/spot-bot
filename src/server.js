@@ -150,6 +150,7 @@ binanceWS.on("candle", (candle) => {
     volume: candle.volume,
     closeTime: candle.closeTime,
     quoteAssetVolume: candle.quoteAssetVolume,
+    takerBuyBaseAssetVolume: candle.takerBuyBaseAssetVolume,
   });
 
   // Broadcast order in progress updates (real-time position updates)
