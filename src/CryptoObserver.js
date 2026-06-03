@@ -273,23 +273,28 @@ class CryptoObserver {
       this._selectionState.step2_bufferFull = true;
     }
 
-    // Step 3: PISO - BBUPPER < MA99 (requires step2 true)
-    if (this._selectionState.step2_bufferFull && !this._selectionState.step3_pisoMet &&
-        ma99 > 0 && this.bbUpper < ma99) {
-      this._selectionState.step3_pisoMet = true;
-    }
+    // Step 3: PISO - BBUPPER < MA99 (TEMPORARILY DISABLED)
+    // if (this._selectionState.step2_bufferFull && !this._selectionState.step3_pisoMet &&
+    //     ma99 > 0 && this.bbUpper < ma99) {
+    //   this._selectionState.step3_pisoMet = true;
+    // }
+    // For testing: always set step3 to true (bypass the condition)
+    this._selectionState.step3_pisoMet = true;
 
-    // Step 4: SUBIDA - gainer1m > 0.3 with buying pressure (requires step3 true)
-    if (this._selectionState.step3_pisoMet && !this._selectionState.step4_subidaMet &&
+    // Step 4: SUBIDA - gainer1m > 0.3 with buying pressure (ONLY ACTIVE CONDITION)
+    // Now requires only step2 (buffer full), not step3
+    if (this._selectionState.step2_bufferFull && !this._selectionState.step4_subidaMet &&
         this._gainer1m > 0.3 && this.isBuyingPressure()) {
       this._selectionState.step4_subidaMet = true;
     }
 
-    // Step 5: COMPRA - BBUPPER < PRICE (requires step4 true)
-    if (this._selectionState.step4_subidaMet && !this._selectionState.step5_canBuy &&
-        price > 0 && this.bbUpper < price) {
-      this._selectionState.step5_canBuy = true;
-    }
+    // Step 5: COMPRA - BBUPPER < PRICE (TEMPORARILY DISABLED)
+    // if (this._selectionState.step4_subidaMet && !this._selectionState.step5_canBuy &&
+    //     price > 0 && this.bbUpper < price) {
+    //   this._selectionState.step5_canBuy = true;
+    // }
+    // For testing: always set step5 to true (bypass the condition)
+    this._selectionState.step5_canBuy = true;
 
     // Step 6: Invalidación - Price > MA99 × 1.015 (independent disqualifier)
     if (!this._selectionState.step6_priceExceeded && ma99 > 0 &&
@@ -512,11 +517,11 @@ class CryptoObserver {
   }
 
   /**
-   * CAN BUY: Sequential conditions met (step 5) and not invalidated (step 6 false)
-   * All 5 sequential steps must be true AND price must not exceed MA99 × 1.015
+   * CAN BUY: Only requires step 4 (SUBIDA) and not invalidated (step 6 false)
+   * Testing mode: ONLY SUBIDA (gainer1m > 0.3% + Buy Pressure) condition active
    */
   get canBuyUP() {
-    return this._selectionState.step5_canBuy && !this._selectionState.step6_priceExceeded;
+    return this._selectionState.step4_subidaMet && !this._selectionState.step6_priceExceeded;
   }
 
   /**
