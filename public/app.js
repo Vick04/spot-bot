@@ -201,7 +201,7 @@ class GainersDashboard {
               </div>
               <div class="detail-row">
                 <span class="detail-label">Price vs BBUpper:</span>
-                <span class="detail-value" style="color: ${gainer.price > bbUpper ? 'var(--success)' : 'var(--danger)'};">${gainer.price > bbUpper ? '✓' : '✗'}</span>
+                <span class="detail-value" style="color: ${step5_canBuy ? 'var(--success)' : 'var(--danger)'};">${step5_canBuy ? '✓' : '✗'}</span>
               </div>
 
               <div class="detail-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
