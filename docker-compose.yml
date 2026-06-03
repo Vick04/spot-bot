@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  spot-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: spot-bot
+    restart: always
+    ports:
+      - "4444:4444"
+    environment:
+      - NODE_ENV=production
+      - API_PORT=4444
+      - BINANCE_API_KEY=${BINANCE_API_KEY}
+      - BINANCE_API_SECRET=${BINANCE_API_SECRET}
+    volumes:
+      - ./symbols.json:/app/symbols.json
+    networks:
+      - spot-bot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  spot-bot-network:
+    driver: bridge
