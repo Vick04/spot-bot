@@ -242,7 +242,7 @@ class GainersDashboard {
                 <span class="detail-value condition-step ${step3_pisoMet ? 'step-met' : 'step-pending'}">${step3_pisoMet ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">④ SUBIDA (gainer1m &gt; 1.0% + Buy Pressure):</span>
+                <span class="detail-label">④ SUBIDA (gainer1m &gt; 0.3% + Buy Pressure):</span>
                 <span class="detail-value condition-step ${step4_subidaMet ? 'step-met' : 'step-pending'}">${step4_subidaMet ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">

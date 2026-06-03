@@ -192,32 +192,30 @@ class CryptoObserver {
   }
 
   /**
-   * Check if there's consistent buying pressure
-   * Returns true if current buyRatio > 0.6 AND average of last 3-5 ratios is strong
+   * Check if there's buying pressure
+   * Returns true if current buyRatio > 0.6 (strong buying pressure)
+   * Secondary check: if history exists, average shouldn't be too low (avoid spikes)
    * @returns {boolean}
    */
   isBuyingPressure() {
-    // Need at least 1 candle
-    if (this._buyRatioHistory.length === 0) {
-      return false;
-    }
-
-    // Current candle must have buyRatio > 0.6
+    // Current candle must have buyRatio > 0.6 (strong buying)
     if (this._currentBuyRatio <= 0.6) {
-      return false;
+      return false;  // Not strong buying pressure
     }
 
-    // If we have history, check if trend is UP (at least last 3 ratios increasing)
+    // If we have sufficient history, check it's not a lone spike
+    // Average of last 3-5 candles should show reasonable buying
     if (this._buyRatioHistory.length >= 3) {
-      const lastThree = this._buyRatioHistory.slice(-3);
-      // All three should be > 0.55 (slightly below threshold) to show consistent pressure
-      const allAboveThreshold = lastThree.every((ratio) => ratio > 0.55);
-      if (!allAboveThreshold) {
-        return false;
+      const recentHistory = this._buyRatioHistory.slice(-3);
+      const avgBuyRatio = recentHistory.reduce((a, b) => a + b, 0) / recentHistory.length;
+
+      // If current is high but average is very low, it's a spike (reject)
+      if (avgBuyRatio < 0.45) {
+        return false;  // Spike detected, not sustained pressure
       }
     }
 
-    return true;
+    return true;  // Strong buying pressure (current > 0.6)
   }
 
   /**
@@ -281,9 +279,9 @@ class CryptoObserver {
       this._selectionState.step3_pisoMet = true;
     }
 
-    // Step 4: SUBIDA - gainer1m > 1.0 with buying pressure (requires step3 true)
+    // Step 4: SUBIDA - gainer1m > 0.3 with buying pressure (requires step3 true)
     if (this._selectionState.step3_pisoMet && !this._selectionState.step4_subidaMet &&
-        this._gainer1m > 1.0 && this.isBuyingPressure()) {
+        this._gainer1m > 0.3 && this.isBuyingPressure()) {
       this._selectionState.step4_subidaMet = true;
     }
 
