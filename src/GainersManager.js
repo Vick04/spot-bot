@@ -455,7 +455,7 @@ class GainersManager extends EventEmitter {
 
       if (atStep.length > 0) {
         return atStep
-          .sort((a, b) => b.gainer5m - a.gainer5m) // Sort by 5m gainer descending
+          .sort((a, b) => b.price - a.price) // Sort by price descending (highest price first)
           .slice(0, limit);
       }
     }
