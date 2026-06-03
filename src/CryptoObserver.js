@@ -19,6 +19,10 @@ class CryptoObserver {
     this._gainer30m = 0;  // % change in last 30 minutes
     this._gainer1h = 0;   // % change in last 1 hour
 
+    // Volume delta tracking (buy pressure validation)
+    this._buyRatioHistory = []; // Last 5 buy ratios (max 5 elements)
+    this._currentBuyRatio = 0;  // Buy ratio of current candle
+
     this._initialized = false;
     this._loading = false;
 
@@ -102,6 +106,9 @@ class CryptoObserver {
     // Recalculate gainer
     this._recalculateGainer();
 
+    // Update buy volume ratio
+    this._updateBuyRatio(candle);
+
     // Update sequential selection state machine
     this._updateSelectionState();
   }
@@ -160,6 +167,74 @@ class CryptoObserver {
     this._gainer15m = this._calculateGainerForTimeframe(15);
     this._gainer30m = this._calculateGainerForTimeframe(30);
     this._gainer1h = this._calculateGainerForTimeframe(60);
+  }
+
+  /**
+   * Update buy volume ratio (buy pressure indicator)
+   * buyRatio = takerBuyBaseAssetVolume / totalVolume
+   * Higher ratio = more buying pressure
+   * @private
+   */
+  _updateBuyRatio(candle) {
+    if (!candle.volume || candle.volume === 0 || !candle.takerBuyBaseAssetVolume) {
+      this._currentBuyRatio = 0;
+      return;
+    }
+
+    // Calculate buy ratio for this candle
+    this._currentBuyRatio = candle.takerBuyBaseAssetVolume / candle.volume;
+
+    // Keep history of last 5 ratios
+    this._buyRatioHistory.push(this._currentBuyRatio);
+    if (this._buyRatioHistory.length > 5) {
+      this._buyRatioHistory.shift();
+    }
+  }
+
+  /**
+   * Check if there's consistent buying pressure
+   * Returns true if current buyRatio > 0.6 AND average of last 3-5 ratios is strong
+   * @returns {boolean}
+   */
+  isBuyingPressure() {
+    // Need at least 1 candle
+    if (this._buyRatioHistory.length === 0) {
+      return false;
+    }
+
+    // Current candle must have buyRatio > 0.6
+    if (this._currentBuyRatio <= 0.6) {
+      return false;
+    }
+
+    // If we have history, check if trend is UP (at least last 3 ratios increasing)
+    if (this._buyRatioHistory.length >= 3) {
+      const lastThree = this._buyRatioHistory.slice(-3);
+      // All three should be > 0.55 (slightly below threshold) to show consistent pressure
+      const allAboveThreshold = lastThree.every((ratio) => ratio > 0.55);
+      if (!allAboveThreshold) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Get buy ratio for current candle
+   */
+  get buyRatio() {
+    return this._currentBuyRatio;
+  }
+
+  /**
+   * Get average buy ratio of last 5 candles
+   */
+  get avgBuyRatio() {
+    if (this._buyRatioHistory.length === 0) {
+      return 0;
+    }
+    return this._buyRatioHistory.reduce((a, b) => a + b, 0) / this._buyRatioHistory.length;
   }
 
   /**
@@ -475,6 +550,10 @@ class CryptoObserver {
       currentPrice: this.currentPrice,
       gainer1m: this._gainer1m,
       gainer5m: this._gainer5m,
+      // Volume delta indicators
+      buyRatio: this.buyRatio,
+      avgBuyRatio: this.avgBuyRatio,
+      isBuyingPressure: this.isBuyingPressure(),
     };
   }
 

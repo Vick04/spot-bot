@@ -208,6 +208,23 @@ class GainersDashboard {
                 <span class="detail-value" style="color: ${step5_canBuy ? 'var(--success)' : 'var(--danger)'};">${step5_canBuy ? '✓' : '✗'}</span>
               </div>
 
+              <div class="detail-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
+                <span class="detail-label">Volume Analysis:</span>
+                <span class="detail-value"></span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Buy Ratio (Current):</span>
+                <span class="detail-value" style="color: ${gainer.buyRatio > 0.6 ? 'var(--success)' : gainer.buyRatio > 0.5 ? 'var(--warning)' : 'var(--danger)'};">${(gainer.buyRatio * 100).toFixed(1)}%</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Buy Ratio (Avg 5v):</span>
+                <span class="detail-value" style="color: ${gainer.avgBuyRatio > 0.6 ? 'var(--success)' : gainer.avgBuyRatio > 0.5 ? 'var(--warning)' : 'var(--danger)'};">${(gainer.avgBuyRatio * 100).toFixed(1)}%</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Buying Pressure:</span>
+                <span class="detail-value" style="color: ${gainer.isBuyingPressure ? 'var(--success)' : 'var(--danger)'};">${gainer.isBuyingPressure ? '✓ Strong' : '✗ Weak'}</span>
+              </div>
+
               <div class="detail-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
                 <span class="detail-label">Step Details:</span>
                 <span class="detail-value"></span>

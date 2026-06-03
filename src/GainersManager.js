@@ -417,6 +417,10 @@ class GainersManager extends EventEmitter {
         ma99: observer.ma99,
         bbUpper: observer.bbUpper,
         bbLower: observer.bbLower,
+        // Volume delta (buy pressure)
+        buyRatio: observer.buyRatio,
+        avgBuyRatio: observer.avgBuyRatio,
+        isBuyingPressure: observer.isBuyingPressure(),
         // Sequential condition states
         step1_initialized: conditions.step1_initialized,
         step2_bufferFull: conditions.step2_bufferFull,

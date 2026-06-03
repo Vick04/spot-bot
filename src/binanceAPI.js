@@ -139,6 +139,7 @@ async function fetchKlines(symbol, limit = 60, interval = "1m") {
       volume: parseFloat(kline[5]),
       closeTime: Number(kline[6]),
       quoteAssetVolume: parseFloat(kline[7]),
+      takerBuyBaseAssetVolume: parseFloat(kline[9]), // Buy volume for buy ratio calculation
     }));
   } catch (error) {
     console.error(`[BinanceAPI] Error fetching klines for ${symbol}:`, error.message);
