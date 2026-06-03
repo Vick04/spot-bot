@@ -424,23 +424,33 @@ class GainersManager extends EventEmitter {
       };
     });
 
-    // Filter: only show symbols that meet step 3 or higher
-    const filtered = withConditions.filter((obs) => obs.step3_pisoMet);
+    // Filter: only show valid symbols (not invalidated)
+    const valid = withConditions.filter((obs) => !obs.step6_priceExceeded);
 
-    if (filtered.length === 0) {
-      return [];
+    if (valid.length === 0) {
+      return []; // No valid symbols
     }
 
-    // Find the highest step among all filtered symbols
-    const maxStep = Math.max(...filtered.map((obs) => obs.highestStep));
+    // Try each step from 5 down to 1, show the highest available
+    // This creates a fallback: if no symbols at step 5, show step 4; if no step 4, show step 3, etc.
+    for (let step = 5; step >= 1; step--) {
+      const atStep = valid.filter((obs) => {
+        if (step === 5) return obs.step5_canBuy;
+        if (step === 4) return obs.step4_subidaMet && !obs.step5_canBuy;
+        if (step === 3) return obs.step3_pisoMet && !obs.step4_subidaMet;
+        if (step === 2) return obs.step2_bufferFull && !obs.step3_pisoMet;
+        if (step === 1) return obs.step1_initialized && !obs.step2_bufferFull;
+        return false;
+      });
 
-    // Show only symbols that reached the max step
-    const gainers = filtered
-      .filter((obs) => obs.highestStep === maxStep)
-      .sort((a, b) => b.gainer5m - a.gainer5m) // Sort by 5m gainer descending
-      .slice(0, limit);
+      if (atStep.length > 0) {
+        return atStep
+          .sort((a, b) => b.gainer5m - a.gainer5m) // Sort by 5m gainer descending
+          .slice(0, limit);
+      }
+    }
 
-    return gainers;
+    return []; // No symbols at any step
   }
 
   /**
