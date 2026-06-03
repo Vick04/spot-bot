@@ -27,8 +27,8 @@ class CryptoObserver {
     this._selectionState = {
       step1_initialized: false,        // 1) Observer initialized (_initialized = true)
       step2_bufferFull: false,         // 2) Buffer full (buffer.length === 99)
-      step3_subidaMet: false,          // 3) SUBIDA: gainer5m > 1.0
-      step4_pisoMet: false,            // 4) PISO: BBUPPER < MA99
+      step3_pisoMet: false,            // 3) PISO: BBUPPER < MA99
+      step4_subidaMet: false,          // 4) SUBIDA: gainer5m > 1.0
       step5_canBuy: false,             // 5) COMPRA: BBUPPER < PRICE
       step6_priceExceeded: false,      // 6) Invalidación: Price > MA99 × 1.015 (permanent disqualification)
     };
@@ -176,8 +176,8 @@ class CryptoObserver {
     if (ma99 > 0 && price < ma99) {
       this._selectionState.step1_initialized = false;
       this._selectionState.step2_bufferFull = false;
-      this._selectionState.step3_subidaMet = false;
-      this._selectionState.step4_pisoMet = false;
+      this._selectionState.step3_pisoMet = false;
+      this._selectionState.step4_subidaMet = false;
       this._selectionState.step5_canBuy = false;
       this._selectionState.step6_priceExceeded = false;
       return;
@@ -194,20 +194,20 @@ class CryptoObserver {
       this._selectionState.step2_bufferFull = true;
     }
 
-    // Step 3: SUBIDA - gainer5m > 1.0 (requires step2 true)
-    if (this._selectionState.step2_bufferFull && !this._selectionState.step3_subidaMet &&
-        this._gainer5m > 1.0) {
-      this._selectionState.step3_subidaMet = true;
+    // Step 3: PISO - BBUPPER < MA99 (requires step2 true)
+    if (this._selectionState.step2_bufferFull && !this._selectionState.step3_pisoMet &&
+        ma99 > 0 && this.bbUpper < ma99) {
+      this._selectionState.step3_pisoMet = true;
     }
 
-    // Step 4: PISO - BBUPPER < MA99 (requires step3 true)
-    if (this._selectionState.step3_subidaMet && !this._selectionState.step4_pisoMet &&
-        ma99 > 0 && this.bbUpper < ma99) {
-      this._selectionState.step4_pisoMet = true;
+    // Step 4: SUBIDA - gainer5m > 1.0 (requires step3 true)
+    if (this._selectionState.step3_pisoMet && !this._selectionState.step4_subidaMet &&
+        this._gainer5m > 1.0) {
+      this._selectionState.step4_subidaMet = true;
     }
 
     // Step 5: COMPRA - BBUPPER < PRICE (requires step4 true)
-    if (this._selectionState.step4_pisoMet && !this._selectionState.step5_canBuy &&
+    if (this._selectionState.step4_subidaMet && !this._selectionState.step5_canBuy &&
         price > 0 && this.bbUpper < price) {
       this._selectionState.step5_canBuy = true;
     }
@@ -442,10 +442,10 @@ class CryptoObserver {
       step1_initialized: this._selectionState.step1_initialized,
       // Step 2: Buffer full (99 candles)
       step2_bufferFull: this._selectionState.step2_bufferFull,
-      // Step 3: SUBIDA - gainer5m > 1.0
-      step3_subidaMet: this._selectionState.step3_subidaMet,
-      // Step 4: PISO - BBUPPER < MA99
-      step4_pisoMet: this._selectionState.step4_pisoMet,
+      // Step 3: PISO - BBUPPER < MA99
+      step3_pisoMet: this._selectionState.step3_pisoMet,
+      // Step 4: SUBIDA - gainer5m > 1.0
+      step4_subidaMet: this._selectionState.step4_subidaMet,
       // Step 5: COMPRA - BBUPPER < PRICE
       step5_canBuy: this._selectionState.step5_canBuy,
       // Step 6: Invalidación - Price > MA99 × 1.015
