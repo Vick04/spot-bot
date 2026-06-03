@@ -411,6 +411,11 @@ class GainersManager extends EventEmitter {
         gainer30m: observer.gainer30m,
         price: observer.currentPrice,
         bufferSize: observer.bufferSize,
+        // Technical indicators
+        ma20: observer.ma20,
+        ma99: observer.ma99,
+        bbUpper: observer.bbUpper,
+        bbLower: observer.bbLower,
         // Sequential condition states
         step1_initialized: conditions.step1_initialized,
         step2_bufferFull: conditions.step2_bufferFull,
