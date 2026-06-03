@@ -178,6 +178,14 @@ class GainersDashboard {
               </div>
             </div>
 
+            <!-- Buying Pressure Indicator -->
+            <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(255, 152, 0, 0.05); border-radius: 6px; text-align: center;">
+              <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px;">Buying Pressure:</div>
+              <div style="font-size: 14px; font-weight: 600; color: ${gainer.isBuyingPressure ? 'var(--success)' : 'var(--danger)'};">
+                ${gainer.isBuyingPressure ? '✓ Strong' : '✗ Weak'} (${(gainer.buyRatio * 100).toFixed(1)}%)
+              </div>
+            </div>
+
             <!-- Sequential Selection Progress -->
             <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(76, 175, 80, 0.05); border-radius: 6px;">
               <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">Selection Progress:</div>
@@ -234,7 +242,7 @@ class GainersDashboard {
                 <span class="detail-value condition-step ${step3_pisoMet ? 'step-met' : 'step-pending'}">${step3_pisoMet ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">④ SUBIDA (gainer1m &gt; 1.0%):</span>
+                <span class="detail-label">④ SUBIDA (gainer1m &gt; 1.0% + Buy Pressure):</span>
                 <span class="detail-value condition-step ${step4_subidaMet ? 'step-met' : 'step-pending'}">${step4_subidaMet ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">

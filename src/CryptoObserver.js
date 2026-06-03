@@ -243,7 +243,7 @@ class CryptoObserver {
    * Step 1: _initialized = true (initial state, no condition required)
    * Step 2: Buffer full (buffer.length === 99)
    * Step 3: PISO (BBUPPER < MA99)
-   * Step 4: SUBIDA (gainer1m > 1.0)
+   * Step 4: SUBIDA (gainer1m > 1.0 AND buying pressure validated)
    * Step 5: COMPRA (BBUPPER < PRICE)
    * Step 6: Invalidación (Price > MA99 × 1.015) - permanent disqualification
    * Step 7: Reset cuando Price < MA99
@@ -281,9 +281,9 @@ class CryptoObserver {
       this._selectionState.step3_pisoMet = true;
     }
 
-    // Step 4: SUBIDA - gainer1m > 1.0 (requires step3 true)
+    // Step 4: SUBIDA - gainer1m > 1.0 with buying pressure (requires step3 true)
     if (this._selectionState.step3_pisoMet && !this._selectionState.step4_subidaMet &&
-        this._gainer1m > 1.0) {
+        this._gainer1m > 1.0 && this.isBuyingPressure()) {
       this._selectionState.step4_subidaMet = true;
     }
 
