@@ -1,0 +1,39 @@
+name: spot-bot
+services:
+- name: api
+  github:
+    repo: # Tu usuario/repositorio en GitHub
+    branch: main
+    deploy_on_push: true
+  build_command: npm install
+  run_command: npm start
+  environment_slug: node-js
+  source_dir: /
+  http_port: 4445
+  health_check:
+    http_path: /api/health
+  envs:
+  - key: API_PORT
+    value: "4445"
+  - key: NODE_ENV
+    value: production
+  - key: LOG_LEVEL
+    value: info
+  # Agregar variables de entorno de Binance API aquí
+  # - key: BINANCE_API_KEY
+  #   value: ${BINANCE_API_KEY}
+  # - key: BINANCE_API_SECRET
+  #   value: ${BINANCE_API_SECRET}
+  resource_requests:
+    cpus: 500m
+    memory_mb: 512
+  instance_count: 1
+  instance_size_slug: basic-xs
+  cors:
+    allow_origins:
+    - exact: "https://yourdomain.com"
+  retry_policy:
+    max_retries: 2
+    error_codes:
+    - server_error
+    - unavailable

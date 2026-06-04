@@ -1,0 +1,49 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Build and push Docker image to DigitalOcean Container Registry
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+    - name: Build Docker image
+      run: |
+        docker build -t registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/spot-bot:latest .
+        docker tag registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/spot-bot:latest registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/spot-bot:${{ github.sha }}
+
+    - name: Log in to DigitalOcean Container Registry
+      run: |
+        doctl registry login --expiry-seconds 600
+      env:
+        DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+    - name: Push Docker image
+      run: |
+        docker push registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/spot-bot:latest
+        docker push registry.digitalocean.com/${{ secrets.REGISTRY_NAME }}/spot-bot:${{ github.sha }}
+
+    - name: Trigger DigitalOcean App deployment
+      run: |
+        doctl apps create-deployment ${{ secrets.APP_ID }} --format id --no-header
+      env:
+        DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+    - name: Wait for deployment to complete
+      run: |
+        sleep 30
+        doctl apps get ${{ secrets.APP_ID }} --format status --no-header
+      env:
+        DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
