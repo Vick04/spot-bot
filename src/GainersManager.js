@@ -449,12 +449,17 @@ class GainersManager extends EventEmitter {
     }
 
     // Try each step from 7 down to 1, show the highest available
-    // This creates a fallback: if no symbols at step 7, show step 6; if no step 6, show step 4, etc.
+    // Step 7: all conditions 4,5,6,7 are true
+    // Step 6: all conditions 4,5,6 are true (but not 7)
+    // Step 5: all conditions 4,5 are true (but not 6)
+    // Step 4: condition 4 is true (but not 5)
+    // Step 3: condition 3 is true (but not 4)
+    // etc.
     for (let step = 7; step >= 1; step--) {
       const atStep = valid.filter((obs) => {
-        if (step === 7) return obs.step7_maAccel;
-        if (step === 6) return obs.step6_maSlope && !obs.step7_maAccel;
-        if (step === 5) return obs.step5_buyingPressure && !obs.step6_maSlope;
+        if (step === 7) return obs.step4_gainer1m && obs.step5_buyingPressure && obs.step6_maSlope && obs.step7_maAccel;
+        if (step === 6) return obs.step4_gainer1m && obs.step5_buyingPressure && obs.step6_maSlope && !obs.step7_maAccel;
+        if (step === 5) return obs.step4_gainer1m && obs.step5_buyingPressure && !obs.step6_maSlope;
         if (step === 4) return obs.step4_gainer1m && !obs.step5_buyingPressure;
         if (step === 3) return obs.step3_pisoMet && !obs.step4_gainer1m;
         if (step === 2) return obs.step2_bufferFull && !obs.step3_pisoMet;
