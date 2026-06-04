@@ -32,9 +32,8 @@ class CryptoObserver {
 
     // Sequential + Parallel state machine for symbol selection
     // Steps 1-3: Sequential (each requires previous)
-    // Steps 4-7: Parallel (all depend on step3, no internal sequence)
-    // Step 8: Requires all previous conditions
-    // Step 9: Independent invalidation
+    // Steps 4-7: Parallel (all depend on step3 and step4, no internal sequence)
+    // Step 8: Independent invalidation
     // All reset when Price < MA99
     this._selectionState = {
       step1_initialized: false,        // 1) Observer initialized (_initialized = true)
@@ -44,8 +43,7 @@ class CryptoObserver {
       step5_buyingPressure: false,     // 5) Buying Pressure validated (requires step4, persists once true)
       step6_maSlope: false,            // 6) MA99 Slope >= 0.02 (requires step4, persists once true)
       step7_maAccel: false,            // 7) MA99 Accel >= -0.03 (requires step4, persists once true)
-      step8_canBuy: false,             // 8) COMPRA: BBUPPER < PRICE (requires step3 + 4,5,6,7 all true)
-      step9_priceExceeded: false,      // 9) Invalidación: Price > MA99 × 1.015 (permanent disqualification)
+      step8_priceExceeded: false,      // 8) Invalidación: Price > MA99 × 1.015 (permanent disqualification)
     };
   }
 
@@ -297,9 +295,8 @@ class CryptoObserver {
   /**
    * Update sequential + parallel selection state machine
    * Steps 1-3: Sequential (each requires previous)
-   * Steps 4-7: Parallel (all depend on step3, persist once true)
-   * Step 8: Requires all 4-7 true
-   * Step 9: Independent invalidation
+   * Steps 4-7: Parallel (all depend on step3 and step4, persist once true)
+   * Step 8: Independent invalidation
    * All reset when Price < MA99
    * @private
    */
@@ -321,8 +318,7 @@ class CryptoObserver {
       this._selectionState.step5_buyingPressure = false;
       this._selectionState.step6_maSlope = false;
       this._selectionState.step7_maAccel = false;
-      this._selectionState.step8_canBuy = false;
-      this._selectionState.step9_priceExceeded = false;
+      this._selectionState.step8_priceExceeded = false;
       return;
     }
 
@@ -375,23 +371,10 @@ class CryptoObserver {
       }
     }
 
-    // Step 8: COMPRA - BBUPPER < PRICE (requires step3 + all of 4,5,6,7 true)
-    // For now: always set to true for testing (bypass the condition)
-    if (this._selectionState.step4_gainer1m && this._selectionState.step5_buyingPressure &&
-        this._selectionState.step6_maSlope && this._selectionState.step7_maAccel &&
-        !this._selectionState.step8_canBuy) {
-      // Condition: BBUPPER < PRICE would go here
-      this._selectionState.step8_canBuy = true;
-    }
-    // For testing: always keep step8 true once step4 is true
-    if (this._selectionState.step4_gainer1m) {
-      this._selectionState.step8_canBuy = true;
-    }
-
-    // Step 9: Invalidación - Price > MA99 × 1.015 (independent disqualifier)
-    if (!this._selectionState.step9_priceExceeded && ma99 > 0 &&
+    // Step 8: Invalidación - Price > MA99 × 1.015 (independent disqualifier)
+    if (!this._selectionState.step8_priceExceeded && ma99 > 0 &&
         price > (ma99 * 1.015)) {
-      this._selectionState.step9_priceExceeded = true;
+      this._selectionState.step8_priceExceeded = true;
     }
   }
 
@@ -662,10 +645,8 @@ class CryptoObserver {
       step6_maSlope: this._selectionState.step6_maSlope,
       // Step 7: MA99 Accel >= -0.03
       step7_maAccel: this._selectionState.step7_maAccel,
-      // Step 8: COMPRA - BBUPPER < PRICE (requires all previous)
-      step8_canBuy: this._selectionState.step8_canBuy,
-      // Step 9: Invalidación - Price > MA99 × 1.015 (permanent disqualification)
-      step9_priceExceeded: this._selectionState.step9_priceExceeded,
+      // Step 8: Invalidación - Price > MA99 × 1.015 (permanent disqualification)
+      step8_priceExceeded: this._selectionState.step8_priceExceeded,
       // Final: Can execute buy
       canBuyUP: this.canBuyUP,
 

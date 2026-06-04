@@ -144,8 +144,7 @@ class GainersDashboard {
         const step5_buyingPressure = gainer.step5_buyingPressure || false;
         const step6_maSlope = gainer.step6_maSlope || false;
         const step7_maAccel = gainer.step7_maAccel || false;
-        const step8_canBuy = gainer.step8_canBuy || false;
-        const step9_priceExceeded = gainer.step9_priceExceeded || false;
+        const step8_priceExceeded = gainer.step8_priceExceeded || false;
         const canBuyUP = gainer.canBuyUP ? "✅" : "—";
 
         return `
@@ -218,10 +217,6 @@ class GainersDashboard {
                 <span class="detail-label">BBUpper:</span>
                 <span class="detail-value">${bbUpper > 0 ? bbUpper.toFixed(8) : "—"}</span>
               </div>
-              <div class="detail-row">
-                <span class="detail-label">Price vs BBUpper:</span>
-                <span class="detail-value" style="color: ${step8_canBuy ? 'var(--success)' : 'var(--danger)'};">${step8_canBuy ? '✓' : '✗'}</span>
-              </div>
 
               <div class="detail-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
                 <span class="detail-label">Volume Analysis:</span>
@@ -273,12 +268,8 @@ class GainersDashboard {
                 <span class="detail-value condition-step ${step7_maAccel ? 'step-met' : 'step-pending'}">${step7_maAccel ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">⑧ COMPRA (BBUpper &lt; Price):</span>
-                <span class="detail-value condition-step ${step8_canBuy ? 'step-met' : 'step-pending'}">${step8_canBuy ? '✓' : '✗'}</span>
-              </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">⑨ INVALIDA (Price &gt; MA99 × 1.015):</span>
-                <span class="detail-value condition-step ${step9_priceExceeded ? 'step-met' : 'step-pending'}" style="background-color: ${step9_priceExceeded ? 'rgba(245, 101, 101, 0.2)' : 'rgba(72, 187, 120, 0.2)'}; color: ${step9_priceExceeded ? 'var(--danger)' : 'var(--success)'};">${step9_priceExceeded ? '✗' : '✓'}</span>
+                <span class="detail-label">⑧ INVALIDA (Price &gt; MA99 × 1.015):</span>
+                <span class="detail-value condition-step ${step8_priceExceeded ? 'step-met' : 'step-pending'}" style="background-color: ${step8_priceExceeded ? 'rgba(245, 101, 101, 0.2)' : 'rgba(72, 187, 120, 0.2)'}; color: ${step8_priceExceeded ? 'var(--danger)' : 'var(--success)'};">${step8_priceExceeded ? '✗' : '✓'}</span>
               </div>
             </div>
           </div>

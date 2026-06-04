@@ -433,29 +433,26 @@ class GainersManager extends EventEmitter {
         step5_buyingPressure: conditions.step5_buyingPressure,
         step6_maSlope: conditions.step6_maSlope,
         step7_maAccel: conditions.step7_maAccel,
-        step8_canBuy: conditions.step8_canBuy,
-        step9_priceExceeded: conditions.step9_priceExceeded,
-        // Calculate highest step reached (4-8, skipping 1-3 as they are prerequisites)
-        highestStep: conditions.step8_canBuy ? 8 :
-                    conditions.step4_gainer1m && conditions.step5_buyingPressure && conditions.step6_maSlope && conditions.step7_maAccel ? 7 :
+        step8_priceExceeded: conditions.step8_priceExceeded,
+        // Calculate highest step reached (4-7, skipping 1-3 as they are prerequisites)
+        highestStep: conditions.step4_gainer1m && conditions.step5_buyingPressure && conditions.step6_maSlope && conditions.step7_maAccel ? 7 :
                     conditions.step4_gainer1m ? 4 :
                     conditions.step3_pisoMet ? 3 : 0,
       };
     });
 
     // Filter: only show valid symbols (not invalidated)
-    const valid = withConditions.filter((obs) => !obs.step9_priceExceeded);
+    const valid = withConditions.filter((obs) => !obs.step8_priceExceeded);
 
     if (valid.length === 0) {
       return []; // No valid symbols
     }
 
-    // Try each step from 8 down to 1, show the highest available
-    // This creates a fallback: if no symbols at step 8, show step 7; if no step 7, show step 4, etc.
-    for (let step = 8; step >= 1; step--) {
+    // Try each step from 7 down to 1, show the highest available
+    // This creates a fallback: if no symbols at step 7, show step 6; if no step 6, show step 4, etc.
+    for (let step = 7; step >= 1; step--) {
       const atStep = valid.filter((obs) => {
-        if (step === 8) return obs.step8_canBuy;
-        if (step === 7) return obs.step7_maAccel && !obs.step8_canBuy;
+        if (step === 7) return obs.step7_maAccel;
         if (step === 6) return obs.step6_maSlope && !obs.step7_maAccel;
         if (step === 5) return obs.step5_buyingPressure && !obs.step6_maSlope;
         if (step === 4) return obs.step4_gainer1m && !obs.step5_buyingPressure;
