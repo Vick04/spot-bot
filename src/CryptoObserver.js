@@ -27,6 +27,10 @@ class CryptoObserver {
     this._ma99Buffer = [];      // Last 5 MA99 values for momentum calculation
     this._ma99BufferSize = 5;   // Fixed window for momentum detection
 
+    // MA20 momentum tracking (slope + acceleration)
+    this._ma20Buffer = [];      // Last 5 MA20 values for momentum calculation
+    this._ma20BufferSize = 5;   // Fixed window for momentum detection
+
     this._initialized = false;
     this._loading = false;
 
@@ -84,6 +88,17 @@ class CryptoObserver {
         if (tempSlice.length >= 99) {
           const ma99Value = tempSlice.slice(-99).reduce((acc, c) => acc + c.close, 0) / 99;
           this.pushMa99(ma99Value);
+        }
+      }
+
+      // Warm up MA20 momentum buffer with historical data
+      // For efficiency, we just fill with the last 5 MA20 values (sliding window)
+      for (let i = Math.max(0, this.buffer.length - 5); i < this.buffer.length; i++) {
+        // Recalculate MA20 up to this candle index
+        const tempSlice = this.buffer.slice(0, i + 1);
+        if (tempSlice.length >= 20) {
+          const ma20Value = tempSlice.slice(-20).reduce((acc, c) => acc + c.close, 0) / 20;
+          this.pushMa20(ma20Value);
         }
       }
 
@@ -293,6 +308,43 @@ class CryptoObserver {
   }
 
   /**
+   * Add MA20 value to momentum buffer
+   * Maintains sliding window of 5 most recent MA20 values
+   * @private
+   */
+  pushMa20(value) {
+    this._ma20Buffer.push(value);
+    if (this._ma20Buffer.length > this._ma20BufferSize) {
+      this._ma20Buffer.shift();
+    }
+  }
+
+  /**
+   * Calculate MA20 momentum (slope + acceleration)
+   * Requires 5 candles minimum for momentum calculation
+   * @returns {Object|null} { slope: number, accel: number } or null if insufficient data
+   */
+  getMa20Momentum() {
+    if (this._ma20Buffer.length < this._ma20BufferSize) {
+      return null; // Warmup period - not enough data
+    }
+
+    // Index 0 = oldest, index 4 = newest
+    const [m0, m1, m2, m3, m4] = this._ma20Buffer;
+
+    // Slope: percentage change between current and 2 candles ago
+    const slopeNow = (m4 - m2) / m2 * 100;
+
+    // Previous slope: percentage change between 2 and 4 candles ago
+    const slopePrev = (m2 - m0) / m0 * 100;
+
+    // Acceleration: difference between current and previous slope
+    const accel = slopeNow - slopePrev;
+
+    return { slope: slopeNow, accel };
+  }
+
+  /**
    * Update sequential + parallel selection state machine
    * Steps 1-3: Sequential (each requires previous)
    * Steps 4-7: Parallel (all depend on step3 and step4, persist once true)
@@ -307,6 +359,12 @@ class CryptoObserver {
     // Update MA99 momentum buffer with latest value
     if (ma99 > 0) {
       this.pushMa99(ma99);
+    }
+
+    // Update MA20 momentum buffer with latest value
+    const ma20 = this.ma20;
+    if (ma20 > 0) {
+      this.pushMa20(ma20);
     }
 
     // Reset all when Price < MA99
@@ -343,10 +401,26 @@ class CryptoObserver {
     // PARALLEL STEPS (4-7): All depend on step3, no inter-dependencies
     // Each persists once true (only re-check if not already met)
 
-    // Step 4: gainer1m > 0.3% (requires step3 true)
+    // Step 4: gainer1m > 0.3% + MA99 momentum + MA20 momentum (requires step3 true)
     if (this._selectionState.step3_pisoMet && !this._selectionState.step4_gainer1m &&
         this._gainer1m > 0.3) {
-      this._selectionState.step4_gainer1m = true;
+
+      // Validate MA99 momentum
+      const ma99Momentum = this.getMa99Momentum();
+      const hasMa99Momentum = ma99Momentum !== null &&
+                              ma99Momentum.slope >= 0.02 &&
+                              ma99Momentum.accel >= -0.03;
+
+      // Validate MA20 momentum
+      const ma20Momentum = this.getMa20Momentum();
+      const hasMa20Momentum = ma20Momentum !== null &&
+                              ma20Momentum.slope >= 0.15 &&
+                              ma20Momentum.accel >= -0.05;
+
+      // All conditions met
+      if (hasMa99Momentum && hasMa20Momentum) {
+        this._selectionState.step4_gainer1m = true;
+      }
     }
 
     // Step 5: Buying Pressure validated (requires step4 true)
@@ -444,6 +518,32 @@ class CryptoObserver {
    */
   get ma99Accel() {
     const momentum = this.getMa99Momentum();
+    return momentum ? momentum.accel : null;
+  }
+
+  /**
+   * Get MA20 momentum (slope and acceleration)
+   * Returns null if insufficient data for momentum calculation
+   */
+  get ma20Momentum() {
+    return this.getMa20Momentum();
+  }
+
+  /**
+   * Get MA20 slope percentage
+   * Returns null if insufficient data
+   */
+  get ma20Slope() {
+    const momentum = this.getMa20Momentum();
+    return momentum ? momentum.slope : null;
+  }
+
+  /**
+   * Get MA20 acceleration
+   * Returns null if insufficient data
+   */
+  get ma20Accel() {
+    const momentum = this.getMa20Momentum();
     return momentum ? momentum.accel : null;
   }
 
@@ -661,6 +761,9 @@ class CryptoObserver {
       // MA99 Momentum
       ma99Slope: this.ma99Slope,
       ma99Accel: this.ma99Accel,
+      // MA20 Momentum
+      ma20Slope: this.ma20Slope,
+      ma20Accel: this.ma20Accel,
       // Volume delta indicators
       buyRatio: this.buyRatio,
       avgBuyRatio: this.avgBuyRatio,
