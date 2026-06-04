@@ -107,7 +107,11 @@
       "Bash(curl -X POST http://localhost:4445/api/sell-manual -H 'Content-Type: application/json' -d '{\"symbol\":\"BTCUSDT\",\"currentPrice\":45000.5,\"quantity\":0.001}')",
       "Bash(curl -s -X POST http://localhost:4445/api/sell-manual -H 'Content-Type: application/json' -d '{\"symbol\":\"RENDERUSDT\",\"currentPrice\":15.5,\"quantity\":5.0}')",
       "Bash(git show *)",
-      "Bash(git tag -a v1.2.0 -m 'Release v1.2.0: Stable version with sequential selection conditions *)"
+      "Bash(git tag -a v1.2.0 -m 'Release v1.2.0: Stable version with sequential selection conditions *)",
+      "Bash(chmod +x /tmp/docker_cleanup.sh)",
+      "Bash(/tmp/docker_cleanup.sh)",
+      "Bash(find /opt/spot-bot -name \"symbolObserver.ts\" -o -name \"conditions.ts\" -o -name \"candleProcessor.ts\" 2>/dev/null | head -20)",
+      "Bash(xargs grep -l \"getTop1hGainers\\\\|GainersManager\")"
     ]
   }
 }

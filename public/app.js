@@ -138,11 +138,14 @@ class GainersDashboard {
         const bbUpper = gainer.bbUpper || 0;
         const bbLower = gainer.bbLower || 0;
 
-        // Sequential selection conditions
+        // Sequential + Parallel selection conditions
         const step3_pisoMet = gainer.step3_pisoMet || false;
-        const step4_subidaMet = gainer.step4_subidaMet || false;
-        const step5_canBuy = gainer.step5_canBuy || false;
-        const step6_priceExceeded = gainer.step6_priceExceeded || false;
+        const step4_gainer1m = gainer.step4_gainer1m || false;
+        const step5_buyingPressure = gainer.step5_buyingPressure || false;
+        const step6_maSlope = gainer.step6_maSlope || false;
+        const step7_maAccel = gainer.step7_maAccel || false;
+        const step8_canBuy = gainer.step8_canBuy || false;
+        const step9_priceExceeded = gainer.step9_priceExceeded || false;
         const canBuyUP = gainer.canBuyUP ? "✅" : "—";
 
         return `
@@ -186,15 +189,19 @@ class GainersDashboard {
               </div>
             </div>
 
-            <!-- Sequential Selection Progress -->
+            <!-- Sequential + Parallel Selection Progress -->
             <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(76, 175, 80, 0.05); border-radius: 6px;">
               <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">Selection Progress:</div>
-              <div style="display: flex; gap: 4px; align-items: center;">
-                <div style="flex: 1; height: 20px; background-color: ${step3_pisoMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step3_pisoMet ? 'var(--success)' : 'var(--text-secondary)'};"><span>③</span></div>
-                <div style="width: 16px; height: 2px; background-color: ${step3_pisoMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; height: 20px; background-color: ${step4_subidaMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step4_subidaMet ? 'var(--success)' : 'var(--text-secondary)'};"><span>④</span></div>
-                <div style="width: 16px; height: 2px; background-color: ${step4_subidaMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; height: 20px; background-color: ${step5_canBuy ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step5_canBuy ? 'var(--success)' : 'var(--text-secondary)'};"><span>⑤</span></div>
+              <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 50px; height: 20px; background-color: ${step3_pisoMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step3_pisoMet ? 'var(--success)' : 'var(--text-secondary)'};"><span>③ PISO</span></div>
+                <div style="width: 8px; height: 2px; background-color: ${step3_pisoMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; min-width: 50px; height: 20px; background-color: ${step4_gainer1m ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step4_gainer1m ? 'var(--success)' : 'var(--text-secondary)'};"><span>④</span></div>
+                <div style="width: 8px; height: 2px; background-color: ${step5_buyingPressure ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; min-width: 50px; height: 20px; background-color: ${step5_buyingPressure ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step5_buyingPressure ? 'var(--success)' : 'var(--text-secondary)'};"><span>⑤</span></div>
+                <div style="width: 8px; height: 2px; background-color: ${step6_maSlope ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; min-width: 50px; height: 20px; background-color: ${step6_maSlope ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step6_maSlope ? 'var(--success)' : 'var(--text-secondary)'};"><span>⑥</span></div>
+                <div style="width: 8px; height: 2px; background-color: ${step7_maAccel ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; min-width: 50px; height: 20px; background-color: ${step7_maAccel ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step7_maAccel ? 'var(--success)' : 'var(--text-secondary)'};"><span>⑦</span></div>
               </div>
             </div>
 
@@ -213,7 +220,7 @@ class GainersDashboard {
               </div>
               <div class="detail-row">
                 <span class="detail-label">Price vs BBUpper:</span>
-                <span class="detail-value" style="color: ${step5_canBuy ? 'var(--success)' : 'var(--danger)'};">${step5_canBuy ? '✓' : '✗'}</span>
+                <span class="detail-value" style="color: ${step8_canBuy ? 'var(--success)' : 'var(--danger)'};">${step8_canBuy ? '✓' : '✗'}</span>
               </div>
 
               <div class="detail-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
@@ -232,6 +239,14 @@ class GainersDashboard {
                 <span class="detail-label">Buying Pressure:</span>
                 <span class="detail-value" style="color: ${gainer.isBuyingPressure ? 'var(--success)' : 'var(--danger)'};">${gainer.isBuyingPressure ? '✓ Strong' : '✗ Weak'}</span>
               </div>
+              <div class="detail-row">
+                <span class="detail-label">MA99 Slope:</span>
+                <span class="detail-value" style="color: ${gainer.ma99Slope !== null && gainer.ma99Slope >= 0.02 ? 'var(--success)' : 'var(--warning)'};">${gainer.ma99Slope !== null ? gainer.ma99Slope.toFixed(4) : '—'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">MA99 Accel:</span>
+                <span class="detail-value" style="color: ${gainer.ma99Accel !== null && gainer.ma99Accel >= -0.03 ? 'var(--success)' : 'var(--warning)'};">${gainer.ma99Accel !== null ? gainer.ma99Accel.toFixed(4) : '—'}</span>
+              </div>
 
               <div class="detail-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
                 <span class="detail-label">Step Details:</span>
@@ -242,16 +257,28 @@ class GainersDashboard {
                 <span class="detail-value condition-step ${step3_pisoMet ? 'step-met' : 'step-pending'}">${step3_pisoMet ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">④ SUBIDA (gainer1m &gt; 0.3% + Buy Pressure + MA99 Momentum):</span>
-                <span class="detail-value condition-step ${step4_subidaMet ? 'step-met' : 'step-pending'}">${step4_subidaMet ? '✓' : '✗'}</span>
+                <span class="detail-label">④ Gainer1m &gt; 0.3%:</span>
+                <span class="detail-value condition-step ${step4_gainer1m ? 'step-met' : 'step-pending'}">${step4_gainer1m ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">⑤ COMPRA (BBUpper &lt; Price):</span>
-                <span class="detail-value condition-step ${step5_canBuy ? 'step-met' : 'step-pending'}">${step5_canBuy ? '✓' : '✗'}</span>
+                <span class="detail-label">⑤ Buy Pressure:</span>
+                <span class="detail-value condition-step ${step5_buyingPressure ? 'step-met' : 'step-pending'}">${step5_buyingPressure ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">⑥ INVALIDA (Price &gt; MA99 × 1.015):</span>
-                <span class="detail-value condition-step ${step6_priceExceeded ? 'step-met' : 'step-pending'}" style="background-color: ${step6_priceExceeded ? 'rgba(245, 101, 101, 0.2)' : 'rgba(72, 187, 120, 0.2)'}; color: ${step6_priceExceeded ? 'var(--danger)' : 'var(--success)'};">${step6_priceExceeded ? '✗' : '✓'}</span>
+                <span class="detail-label">⑥ MA99 Slope ≥ 0.02:</span>
+                <span class="detail-value condition-step ${step6_maSlope ? 'step-met' : 'step-pending'}">${step6_maSlope ? '✓' : '✗'}</span>
+              </div>
+              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
+                <span class="detail-label">⑦ MA99 Accel ≥ -0.03:</span>
+                <span class="detail-value condition-step ${step7_maAccel ? 'step-met' : 'step-pending'}">${step7_maAccel ? '✓' : '✗'}</span>
+              </div>
+              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
+                <span class="detail-label">⑧ COMPRA (BBUpper &lt; Price):</span>
+                <span class="detail-value condition-step ${step8_canBuy ? 'step-met' : 'step-pending'}">${step8_canBuy ? '✓' : '✗'}</span>
+              </div>
+              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
+                <span class="detail-label">⑨ INVALIDA (Price &gt; MA99 × 1.015):</span>
+                <span class="detail-value condition-step ${step9_priceExceeded ? 'step-met' : 'step-pending'}" style="background-color: ${step9_priceExceeded ? 'rgba(245, 101, 101, 0.2)' : 'rgba(72, 187, 120, 0.2)'}; color: ${step9_priceExceeded ? 'var(--danger)' : 'var(--success)'};">${step9_priceExceeded ? '✗' : '✓'}</span>
               </div>
             </div>
           </div>
