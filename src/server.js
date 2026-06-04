@@ -319,27 +319,17 @@ app.get("/api/status", (req, res) => {
 // Get top 1-hour gainers (with observer indicators and conditions)
 app.get("/api/gainers", (req, res) => {
   const limit = Math.min(parseInt(req.query.limit) || 10, 100);
-  const gainers = gainersManager.getTop1hGainers(limit).map(gainer => {
-    const observer = gainersManager.observers.get(gainer.symbol);
-    return {
-      ...gainer,
-      // Technical indicators
-      ma20: observer?.ma20 || 0,
-      ma99: observer?.ma99 || 0,
-      bbUpper: observer?.bbUpper || 0,
-      bbLower: observer?.bbLower || 0,
-      // Multi-timeframe gainer percentages
-      gainer5m: observer?.gainer5m || 0,
-      gainer15m: observer?.gainer15m || 0,
-      gainer30m: observer?.gainer30m || 0,
-      // Trading conditions
-      conditions: observer?.getConditions() || {},
-    };
-  });
+  const gainers = gainersManager.getTop1hGainers(limit);
+
+  // Ensure transitionState is present in all gainers
+  const gainersWithTransition = gainers.map(gainer => ({
+    ...gainer,
+    transitionState: gainer.transitionState || { wasReadyToBuy: false, isReadyToBuy: false, inTransition: false }
+  }));
 
   res.json({
-    count: gainers.length,
-    gainers,
+    count: gainersWithTransition.length,
+    gainers: gainersWithTransition,
   });
 });
 
