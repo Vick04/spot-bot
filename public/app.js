@@ -138,14 +138,14 @@ class GainersDashboard {
         const bbUpper = gainer.bbUpper || 0;
         const bbLower = gainer.bbLower || 0;
 
-        // Sequential + Parallel selection conditions
-        const step3_pisoMet = gainer.step3_pisoMet || false;
-        const step4_gainer1m = gainer.step4_gainer1m || false;
-        const step5_buyingPressure = gainer.step5_buyingPressure || false;
-        const step6_maSlope = gainer.step6_maSlope || false;
-        const step7_maAccel = gainer.step7_maAccel || false;
-        const step8_priceExceeded = gainer.step8_priceExceeded || false;
-        const canBuyUP = gainer.canBuyUP ? "✅" : "—";
+        // v1.3.0: Sequential buy signal conditions
+        const cond1_ma99Downtrend = gainer.cond1_ma99Downtrend || false;
+        const cond2_ma99Decelerate = gainer.cond2_ma99Decelerate || false;
+        const cond3_ma20AboveMa99 = gainer.cond3_ma20AboveMa99 || false;
+        const cond3_ma99Momentum = gainer.cond3_ma99Momentum || false;
+        const cond4_ma20Uptrend = gainer.cond4_ma20Uptrend || false;
+        const readyToBuy = gainer.readyToBuy || false;
+        const canBuyUP = readyToBuy ? "✅" : "—";
 
         return `
           <div class="gainer-card" data-symbol="${gainer.symbol}">
@@ -188,19 +188,17 @@ class GainersDashboard {
               </div>
             </div>
 
-            <!-- Sequential + Parallel Selection Progress -->
-            <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(76, 175, 80, 0.05); border-radius: 6px;">
-              <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">Selection Progress:</div>
+            <!-- v1.3.0: Buy Signal Sequential Conditions -->
+            <div style="margin-bottom: 8px; padding: 8px; background-color: ${readyToBuy ? 'rgba(34, 197, 94, 0.15)' : 'rgba(76, 175, 80, 0.05)'}; border-radius: 6px;">
+              <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">Buy Signal Progress:</div>
               <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 50px; height: 20px; background-color: ${step3_pisoMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step3_pisoMet ? 'var(--success)' : 'var(--text-secondary)'};"><span>③ PISO</span></div>
-                <div style="width: 8px; height: 2px; background-color: ${step3_pisoMet ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; min-width: 50px; height: 20px; background-color: ${step4_gainer1m ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step4_gainer1m ? 'var(--success)' : 'var(--text-secondary)'};"><span>④</span></div>
-                <div style="width: 8px; height: 2px; background-color: ${step5_buyingPressure ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; min-width: 50px; height: 20px; background-color: ${step5_buyingPressure ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step5_buyingPressure ? 'var(--success)' : 'var(--text-secondary)'};"><span>⑤</span></div>
-                <div style="width: 8px; height: 2px; background-color: ${step6_maSlope ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; min-width: 50px; height: 20px; background-color: ${step6_maSlope ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step6_maSlope ? 'var(--success)' : 'var(--text-secondary)'};"><span>⑥</span></div>
-                <div style="width: 8px; height: 2px; background-color: ${step7_maAccel ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; min-width: 50px; height: 20px; background-color: ${step7_maAccel ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; color: ${step7_maAccel ? 'var(--success)' : 'var(--text-secondary)'};"><span>⑦</span></div>
+                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${cond1_ma99Downtrend ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${cond1_ma99Downtrend ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>① MA99 Down</span></div>
+                <div style="width: 8px; height: 2px; background-color: ${cond1_ma99Downtrend ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${cond2_ma99Decelerate ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${cond2_ma99Decelerate ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>② MA99 Decel</span></div>
+                <div style="width: 8px; height: 2px; background-color: ${cond3_ma20AboveMa99 && cond3_ma99Momentum ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${cond3_ma20AboveMa99 && cond3_ma99Momentum ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${cond3_ma20AboveMa99 && cond3_ma99Momentum ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>③ MA20>MA99</span></div>
+                <div style="width: 8px; height: 2px; background-color: ${cond4_ma20Uptrend ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${cond4_ma20Uptrend ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${cond4_ma20Uptrend ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>④ MA20 Up</span></div>
               </div>
             </div>
 
@@ -244,32 +242,32 @@ class GainersDashboard {
               </div>
 
               <div class="detail-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
-                <span class="detail-label">Step Details:</span>
+                <span class="detail-label">Buy Conditions (v1.3.0):</span>
                 <span class="detail-value"></span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">③ PISO (BBUpper &lt; MA99):</span>
-                <span class="detail-value condition-step ${step3_pisoMet ? 'step-met' : 'step-pending'}">${step3_pisoMet ? '✓' : '✗'}</span>
+                <span class="detail-label">① MA99 Downtrend:</span>
+                <span class="detail-value condition-step ${cond1_ma99Downtrend ? 'step-met' : 'step-pending'}">${cond1_ma99Downtrend ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">④ Gainer1m &gt; 0.3%:</span>
-                <span class="detail-value condition-step ${step4_gainer1m ? 'step-met' : 'step-pending'}">${step4_gainer1m ? '✓' : '✗'}</span>
+                <span class="detail-label">② MA99 Decelerate:</span>
+                <span class="detail-value condition-step ${cond2_ma99Decelerate ? 'step-met' : 'step-pending'}">${cond2_ma99Decelerate ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">⑤ Buy Pressure:</span>
-                <span class="detail-value condition-step ${step5_buyingPressure ? 'step-met' : 'step-pending'}">${step5_buyingPressure ? '✓' : '✗'}</span>
+                <span class="detail-label">③ MA20 &gt; MA99 (A):</span>
+                <span class="detail-value condition-step ${cond3_ma20AboveMa99 ? 'step-met' : 'step-pending'}">${cond3_ma20AboveMa99 ? '✓' : '✗'}</span>
+              </div>
+              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 24px;">
+                <span class="detail-label">③ MA99 Momentum (B):</span>
+                <span class="detail-value condition-step ${cond3_ma99Momentum ? 'step-met' : 'step-pending'}">${cond3_ma99Momentum ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">⑥ MA99 Slope ≥ 0.02:</span>
-                <span class="detail-value condition-step ${step6_maSlope ? 'step-met' : 'step-pending'}">${step6_maSlope ? '✓' : '✗'}</span>
+                <span class="detail-label">④ MA20 Uptrend:</span>
+                <span class="detail-value condition-step ${cond4_ma20Uptrend ? 'step-met' : 'step-pending'}">${cond4_ma20Uptrend ? '✓' : '✗'}</span>
               </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">⑦ MA99 Accel ≥ -0.03:</span>
-                <span class="detail-value condition-step ${step7_maAccel ? 'step-met' : 'step-pending'}">${step7_maAccel ? '✓' : '✗'}</span>
-              </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">⑧ INVALIDA (Price &gt; MA99 × 1.015):</span>
-                <span class="detail-value condition-step ${step8_priceExceeded ? 'step-met' : 'step-pending'}" style="background-color: ${step8_priceExceeded ? 'rgba(245, 101, 101, 0.2)' : 'rgba(72, 187, 120, 0.2)'}; color: ${step8_priceExceeded ? 'var(--danger)' : 'var(--success)'};">${step8_priceExceeded ? '✗' : '✓'}</span>
+              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
+                <span class="detail-label" style="font-weight: 700; color: ${readyToBuy ? 'var(--success)' : 'var(--text-secondary)'};">READY TO BUY:</span>
+                <span class="detail-value condition-step" style="background-color: ${readyToBuy ? 'rgba(34, 197, 94, 0.3)' : 'rgba(160, 174, 192, 0.1)'}; color: ${readyToBuy ? 'var(--success)' : 'var(--text-secondary)'};">${readyToBuy ? '✅ YES' : '⏳ WAITING'}</span>
               </div>
             </div>
           </div>

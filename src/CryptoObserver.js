@@ -34,20 +34,20 @@ class CryptoObserver {
     this._initialized = false;
     this._loading = false;
 
-    // Sequential + Parallel state machine for symbol selection
-    // Steps 1-3: Sequential (each requires previous)
-    // Steps 4-7: Parallel (all depend on step3 and step4, no internal sequence)
-    // Step 8: Independent invalidation
-    // All reset when Price < MA99
+    // Sequential state machine for buy signal (v1.3.0)
+    // 4 sequential conditions, each depends on previous
+    // Condition 1: MA99 in downtrend (activates once, never reverts)
+    // Condition 2: MA99 decelerating (can revert if slope < -0.02 AND accel < 0)
+    // Condition 3: MA20 > MA99 + MA99 momentum (can revert if either sub-condition fails)
+    // Condition 4: MA20 strong uptrend (can revert if slope < 0.18)
     this._selectionState = {
-      step1_initialized: false,        // 1) Observer initialized (_initialized = true)
-      step2_bufferFull: false,         // 2) Buffer full (buffer.length === 99)
-      step3_pisoMet: false,            // 3) PISO: BBUPPER < MA99 (requires step2)
-      step4_gainer1m: false,           // 4) gainer1m > 0.3% (requires step3, persists once true)
-      step5_buyingPressure: false,     // 5) Buying Pressure validated (requires step4, persists once true)
-      step6_maSlope: false,            // 6) MA99 Slope >= 0.02 (requires step4, persists once true)
-      step7_maAccel: false,            // 7) MA99 Accel >= -0.03 (requires step4, persists once true)
-      step8_priceExceeded: false,      // 8) Invalidación: Price > MA99 × 1.015 (permanent disqualification)
+      cond1_ma99Downtrend: false,      // 1) MA99 Slope < -0.02 AND Accel < 0 (activates once)
+      cond2_ma99Decelerate: false,     // 2) MA99 Slope < 0 AND Accel > 0.008 (can revert)
+      cond3_ma20AboveMa99: false,      // 3A) MA20 > MA99 (sub-condition)
+      cond3_ma99Momentum: false,       // 3B) MA99 Slope >= 0.02 AND Accel >= -0.03 (sub-condition)
+      cond4_ma20Uptrend: false,        // 4) MA20 Slope > 0.18 AND Accel > -0.08 (can revert)
+      // Derived state
+      readyToBuy: false,               // All 4 conditions true = ready to buy
     };
   }
 
@@ -345,111 +345,110 @@ class CryptoObserver {
   }
 
   /**
-   * Update sequential + parallel selection state machine
-   * Steps 1-3: Sequential (each requires previous)
-   * Steps 4-7: Parallel (all depend on step3 and step4, persist once true)
-   * Step 8: Independent invalidation
-   * All reset when Price < MA99
+   * Update sequential buy signal state machine (v1.3.0)
+   * 4 sequential conditions for buy execution
+   * Each condition depends on previous being true
+   * Some conditions can revert to false if criteria no longer met
    * @private
    */
   _updateSelectionState() {
     const ma99 = this.ma99;
-    const price = this.currentPrice;
+    const ma20 = this.ma20;
 
-    // Update MA99 momentum buffer with latest value
+    // Update momentum buffers with latest values
     if (ma99 > 0) {
       this.pushMa99(ma99);
     }
-
-    // Update MA20 momentum buffer with latest value
-    const ma20 = this.ma20;
     if (ma20 > 0) {
       this.pushMa20(ma20);
     }
 
-    // Reset all when Price < MA99
-    if (ma99 > 0 && price < ma99) {
-      this._selectionState.step1_initialized = false;
-      this._selectionState.step2_bufferFull = false;
-      this._selectionState.step3_pisoMet = false;
-      this._selectionState.step4_gainer1m = false;
-      this._selectionState.step5_buyingPressure = false;
-      this._selectionState.step6_maSlope = false;
-      this._selectionState.step7_maAccel = false;
-      this._selectionState.step8_priceExceeded = false;
+    // Get current momentum values
+    const ma99Mom = this.getMa99Momentum();
+    const ma20Mom = this.getMa20Momentum();
+
+    // ═════════════════════════════════════════════════════════════
+    // CONDITION 1: MA99 in downtrend (activates once, never reverts)
+    // ═════════════════════════════════════════════════════════════
+    if (!this._selectionState.cond1_ma99Downtrend && ma99Mom) {
+      if (ma99Mom.slope < -0.02 && ma99Mom.accel < 0) {
+        this._selectionState.cond1_ma99Downtrend = true;
+      }
+    }
+
+    // If condition 1 not met, reset all subsequent conditions
+    if (!this._selectionState.cond1_ma99Downtrend) {
+      this._selectionState.cond2_ma99Decelerate = false;
+      this._selectionState.cond3_ma20AboveMa99 = false;
+      this._selectionState.cond3_ma99Momentum = false;
+      this._selectionState.cond4_ma20Uptrend = false;
+      this._selectionState.readyToBuy = false;
       return;
     }
 
-    // SEQUENTIAL STEPS (1-3): Each requires previous
-    // Step 1: Initialized (initial state)
-    if (!this._selectionState.step1_initialized && this._initialized) {
-      this._selectionState.step1_initialized = true;
+    // ═════════════════════════════════════════════════════════════
+    // CONDITION 2: MA99 decelerating (can revert)
+    // ═════════════════════════════════════════════════════════════
+    // Reverts to false if MA99 retakes downtrend
+    if (ma99Mom && ma99Mom.slope < -0.02 && ma99Mom.accel < 0) {
+      this._selectionState.cond2_ma99Decelerate = false;
+    } else if (ma99Mom && ma99Mom.slope < 0 && ma99Mom.accel > 0.008) {
+      this._selectionState.cond2_ma99Decelerate = true;
     }
 
-    // Step 2: Buffer full (requires step1 true)
-    if (this._selectionState.step1_initialized && !this._selectionState.step2_bufferFull &&
-        this.buffer.length === this.bufferSize) {
-      this._selectionState.step2_bufferFull = true;
+    // If condition 2 not met, reset subsequent conditions
+    if (!this._selectionState.cond2_ma99Decelerate) {
+      this._selectionState.cond3_ma20AboveMa99 = false;
+      this._selectionState.cond3_ma99Momentum = false;
+      this._selectionState.cond4_ma20Uptrend = false;
+      this._selectionState.readyToBuy = false;
+      return;
     }
 
-    // Step 3: PISO - BBUPPER < MA99 (requires step2 true)
-    if (this._selectionState.step2_bufferFull && !this._selectionState.step3_pisoMet &&
-        ma99 > 0 && this.bbUpper < ma99) {
-      this._selectionState.step3_pisoMet = true;
+    // ═════════════════════════════════════════════════════════════
+    // CONDITION 3: Two sub-conditions (both must be true)
+    // ═════════════════════════════════════════════════════════════
+    // 3A: MA20 > MA99
+    if (ma20 > ma99) {
+      this._selectionState.cond3_ma20AboveMa99 = true;
+    } else {
+      this._selectionState.cond3_ma20AboveMa99 = false;
     }
 
-    // PARALLEL STEPS (4-7): All depend on step3, no inter-dependencies
-    // Each persists once true (only re-check if not already met)
-
-    // Step 4: gainer1m > 0.3% + MA99 momentum + MA20 momentum (requires step3 true)
-    if (this._selectionState.step3_pisoMet && !this._selectionState.step4_gainer1m &&
-        this._gainer1m > 0.3) {
-
-      // Validate MA99 momentum
-      const ma99Momentum = this.getMa99Momentum();
-      const hasMa99Momentum = ma99Momentum !== null &&
-                              ma99Momentum.slope >= 0.02 &&
-                              ma99Momentum.accel >= -0.03;
-
-      // Validate MA20 momentum
-      const ma20Momentum = this.getMa20Momentum();
-      const hasMa20Momentum = ma20Momentum !== null &&
-                              ma20Momentum.slope >= 0.15 &&
-                              ma20Momentum.accel >= -0.05;
-
-      // All conditions met
-      if (hasMa99Momentum && hasMa20Momentum) {
-        this._selectionState.step4_gainer1m = true;
-      }
+    // 3B: MA99 has positive momentum
+    if (ma99Mom && ma99Mom.slope >= 0.02 && ma99Mom.accel >= -0.03) {
+      this._selectionState.cond3_ma99Momentum = true;
+    } else {
+      this._selectionState.cond3_ma99Momentum = false;
     }
 
-    // Step 5: Buying Pressure validated (requires step4 true)
-    if (this._selectionState.step4_gainer1m && !this._selectionState.step5_buyingPressure &&
-        this.isBuyingPressure()) {
-      this._selectionState.step5_buyingPressure = true;
+    // Condition 3 = true only if both sub-conditions are true
+    const cond3Met = this._selectionState.cond3_ma20AboveMa99 && this._selectionState.cond3_ma99Momentum;
+
+    // If condition 3 not met, reset condition 4
+    if (!cond3Met) {
+      this._selectionState.cond4_ma20Uptrend = false;
+      this._selectionState.readyToBuy = false;
+      return;
     }
 
-    // Step 6: MA99 Slope >= 0.02 (requires step4 true)
-    if (this._selectionState.step4_gainer1m && !this._selectionState.step6_maSlope) {
-      const ma99Momentum = this.getMa99Momentum();
-      if (ma99Momentum !== null && ma99Momentum.slope >= 0.02) {
-        this._selectionState.step6_maSlope = true;
-      }
+    // ═════════════════════════════════════════════════════════════
+    // CONDITION 4: MA20 strong uptrend (can revert)
+    // ═════════════════════════════════════════════════════════════
+    if (ma20Mom && ma20Mom.slope > 0.18 && ma20Mom.accel > -0.08) {
+      this._selectionState.cond4_ma20Uptrend = true;
+    } else {
+      this._selectionState.cond4_ma20Uptrend = false;
     }
 
-    // Step 7: MA99 Acceleration >= -0.03 (requires step4 true)
-    if (this._selectionState.step4_gainer1m && !this._selectionState.step7_maAccel) {
-      const ma99Momentum = this.getMa99Momentum();
-      if (ma99Momentum !== null && ma99Momentum.accel >= -0.03) {
-        this._selectionState.step7_maAccel = true;
-      }
-    }
-
-    // Step 8: Invalidación - Price > MA99 × 1.015 (independent disqualifier)
-    if (!this._selectionState.step8_priceExceeded && ma99 > 0 &&
-        price > (ma99 * 1.015)) {
-      this._selectionState.step8_priceExceeded = true;
-    }
+    // ═════════════════════════════════════════════════════════════
+    // FINAL: Ready to buy if all 4 conditions are true
+    // ═════════════════════════════════════════════════════════════
+    this._selectionState.readyToBuy =
+      this._selectionState.cond1_ma99Downtrend &&
+      this._selectionState.cond2_ma99Decelerate &&
+      cond3Met &&
+      this._selectionState.cond4_ma20Uptrend;
   }
 
   /**
@@ -718,11 +717,10 @@ class CryptoObserver {
   }
 
   /**
-   * CAN BUY: Only requires step 4 (SUBIDA) and not invalidated (step 6 false)
-   * Testing mode: ONLY SUBIDA (gainer1m > 0.3% + Buy Pressure) condition active
+   * CAN BUY: All 4 sequential conditions must be true (v1.3.0)
    */
   get canBuyUP() {
-    return this._selectionState.step4_subidaMet && !this._selectionState.step6_priceExceeded;
+    return this._selectionState.readyToBuy;
   }
 
   /**
@@ -730,25 +728,13 @@ class CryptoObserver {
    */
   getConditions() {
     return {
-      // Sequential + Parallel selection conditions
-      // Step 1: Observer initialized
-      step1_initialized: this._selectionState.step1_initialized,
-      // Step 2: Buffer full (99 candles)
-      step2_bufferFull: this._selectionState.step2_bufferFull,
-      // Step 3: PISO - BBUPPER < MA99
-      step3_pisoMet: this._selectionState.step3_pisoMet,
-      // Step 4: gainer1m > 0.3%
-      step4_gainer1m: this._selectionState.step4_gainer1m,
-      // Step 5: Buying Pressure validated
-      step5_buyingPressure: this._selectionState.step5_buyingPressure,
-      // Step 6: MA99 Slope >= 0.02
-      step6_maSlope: this._selectionState.step6_maSlope,
-      // Step 7: MA99 Accel >= -0.03
-      step7_maAccel: this._selectionState.step7_maAccel,
-      // Step 8: Invalidación - Price > MA99 × 1.015 (permanent disqualification)
-      step8_priceExceeded: this._selectionState.step8_priceExceeded,
-      // Final: Can execute buy
-      canBuyUP: this.canBuyUP,
+      // v1.3.0: Sequential buy signal conditions
+      cond1_ma99Downtrend: this._selectionState.cond1_ma99Downtrend,
+      cond2_ma99Decelerate: this._selectionState.cond2_ma99Decelerate,
+      cond3_ma20AboveMa99: this._selectionState.cond3_ma20AboveMa99,
+      cond3_ma99Momentum: this._selectionState.cond3_ma99Momentum,
+      cond4_ma20Uptrend: this._selectionState.cond4_ma20Uptrend,
+      readyToBuy: this._selectionState.readyToBuy,
 
       // Technical indicators (for reference)
       ma20: this.ma20,
@@ -758,6 +744,9 @@ class CryptoObserver {
       currentPrice: this.currentPrice,
       gainer1m: this._gainer1m,
       gainer5m: this._gainer5m,
+      gainer15m: this._gainer15m,
+      gainer30m: this._gainer30m,
+      gainer1h: this._gainer1h,
       // MA99 Momentum
       ma99Slope: this.ma99Slope,
       ma99Accel: this.ma99Accel,

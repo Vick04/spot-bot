@@ -421,60 +421,46 @@ class GainersManager extends EventEmitter {
         // MA99 Momentum (slope + acceleration)
         ma99Slope: observer.ma99Slope,
         ma99Accel: observer.ma99Accel,
+        // MA20 Momentum
+        ma20Slope: observer.ma20Slope,
+        ma20Accel: observer.ma20Accel,
         // Volume delta (buy pressure)
         buyRatio: observer.buyRatio,
         avgBuyRatio: observer.avgBuyRatio,
         isBuyingPressure: observer.isBuyingPressure(),
-        // Sequential + Parallel condition states
-        step1_initialized: conditions.step1_initialized,
-        step2_bufferFull: conditions.step2_bufferFull,
-        step3_pisoMet: conditions.step3_pisoMet,
-        step4_gainer1m: conditions.step4_gainer1m,
-        step5_buyingPressure: conditions.step5_buyingPressure,
-        step6_maSlope: conditions.step6_maSlope,
-        step7_maAccel: conditions.step7_maAccel,
-        step8_priceExceeded: conditions.step8_priceExceeded,
-        // Calculate highest step reached (4-7, skipping 1-3 as they are prerequisites)
-        highestStep: conditions.step4_gainer1m && conditions.step5_buyingPressure && conditions.step6_maSlope && conditions.step7_maAccel ? 7 :
-                    conditions.step4_gainer1m ? 4 :
-                    conditions.step3_pisoMet ? 3 : 0,
+        // v1.3.0: Sequential buy signal conditions
+        cond1_ma99Downtrend: conditions.cond1_ma99Downtrend,
+        cond2_ma99Decelerate: conditions.cond2_ma99Decelerate,
+        cond3_ma20AboveMa99: conditions.cond3_ma20AboveMa99,
+        cond3_ma99Momentum: conditions.cond3_ma99Momentum,
+        cond4_ma20Uptrend: conditions.cond4_ma20Uptrend,
+        readyToBuy: conditions.readyToBuy,
+        // Calculate progress (which condition is furthest reached)
+        progress: !conditions.cond1_ma99Downtrend ? 0 :
+                  !conditions.cond2_ma99Decelerate ? 1 :
+                  !(conditions.cond3_ma20AboveMa99 && conditions.cond3_ma99Momentum) ? 2 :
+                  !conditions.cond4_ma20Uptrend ? 3 : 4,
       };
     });
 
-    // Filter: only show valid symbols (not invalidated)
-    const valid = withConditions.filter((obs) => !obs.step8_priceExceeded);
+    // v1.3.0: Show symbols grouped by progress level
+    // Level 4 (readyToBuy): All 4 conditions met - EXECUTE BUY
+    // Level 3: Cond 1,2,3 met - waiting for cond 4 (MA20 uptrend)
+    // Level 2: Cond 1,2 met - waiting for cond 3 (MA20>MA99 + MA99 momentum)
+    // Level 1: Cond 1 met - waiting for cond 2 (MA99 deceleration)
+    // Level 0: No conditions met
 
-    if (valid.length === 0) {
-      return []; // No valid symbols
-    }
+    for (let level = 4; level >= 0; level--) {
+      const atLevel = withConditions.filter((obs) => obs.progress === level);
 
-    // Try each step from 7 down to 1, show the highest available
-    // Step 7: all conditions 4,5,6,7 are true
-    // Step 6: all conditions 4,5,6 are true (but not 7)
-    // Step 5: all conditions 4,5 are true (but not 6)
-    // Step 4: condition 4 is true (but not 5)
-    // Step 3: condition 3 is true (but not 4)
-    // etc.
-    for (let step = 7; step >= 1; step--) {
-      const atStep = valid.filter((obs) => {
-        if (step === 7) return obs.step4_gainer1m && obs.step5_buyingPressure && obs.step6_maSlope && obs.step7_maAccel;
-        if (step === 6) return obs.step4_gainer1m && obs.step5_buyingPressure && obs.step6_maSlope && !obs.step7_maAccel;
-        if (step === 5) return obs.step4_gainer1m && obs.step5_buyingPressure && !obs.step6_maSlope;
-        if (step === 4) return obs.step4_gainer1m && !obs.step5_buyingPressure;
-        if (step === 3) return obs.step3_pisoMet && !obs.step4_gainer1m;
-        if (step === 2) return obs.step2_bufferFull && !obs.step3_pisoMet;
-        if (step === 1) return obs.step1_initialized && !obs.step2_bufferFull;
-        return false;
-      });
-
-      if (atStep.length > 0) {
-        return atStep
+      if (atLevel.length > 0) {
+        return atLevel
           .sort((a, b) => b.price - a.price) // Sort by price descending (highest price first)
           .slice(0, limit);
       }
     }
 
-    return []; // No symbols at any step
+    return []; // No symbols at any level
   }
 
   /**

@@ -111,7 +111,12 @@
       "Bash(chmod +x /tmp/docker_cleanup.sh)",
       "Bash(/tmp/docker_cleanup.sh)",
       "Bash(find /opt/spot-bot -name \"symbolObserver.ts\" -o -name \"conditions.ts\" -o -name \"candleProcessor.ts\" 2>/dev/null | head -20)",
-      "Bash(xargs grep -l \"getTop1hGainers\\\\|GainersManager\")"
+      "Bash(xargs grep -l \"getTop1hGainers\\\\|GainersManager\")",
+      "Bash(ssh -o StrictHostKeyChecking=no root@139.59.114.2 'cd /opt/spot-bot && docker-compose up -d --build')",
+      "Bash(ssh -o StrictHostKeyChecking=no root@139.59.114.2 'cd /opt/spot-bot && docker-compose down && docker-compose up -d --build')",
+      "Bash(ssh -o StrictHostKeyChecking=no root@139.59.114.2 'cd /opt/spot-bot && docker-compose logs --tail=50 spot-bot')",
+      "Bash(curl -s http://139.59.114.2:4444/)",
+      "Bash(ssh -o StrictHostKeyChecking=no root@139.59.114.2 'cd /opt/spot-bot && git pull origin main && docker-compose up -d --build')"
     ]
   }
 }
