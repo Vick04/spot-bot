@@ -35,19 +35,21 @@ class CryptoObserver {
     this._loading = false;
 
     // Sequential state machine for buy signal (v1.3.0)
-    // 4 sequential conditions, each depends on previous
-    // Condition 1: MA99 in downtrend (activates once, never reverts)
-    // Condition 2: MA99 decelerating (can revert if slope < -0.02 AND accel < 0)
-    // Condition 3: MA20 > MA99 + MA99 momentum (can revert if either sub-condition fails)
-    // Condition 4: MA20 strong uptrend (can revert if slope < 0.18)
+    // 4 sequential conditions with brake mechanism
+    // Condition 1: MA99 safety check (BRAKE - TRUE = danger, resets all)
+    //   If cond1 is TRUE (MA99 in strong downtrend) → all other conditions FALSE
+    //   If cond1 is FALSE (MA99 not downtrending) → allows conditions 2-4 to flow
+    // Condition 2: MA99 decelerating (can revert)
+    // Condition 3: MA20 > MA99 + MA99 momentum (can revert)
+    // Condition 4: MA20 strong uptrend (can revert)
     this._selectionState = {
-      cond1_ma99Downtrend: false,      // 1) MA99 Slope < -0.02 AND Accel < 0 (activates once)
+      cond1_ma99SafetyBrake: false,    // 1) TRUE if MA99 Slope < -0.02 AND Accel < 0 (BRAKE condition)
       cond2_ma99Decelerate: false,     // 2) MA99 Slope < 0 AND Accel > 0.008 (can revert)
       cond3_ma20AboveMa99: false,      // 3A) MA20 > MA99 (sub-condition)
       cond3_ma99Momentum: false,       // 3B) MA99 Slope >= 0.02 AND Accel >= -0.03 (sub-condition)
       cond4_ma20Uptrend: false,        // 4) MA20 Slope > 0.18 AND Accel > -0.08 (can revert)
       // Derived state
-      readyToBuy: false,               // All 4 conditions true = ready to buy
+      readyToBuy: false,               // All conditions met (cond1 FALSE + 2,3,4 TRUE) = ready to buy
     };
   }
 
@@ -368,16 +370,19 @@ class CryptoObserver {
     const ma20Mom = this.getMa20Momentum();
 
     // ═════════════════════════════════════════════════════════════
-    // CONDITION 1: MA99 in downtrend (activates once, never reverts)
+    // CONDITION 1: MA99 Safety Brake (TRUE = danger, resets all)
     // ═════════════════════════════════════════════════════════════
-    if (!this._selectionState.cond1_ma99Downtrend && ma99Mom) {
-      if (ma99Mom.slope < -0.02 && ma99Mom.accel < 0) {
-        this._selectionState.cond1_ma99Downtrend = true;
-      }
+    // Condition 1 acts as a BRAKE: TRUE means MA99 is in strong downtrend (DANGER)
+    if (ma99Mom && ma99Mom.slope < -0.02 && ma99Mom.accel < 0) {
+      // MA99 in strong downtrend = BRAKE ACTIVATED
+      this._selectionState.cond1_ma99SafetyBrake = true;
+    } else {
+      // MA99 not in strong downtrend = BRAKE RELEASED
+      this._selectionState.cond1_ma99SafetyBrake = false;
     }
 
-    // If condition 1 not met, reset all subsequent conditions
-    if (!this._selectionState.cond1_ma99Downtrend) {
+    // If condition 1 is TRUE (BRAKE activated), reset all subsequent conditions
+    if (this._selectionState.cond1_ma99SafetyBrake) {
       this._selectionState.cond2_ma99Decelerate = false;
       this._selectionState.cond3_ma20AboveMa99 = false;
       this._selectionState.cond3_ma99Momentum = false;
@@ -385,6 +390,8 @@ class CryptoObserver {
       this._selectionState.readyToBuy = false;
       return;
     }
+
+    // BRAKE is released (condition 1 is FALSE), proceed with conditions 2-4
 
     // ═════════════════════════════════════════════════════════════
     // CONDITION 2: MA99 decelerating (can revert)
@@ -728,8 +735,8 @@ class CryptoObserver {
    */
   getConditions() {
     return {
-      // v1.3.0: Sequential buy signal conditions
-      cond1_ma99Downtrend: this._selectionState.cond1_ma99Downtrend,
+      // v1.3.0: Sequential buy signal conditions with safety brake
+      cond1_ma99SafetyBrake: this._selectionState.cond1_ma99SafetyBrake,
       cond2_ma99Decelerate: this._selectionState.cond2_ma99Decelerate,
       cond3_ma20AboveMa99: this._selectionState.cond3_ma20AboveMa99,
       cond3_ma99Momentum: this._selectionState.cond3_ma99Momentum,

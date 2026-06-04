@@ -428,15 +428,17 @@ class GainersManager extends EventEmitter {
         buyRatio: observer.buyRatio,
         avgBuyRatio: observer.avgBuyRatio,
         isBuyingPressure: observer.isBuyingPressure(),
-        // v1.3.0: Sequential buy signal conditions
-        cond1_ma99Downtrend: conditions.cond1_ma99Downtrend,
+        // v1.3.0: Sequential buy signal conditions with safety brake
+        cond1_ma99SafetyBrake: conditions.cond1_ma99SafetyBrake,
         cond2_ma99Decelerate: conditions.cond2_ma99Decelerate,
         cond3_ma20AboveMa99: conditions.cond3_ma20AboveMa99,
         cond3_ma99Momentum: conditions.cond3_ma99Momentum,
         cond4_ma20Uptrend: conditions.cond4_ma20Uptrend,
         readyToBuy: conditions.readyToBuy,
         // Calculate progress (which condition is furthest reached)
-        progress: !conditions.cond1_ma99Downtrend ? 0 :
+        // If cond1 (brake) is TRUE, progress = 0 (locked out)
+        // Otherwise, progress based on conditions 2-4
+        progress: conditions.cond1_ma99SafetyBrake ? 0 :
                   !conditions.cond2_ma99Decelerate ? 1 :
                   !(conditions.cond3_ma20AboveMa99 && conditions.cond3_ma99Momentum) ? 2 :
                   !conditions.cond4_ma20Uptrend ? 3 : 4,
