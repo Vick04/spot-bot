@@ -23,6 +23,10 @@ class CryptoObserver {
     this._buyRatioHistory = []; // Last 5 buy ratios (max 5 elements)
     this._currentBuyRatio = 0;  // Buy ratio of current candle
 
+    // MA99 momentum tracking (slope + acceleration)
+    this._ma99Buffer = [];      // Last 5 MA99 values for momentum calculation
+    this._ma99BufferSize = 5;   // Fixed window for momentum detection
+
     this._initialized = false;
     this._loading = false;
 
@@ -66,6 +70,18 @@ class CryptoObserver {
 
       // Calculate initial gainer
       this._recalculateGainer();
+
+      // Warm up MA99 momentum buffer with historical data
+      // We need to calculate MA99 for each point in the buffer to fill momentum buffer
+      // For efficiency, we just fill with the last 5 MA99 values (sliding window)
+      for (let i = Math.max(0, this.buffer.length - 5); i < this.buffer.length; i++) {
+        // Recalculate MA99 up to this candle index
+        const tempSlice = this.buffer.slice(0, i + 1);
+        if (tempSlice.length >= 99) {
+          const ma99Value = tempSlice.slice(-99).reduce((acc, c) => acc + c.close, 0) / 99;
+          this.pushMa99(ma99Value);
+        }
+      }
 
       // Update UP condition state machine
       this._updateSelectionState();
@@ -236,6 +252,43 @@ class CryptoObserver {
   }
 
   /**
+   * Add MA99 value to momentum buffer
+   * Maintains sliding window of 5 most recent MA99 values
+   * @private
+   */
+  pushMa99(value) {
+    this._ma99Buffer.push(value);
+    if (this._ma99Buffer.length > this._ma99BufferSize) {
+      this._ma99Buffer.shift();
+    }
+  }
+
+  /**
+   * Calculate MA99 momentum (slope + acceleration)
+   * Requires 5 candles minimum for momentum calculation
+   * @returns {Object|null} { slope: number, accel: number } or null if insufficient data
+   */
+  getMa99Momentum() {
+    if (this._ma99Buffer.length < this._ma99BufferSize) {
+      return null; // Warmup period - not enough data
+    }
+
+    // Index 0 = oldest, index 4 = newest
+    const [m0, m1, m2, m3, m4] = this._ma99Buffer;
+
+    // Slope: percentage change between current and 2 candles ago
+    const slopeNow = (m4 - m2) / m2 * 100;
+
+    // Previous slope: percentage change between 2 and 4 candles ago
+    const slopePrev = (m2 - m0) / m0 * 100;
+
+    // Acceleration: difference between current and previous slope
+    const accel = slopeNow - slopePrev;
+
+    return { slope: slopeNow, accel };
+  }
+
+  /**
    * Update sequential selection state machine
    * Sequential progression: each step requires previous step to be true
    * Step 1: _initialized = true (initial state, no condition required)
@@ -250,6 +303,11 @@ class CryptoObserver {
   _updateSelectionState() {
     const ma99 = this.ma99;
     const price = this.currentPrice;
+
+    // Update MA99 momentum buffer with latest value
+    if (ma99 > 0) {
+      this.pushMa99(ma99);
+    }
 
     // Condition 7: Reset all when Price < MA99
     if (ma99 > 0 && price < ma99) {
@@ -279,10 +337,17 @@ class CryptoObserver {
       this._selectionState.step3_pisoMet = true;
     }
 
-    // Step 4: SUBIDA - gainer1m > 0.3 with buying pressure (requires step3 true)
+    // Step 4: SUBIDA - gainer1m > 0.3 with buying pressure AND MA99 momentum (requires step3 true)
     if (this._selectionState.step3_pisoMet && !this._selectionState.step4_subidaMet &&
         this._gainer1m > 0.3 && this.isBuyingPressure()) {
-      this._selectionState.step4_subidaMet = true;
+
+      // Check MA99 momentum filters
+      const ma99Momentum = this.getMa99Momentum();
+      if (ma99Momentum !== null &&
+          ma99Momentum.slope >= 0.02 &&
+          ma99Momentum.accel >= -0.03) {
+        this._selectionState.step4_subidaMet = true;
+      }
     }
 
     // Step 5: COMPRA - BBUPPER < PRICE (TEMPORARILY DISABLED)
