@@ -405,14 +405,6 @@ class GainersManager extends EventEmitter {
       const conditions = observer.getConditions();
       const momentum = observer.ma99Momentum;
 
-      // Get transition state
-      const previousConditions = this.previousConditions.get(observer.symbol) || {
-        canBuyUP: false,
-      };
-      const currentReadyToBuy = conditions.readyToBuy;
-      const wasReadyToBuy = previousConditions.canBuyUP;
-      const inTransition = !wasReadyToBuy && currentReadyToBuy; // false -> true transition
-
       return {
         symbol: observer.symbol,
         gainer1m: observer.gainer1m,
@@ -444,12 +436,6 @@ class GainersManager extends EventEmitter {
         cond3_ma99Momentum: conditions.cond3_ma99Momentum,
         cond4_ma20Uptrend: conditions.cond4_ma20Uptrend,
         readyToBuy: conditions.readyToBuy,
-        // Transition state (for UI display)
-        transitionState: {
-          wasReadyToBuy,
-          isReadyToBuy: currentReadyToBuy,
-          inTransition, // true when false -> true transition detected
-        },
         // Ready to buy timing (for UI display)
         readyToBuyTime: conditions.readyToBuyTime,
         readyToBuyMinutesElapsed: conditions.readyToBuyMinutesElapsed,

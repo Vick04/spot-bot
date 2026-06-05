@@ -147,10 +147,6 @@ class GainersDashboard {
         const readyToBuy = gainer.readyToBuy || false;
         const canBuyUP = readyToBuy ? "✅" : "—";
 
-        // Transition state
-        const transitionState = gainer.transitionState || { wasReadyToBuy: false, isReadyToBuy: false, inTransition: false };
-        const transitionIndicator = transitionState.inTransition ? '🔄 TRANSITION' : (transitionState.isReadyToBuy ? '🟢 READY' : '⏳ WAITING');
-
         // Ready to buy timing
         const readyToBuyTime = gainer.readyToBuyTime;
         const readyToBuyMinutes = gainer.readyToBuyMinutesElapsed;
@@ -236,10 +232,6 @@ class GainersDashboard {
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
                 <span class="detail-label" style="font-weight: 700; color: ${readyToBuy ? 'var(--success)' : 'var(--text-secondary)'};">READY TO BUY:</span>
                 <span class="detail-value condition-step" style="background-color: ${readyToBuy ? 'rgba(34, 197, 94, 0.3)' : 'rgba(160, 174, 192, 0.1)'}; color: ${readyToBuy ? 'var(--success)' : 'var(--text-secondary)'};">${readyToBuy ? '✅ YES' : '⏳ WAITING'}</span>
-              </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px;">
-                <span class="detail-label">Transition State:</span>
-                <span class="detail-value condition-step" style="background-color: ${transitionState.inTransition ? 'rgba(59, 130, 246, 0.3)' : 'rgba(160, 174, 192, 0.1)'}; color: ${transitionState.inTransition ? '#3b82f6' : 'var(--text-secondary)'};">${transitionIndicator}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px;">
                 <span class="detail-label">Ready Time:</span>

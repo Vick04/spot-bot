@@ -450,25 +450,23 @@ class CryptoObserver {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // FINAL: Ready to buy if all 4 conditions are true
+    // FINAL: Ready to buy - STICKY once TRUE
     // Note: Condition 1 is a BRAKE - must be FALSE to proceed
+    // Once readyToBuy becomes TRUE, it stays TRUE (sticky state)
     // ═════════════════════════════════════════════════════════════
-    const wasReadyToBuy = this._selectionState.readyToBuy;
-    this._selectionState.readyToBuy =
+    const shouldBeReady =
       !this._selectionState.cond1_ma99SafetyBrake &&
       this._selectionState.cond2_ma99Decelerate &&
       cond3Met &&
       this._selectionState.cond4_ma20Uptrend;
 
-    // Capture timestamp when readyToBuy becomes TRUE (false → true transition)
-    if (!wasReadyToBuy && this._selectionState.readyToBuy) {
+    // Sticky logic: Once TRUE, never becomes FALSE
+    if (!this._selectionState.readyToBuy && shouldBeReady) {
+      this._selectionState.readyToBuy = true;
+      // Capture timestamp when readyToBuy becomes TRUE
       this._selectionState.readyToBuyTimestamp = Date.now();
     }
-
-    // Reset timestamp if readyToBuy becomes FALSE
-    if (wasReadyToBuy && !this._selectionState.readyToBuy) {
-      this._selectionState.readyToBuyTimestamp = null;
-    }
+    // If already TRUE, stays TRUE (ignore shouldBeReady changes)
   }
 
   /**
