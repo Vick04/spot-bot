@@ -46,7 +46,7 @@ class CryptoObserver {
       cond1_ma99SafetyBrake: false,    // 1) TRUE if MA99 Slope < -0.02 AND Accel < 0 (BRAKE condition)
       cond2_ma99Decelerate: false,     // 2) MA99 Slope < 0 AND Accel > 0.008 (can revert)
       cond3_ma20AboveMa99: false,      // 3A) MA20 > MA99 (sub-condition)
-      cond3_ma99Momentum: false,       // 3B) MA99 Slope >= 0.02 AND Accel >= -0.03 (sub-condition)
+      cond3_ma99Momentum: false,       // 3B) MA99 Slope >= 0.05 AND Accel >= -0.03 (sub-condition)
       cond4_ma20Uptrend: false,        // 4) MA20 Slope > 0.18 AND Accel > -0.08 (can revert)
       // Derived state
       readyToBuy: false,               // All conditions met (cond1 FALSE + 2,3,4 TRUE) = ready to buy
@@ -424,7 +424,7 @@ class CryptoObserver {
     }
 
     // 3B: MA99 has positive momentum
-    if (ma99Mom && ma99Mom.slope >= 0.02 && ma99Mom.accel >= -0.03) {
+    if (ma99Mom && ma99Mom.slope >= 0.05 && ma99Mom.accel >= -0.03) {
       this._selectionState.cond3_ma99Momentum = true;
     } else {
       this._selectionState.cond3_ma99Momentum = false;
