@@ -450,9 +450,10 @@ class CryptoObserver {
 
     // ═════════════════════════════════════════════════════════════
     // FINAL: Ready to buy if all 4 conditions are true
+    // Note: Condition 1 is a BRAKE - must be FALSE to proceed
     // ═════════════════════════════════════════════════════════════
     this._selectionState.readyToBuy =
-      this._selectionState.cond1_ma99Downtrend &&
+      !this._selectionState.cond1_ma99SafetyBrake &&
       this._selectionState.cond2_ma99Decelerate &&
       cond3Met &&
       this._selectionState.cond4_ma20Uptrend;
