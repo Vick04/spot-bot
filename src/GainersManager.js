@@ -450,6 +450,9 @@ class GainersManager extends EventEmitter {
           isReadyToBuy: currentReadyToBuy,
           inTransition, // true when false -> true transition detected
         },
+        // Ready to buy timing (for UI display)
+        readyToBuyTime: conditions.readyToBuyTime,
+        readyToBuyMinutesElapsed: conditions.readyToBuyMinutesElapsed,
         // Calculate progress (which condition is furthest reached)
         // If cond1 (brake) is TRUE, progress = 0 (locked out)
         // Otherwise, progress based on conditions 2-4

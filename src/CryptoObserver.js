@@ -50,6 +50,7 @@ class CryptoObserver {
       cond4_ma20Uptrend: false,        // 4) MA20 Slope > 0.18 AND Accel > -0.08 (can revert)
       // Derived state
       readyToBuy: false,               // All conditions met (cond1 FALSE + 2,3,4 TRUE) = ready to buy
+      readyToBuyTimestamp: null,       // Timestamp when readyToBuy becomes TRUE
     };
   }
 
@@ -452,11 +453,22 @@ class CryptoObserver {
     // FINAL: Ready to buy if all 4 conditions are true
     // Note: Condition 1 is a BRAKE - must be FALSE to proceed
     // ═════════════════════════════════════════════════════════════
+    const wasReadyToBuy = this._selectionState.readyToBuy;
     this._selectionState.readyToBuy =
       !this._selectionState.cond1_ma99SafetyBrake &&
       this._selectionState.cond2_ma99Decelerate &&
       cond3Met &&
       this._selectionState.cond4_ma20Uptrend;
+
+    // Capture timestamp when readyToBuy becomes TRUE (false → true transition)
+    if (!wasReadyToBuy && this._selectionState.readyToBuy) {
+      this._selectionState.readyToBuyTimestamp = Date.now();
+    }
+
+    // Reset timestamp if readyToBuy becomes FALSE
+    if (wasReadyToBuy && !this._selectionState.readyToBuy) {
+      this._selectionState.readyToBuyTimestamp = null;
+    }
   }
 
   /**
@@ -716,6 +728,40 @@ class CryptoObserver {
   }
 
   /**
+   * Get the timestamp when readyToBuy became TRUE
+   */
+  get readyToBuyTime() {
+    return this._selectionState.readyToBuyTimestamp;
+  }
+
+  /**
+   * Get minutes elapsed since readyToBuy became TRUE
+   * Returns null if readyToBuy is not active
+   */
+  get readyToBuyMinutesElapsed() {
+    if (!this._selectionState.readyToBuyTimestamp) {
+      return null;
+    }
+    const elapsedMs = Date.now() - this._selectionState.readyToBuyTimestamp;
+    return Math.floor(elapsedMs / 60000); // Convert to minutes
+  }
+
+  /**
+   * Get formatted time string for when readyToBuy became TRUE
+   * Format: "HH:MM:SS"
+   */
+  get readyToBuyTimeFormatted() {
+    if (!this._selectionState.readyToBuyTimestamp) {
+      return null;
+    }
+    const date = new Date(this._selectionState.readyToBuyTimestamp);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  }
+
+  /**
    * Price below MA99 depressed level (MA99 × 0.970)
    * Precio Deprimido condition
    */
@@ -765,6 +811,9 @@ class CryptoObserver {
       buyRatio: this.buyRatio,
       avgBuyRatio: this.avgBuyRatio,
       isBuyingPressure: this.isBuyingPressure(),
+      // Ready to buy timing
+      readyToBuyTime: this.readyToBuyTimeFormatted,
+      readyToBuyMinutesElapsed: this.readyToBuyMinutesElapsed,
     };
   }
 
