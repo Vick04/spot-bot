@@ -450,9 +450,10 @@ class CryptoObserver {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // FINAL: Ready to buy - STICKY once TRUE
+    // FINAL: Ready to buy - STICKY with Safety Brake as Circuit Breaker
     // Note: Condition 1 is a BRAKE - must be FALSE to proceed
     // Once readyToBuy becomes TRUE, it stays TRUE (sticky state)
+    // UNLESS: Condition 1 activates (Safety Brake) → readyToBuy resets to FALSE
     // ═════════════════════════════════════════════════════════════
     const shouldBeReady =
       !this._selectionState.cond1_ma99SafetyBrake &&
@@ -460,13 +461,19 @@ class CryptoObserver {
       cond3Met &&
       this._selectionState.cond4_ma20Uptrend;
 
-    // Sticky logic: Once TRUE, never becomes FALSE
+    // CIRCUIT BREAKER: If Safety Brake activates while readyToBuy is TRUE, reset it
+    if (this._selectionState.readyToBuy && this._selectionState.cond1_ma99SafetyBrake) {
+      this._selectionState.readyToBuy = false;
+      this._selectionState.readyToBuyTimestamp = null;
+    }
+
+    // Sticky logic: Once TRUE (and no circuit breaker), never becomes FALSE from conditions
     if (!this._selectionState.readyToBuy && shouldBeReady) {
       this._selectionState.readyToBuy = true;
       // Capture timestamp when readyToBuy becomes TRUE
       this._selectionState.readyToBuyTimestamp = Date.now();
     }
-    // If already TRUE, stays TRUE (ignore shouldBeReady changes)
+    // If already TRUE (and no circuit breaker), stays TRUE (ignore other condition changes)
   }
 
   /**
