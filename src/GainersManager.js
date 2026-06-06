@@ -429,11 +429,10 @@ class GainersManager extends EventEmitter {
         buyRatio: observer.buyRatio,
         avgBuyRatio: observer.avgBuyRatio,
         isBuyingPressure: observer.isBuyingPressure(),
-        // v1.3.0: Sequential buy signal conditions with safety brake
+        // v1.4.0-beta: Conditions 3 and 4 are parallel (OR logic)
         cond1_ma99SafetyBrake: conditions.cond1_ma99SafetyBrake,
         cond2_ma99Decelerate: conditions.cond2_ma99Decelerate,
-        cond3_ma20AboveMa99: conditions.cond3_ma20AboveMa99,
-        cond3_ma99Momentum: conditions.cond3_ma99Momentum,
+        cond3_candleBreakout: conditions.cond3_candleBreakout,
         cond4_ma20Uptrend: conditions.cond4_ma20Uptrend,
         readyToBuy: conditions.readyToBuy,
         // Ready to buy timing (for UI display)
@@ -441,22 +440,22 @@ class GainersManager extends EventEmitter {
         readyToBuyMinutesElapsed: conditions.readyToBuyMinutesElapsed,
         // Calculate progress (which condition is furthest reached)
         // If cond1 (brake) is TRUE, progress = 0 (locked out)
-        // Otherwise, progress based on conditions 2-4
+        // If cond2 is FALSE, progress = 1 (waiting for cond2)
+        // If cond2 is TRUE but neither cond3 nor cond4, progress = 2 (waiting for cond3 OR cond4)
+        // If cond2 AND (cond3 OR cond4), progress = 3 (readyToBuy)
         progress: conditions.cond1_ma99SafetyBrake ? 0 :
                   !conditions.cond2_ma99Decelerate ? 1 :
-                  !(conditions.cond3_ma20AboveMa99 && conditions.cond3_ma99Momentum) ? 2 :
-                  !conditions.cond4_ma20Uptrend ? 3 : 4,
+                  !(conditions.cond3_candleBreakout || conditions.cond4_ma20Uptrend) ? 2 : 3,
       };
     });
 
-    // v1.3.0: Show symbols grouped by progress level
-    // Level 4 (readyToBuy): All 4 conditions met - EXECUTE BUY
-    // Level 3: Cond 1,2,3 met - waiting for cond 4 (MA20 uptrend)
-    // Level 2: Cond 1,2 met - waiting for cond 3 (MA20>MA99 + MA99 momentum)
-    // Level 1: Cond 1 met - waiting for cond 2 (MA99 deceleration)
-    // Level 0: No conditions met
+    // v1.4.0-beta: Show symbols grouped by progress level
+    // Level 3 (readyToBuy): Cond2 AND (Cond3 OR Cond4) met - EXECUTE BUY
+    // Level 2: Cond2 met - waiting for Cond3 OR Cond4 (parallel conditions)
+    // Level 1: Cond2 not met - waiting for Cond2 (MA99 deceleration)
+    // Level 0: Cond1 is TRUE - brake activated (locked out)
 
-    for (let level = 4; level >= 0; level--) {
+    for (let level = 3; level >= 0; level--) {
       const atLevel = withConditions.filter((obs) => obs.progress === level);
 
       if (atLevel.length > 0) {
