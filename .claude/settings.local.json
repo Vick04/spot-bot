@@ -116,7 +116,10 @@
       "Bash(ssh -o StrictHostKeyChecking=no root@139.59.114.2 'cd /opt/spot-bot && docker-compose down && docker-compose up -d --build')",
       "Bash(ssh -o StrictHostKeyChecking=no root@139.59.114.2 'cd /opt/spot-bot && docker-compose logs --tail=50 spot-bot')",
       "Bash(curl -s http://139.59.114.2:4444/)",
-      "Bash(ssh -o StrictHostKeyChecking=no root@139.59.114.2 'cd /opt/spot-bot && git pull origin main && docker-compose up -d --build')"
+      "Bash(ssh -o StrictHostKeyChecking=no root@139.59.114.2 'cd /opt/spot-bot && git pull origin main && docker-compose up -d --build')",
+      "Bash(curl -s http://localhost:4445/api/gainers)",
+      "Bash(curl -s \"http://localhost:4445/api/gainers?limit=1\")",
+      "Bash(npm start 2>&1 & *)"
     ]
   }
 }
