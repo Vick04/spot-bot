@@ -236,7 +236,7 @@ class GainersDashboard {
 
               <!-- Technical Details: Condition 3 Evaluation -->
               <div class="detail-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(160, 174, 192, 0.2); font-size: 10px; color: var(--text-secondary); font-weight: 600;">
-                <span>③ Candle Breakout + Bullish Confirmation:</span>
+                <span>③ Candle Breakout + Bullish (±1% tolerance):</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 4px;">
                 <span class="detail-label">BBUpper:</span>
@@ -251,8 +251,12 @@ class GainersDashboard {
                 <span class="detail-value" style="font-family: monospace; font-size: 10px;">$${bbLower.toFixed(8)}</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
-                <span class="detail-label">Pattern Logic:</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">(low &lt; MA20 ∧ high &gt; BBUpper) ∨ (low &lt; BBLower ∧ high &gt; MA20)</span>
+                <span class="detail-label">Pattern 1:</span>
+                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low &lt; MA20×1.01 ∧ high×0.99 &gt; BBUpper</span>
+              </div>
+              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px;">
+                <span class="detail-label">Pattern 2:</span>
+                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low &lt; BBLower×1.01 ∧ high &gt; MA20×0.99</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px;">
                 <span class="detail-label">Bullish Check:</span>
@@ -260,7 +264,7 @@ class GainersDashboard {
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
                 <span class="detail-label">Final:</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(72, 187, 120, 0.8); font-style: italic;">Pattern ∧ Bullish</span>
+                <span class="detail-value" style="font-size: 9px; color: rgba(72, 187, 120, 0.8); font-style: italic;">(P1 ∨ P2) ∧ Bullish</span>
               </div>
             </div>
           </div>
