@@ -415,15 +415,19 @@ class CryptoObserver {
     // ═════════════════════════════════════════════════════════════
     // CONDITION 3: Candle breakout pattern (PARALLEL with Cond4)
     // ═════════════════════════════════════════════════════════════
-    // TRUE when: (low < ma20 && high > bbUpper) || (low < bbLower && high > ma20)
+    // TRUE when: ((low < ma20 && high > bbUpper) || (low < bbLower && high > ma20)) AND (close > open)
+    // Requires: breakout pattern + bullish candle (price action)
     const currentCandle = this.buffer[this.buffer.length - 1];
     const low = currentCandle ? currentCandle.low : 0;
     const high = currentCandle ? currentCandle.high : 0;
+    const open = currentCandle ? currentCandle.open : 0;
+    const close = currentCandle ? currentCandle.close : 0;
     const bbLower = this.bbLower;
 
-    if (currentCandle && low > 0 && high > 0) {
+    if (currentCandle && low > 0 && high > 0 && open > 0 && close > 0) {
       const breakoutPattern = (low < ma20 && high > this.bbUpper) || (low < bbLower && high > ma20);
-      this._selectionState.cond3_candleBreakout = breakoutPattern;
+      const bullishCandle = close > open;
+      this._selectionState.cond3_candleBreakout = breakoutPattern && bullishCandle;
     } else {
       this._selectionState.cond3_candleBreakout = false;
     }
