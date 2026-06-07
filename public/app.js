@@ -138,16 +138,12 @@ class GainersDashboard {
         const bbUpper = gainer.bbUpper || 0;
         const bbLower = gainer.bbLower || 0;
 
-        // v1.4.0-beta: Buy signal conditions with parallel cond3 and cond4
+        // v1.4.0-beta: Buy signal conditions (sequential: 1 → 2 → 3)
         const cond1_ma99SafetyBrake = gainer.cond1_ma99SafetyBrake || false;
         const cond2_ma99Decelerate = gainer.cond2_ma99Decelerate || false;
         const cond3_candleBreakout = gainer.cond3_candleBreakout || false;
-        const cond4_ma20Uptrend = gainer.cond4_ma20Uptrend || false;
         const readyToBuy = gainer.readyToBuy || false;
         const canBuyUP = readyToBuy ? "✅" : "—";
-
-        // Parallel condition logic: readyToBuy = Cond1=FALSE AND Cond2=TRUE AND (Cond3 OR Cond4)
-        const cond3or4Met = cond3_candleBreakout || cond4_ma20Uptrend;
 
         // Ready to buy timing
         const readyToBuyTime = gainer.readyToBuyTime;
@@ -196,24 +192,22 @@ class GainersDashboard {
               </div>
             </div>
 
-            <!-- v1.4.0-beta: Buy Signal Conditions (3 & 4 PARALLEL) -->
+            <!-- v1.4.0-beta: Buy Signal Conditions (Sequential: 1 → 2 → 3) -->
             <div style="margin-bottom: 8px; padding: 8px; background-color: ${cond1_ma99SafetyBrake ? 'rgba(245, 101, 101, 0.1)' : (readyToBuy ? 'rgba(34, 197, 94, 0.15)' : 'rgba(76, 175, 80, 0.05)')}; border-radius: 6px;">
               <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">Buy Signal ${cond1_ma99SafetyBrake ? '🔴 BRAKE ON' : '🟢 Ready'}:</div>
               <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${cond1_ma99SafetyBrake ? 'rgba(245, 101, 101, 0.4)' : 'rgba(72, 187, 120, 0.4)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${cond1_ma99SafetyBrake ? 'var(--danger)' : 'var(--success)'}; text-align: center;"><span>${cond1_ma99SafetyBrake ? '① BRAKE' : '① OK'}</span></div>
                 <div style="width: 8px; height: 2px; background-color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
                 <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>② Decel</span></div>
-                <!-- PARALLEL: Conditions 3 and 4 with OR logic -->
                 <div style="width: 8px; height: 2px; background-color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond3_candleBreakout ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond3_candleBreakout ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center; position: relative;"><span>③ Break</span><span style="position: absolute; top: -8px; font-size: 7px; color: rgba(72, 187, 120, 0.6);">OR</span></div>
-                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond4_ma20Uptrend ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond4_ma20Uptrend ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>④ Up</span></div>
+                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond3_candleBreakout ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond3_candleBreakout ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>③ Break</span></div>
               </div>
             </div>
 
             <div class="gainer-details">
               <div class="detail-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
                 <span class="detail-label">Buy Conditions (v1.4.0-beta):</span>
-                <span class="detail-value" style="font-size: 9px; color: var(--text-secondary);">(Cond 3 & 4 PARALLEL)</span>
+                <span class="detail-value" style="font-size: 9px; color: var(--text-secondary);">Sequential: ① → ② → ③</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
                 <span class="detail-label">① Safety Brake (MA99 Down):</span>
@@ -223,17 +217,9 @@ class GainersDashboard {
                 <span class="detail-label">② MA99 Decelerate:</span>
                 <span class="detail-value condition-step ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate ? 'step-met' : 'step-pending'}">${!cond1_ma99SafetyBrake && cond2_ma99Decelerate ? '✓' : '✗'}</span>
               </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px; font-style: italic;">
-                <span class="detail-label" style="color: rgba(72, 187, 120, 0.7);">-- PARALLEL --</span>
-                <span class="detail-value"></span>
-              </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
                 <span class="detail-label">③ Candle Breakout:</span>
                 <span class="detail-value condition-step ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond3_candleBreakout ? 'step-met' : 'step-pending'}">${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond3_candleBreakout ? '✓' : '✗'}</span>
-              </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">④ MA20 Uptrend:</span>
-                <span class="detail-value condition-step ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond4_ma20Uptrend ? 'step-met' : 'step-pending'}">${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond4_ma20Uptrend ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
                 <span class="detail-label" style="font-weight: 700; color: ${readyToBuy ? 'var(--success)' : 'var(--text-secondary)'};">READY TO BUY:</span>

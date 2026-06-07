@@ -429,11 +429,10 @@ class GainersManager extends EventEmitter {
         buyRatio: observer.buyRatio,
         avgBuyRatio: observer.avgBuyRatio,
         isBuyingPressure: observer.isBuyingPressure(),
-        // v1.4.0-beta: Conditions 3 and 4 are parallel (OR logic)
+        // v1.4.0-beta: Three sequential conditions with safety brake
         cond1_ma99SafetyBrake: conditions.cond1_ma99SafetyBrake,
         cond2_ma99Decelerate: conditions.cond2_ma99Decelerate,
         cond3_candleBreakout: conditions.cond3_candleBreakout,
-        cond4_ma20Uptrend: conditions.cond4_ma20Uptrend,
         readyToBuy: conditions.readyToBuy,
         // Ready to buy timing (for UI display)
         readyToBuyTime: conditions.readyToBuyTime,
@@ -441,17 +440,17 @@ class GainersManager extends EventEmitter {
         // Calculate progress (which condition is furthest reached)
         // If cond1 (brake) is TRUE, progress = 0 (locked out)
         // If cond2 is FALSE, progress = 1 (waiting for cond2)
-        // If cond2 is TRUE but neither cond3 nor cond4, progress = 2 (waiting for cond3 OR cond4)
-        // If cond2 AND (cond3 OR cond4), progress = 3 (readyToBuy)
+        // If cond2 is TRUE but cond3 is FALSE, progress = 2 (waiting for cond3)
+        // If cond2 AND cond3, progress = 3 (readyToBuy)
         progress: conditions.cond1_ma99SafetyBrake ? 0 :
                   !conditions.cond2_ma99Decelerate ? 1 :
-                  !(conditions.cond3_candleBreakout || conditions.cond4_ma20Uptrend) ? 2 : 3,
+                  !conditions.cond3_candleBreakout ? 2 : 3,
       };
     });
 
     // v1.4.0-beta: Show symbols grouped by progress level
-    // Level 3 (readyToBuy): Cond2 AND (Cond3 OR Cond4) met - EXECUTE BUY
-    // Level 2: Cond2 met - waiting for Cond3 OR Cond4 (parallel conditions)
+    // Level 3 (readyToBuy): Cond2 AND Cond3 met - EXECUTE BUY
+    // Level 2: Cond2 met - waiting for Cond3 (Candle breakout + bullish)
     // Level 1: Cond2 not met - waiting for Cond2 (MA99 deceleration)
     // Level 0: Cond1 is TRUE - brake activated (locked out)
 

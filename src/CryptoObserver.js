@@ -35,22 +35,19 @@ class CryptoObserver {
     this._loading = false;
 
     // Sequential state machine for buy signal (v1.4.0-beta)
-    // Conditions 1 and 2 are sequential, then 3 and 4 are parallel (OR logic)
     // Condition 1: MA99 safety check (BRAKE - TRUE = danger, resets all)
     //   If cond1 is TRUE (MA99 in strong downtrend) → all other conditions FALSE
-    //   If cond1 is FALSE (MA99 not downtrending) → allows conditions 2+ to flow
+    //   If cond1 is FALSE (MA99 not downtrending) → allows conditions 2 and 3 to flow
     // Condition 2: MA99 decelerating (can revert)
-    // Condition 3: Candle breakout pattern (can revert) - PARALLEL with Cond4
-    //   TRUE when: (low < ma20 && high > bbUpper) || (low < bbLower && high > ma20)
-    // Condition 4: MA20 strong uptrend (can revert) - PARALLEL with Cond3
-    // readyToBuy: Cond1=FALSE AND Cond2=TRUE AND (Cond3=TRUE OR Cond4=TRUE)
+    // Condition 3: Candle breakout + bullish confirmation (can revert)
+    //   TRUE when: ((low < ma20 && high > bbUpper) || (low < bbLower && high > ma20)) AND (close > open)
+    // readyToBuy: Cond1=FALSE AND Cond2=TRUE AND Cond3=TRUE (sequential)
     this._selectionState = {
       cond1_ma99SafetyBrake: false,    // 1) TRUE if MA99 Slope < -0.02 AND Accel < 0 (BRAKE condition)
       cond2_ma99Decelerate: false,     // 2) MA99 Slope < 0 AND Accel > 0.008 (can revert)
-      cond3_candleBreakout: false,     // 3) Candle breakout: (low < ma20 && high > bbUpper) || (low < bbLower && high > ma20)
-      cond4_ma20Uptrend: false,        // 4) MA20 Slope > 0.18 AND Accel > -0.08 (can revert)
+      cond3_candleBreakout: false,     // 3) Candle breakout + bullish: ((low < ma20 && high > bbUpper) || (low < bbLower && high > ma20)) AND (close > open)
       // Derived state
-      readyToBuy: false,               // Cond1=FALSE + Cond2=TRUE + (Cond3=TRUE OR Cond4=TRUE) = ready to buy
+      readyToBuy: false,               // Cond1=FALSE AND Cond2=TRUE AND Cond3=TRUE = ready to buy
       readyToBuyTimestamp: null,       // Timestamp when readyToBuy becomes TRUE
     };
   }
@@ -387,12 +384,11 @@ class CryptoObserver {
     if (this._selectionState.cond1_ma99SafetyBrake) {
       this._selectionState.cond2_ma99Decelerate = false;
       this._selectionState.cond3_candleBreakout = false;
-      this._selectionState.cond4_ma20Uptrend = false;
       this._selectionState.readyToBuy = false;
       return;
     }
 
-    // BRAKE is released (condition 1 is FALSE), proceed with conditions 2+
+    // BRAKE is released (condition 1 is FALSE), proceed with conditions 2 and 3
 
     // ═════════════════════════════════════════════════════════════
     // CONDITION 2: MA99 decelerating (can revert)
@@ -404,16 +400,15 @@ class CryptoObserver {
       this._selectionState.cond2_ma99Decelerate = true;
     }
 
-    // If condition 2 not met, reset conditions 3 and 4, and readyToBuy
+    // If condition 2 not met, reset condition 3 and readyToBuy
     if (!this._selectionState.cond2_ma99Decelerate) {
       this._selectionState.cond3_candleBreakout = false;
-      this._selectionState.cond4_ma20Uptrend = false;
       this._selectionState.readyToBuy = false;
       return;
     }
 
     // ═════════════════════════════════════════════════════════════
-    // CONDITION 3: Candle breakout pattern (PARALLEL with Cond4)
+    // CONDITION 3: Candle breakout pattern + bullish confirmation
     // ═════════════════════════════════════════════════════════════
     // TRUE when: ((low < ma20 && high > bbUpper) || (low < bbLower && high > ma20)) AND (close > open)
     // Requires: breakout pattern + bullish candle (price action)
@@ -433,26 +428,16 @@ class CryptoObserver {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // CONDITION 4: MA20 strong uptrend (PARALLEL with Cond3)
-    // ═════════════════════════════════════════════════════════════
-    if (ma20Mom && ma20Mom.slope > 0.18 && ma20Mom.accel > -0.08) {
-      this._selectionState.cond4_ma20Uptrend = true;
-    } else {
-      this._selectionState.cond4_ma20Uptrend = false;
-    }
-
-    // ═════════════════════════════════════════════════════════════
     // FINAL: Ready to buy - STICKY with Safety Brake as Circuit Breaker
     // Note: Condition 1 is a BRAKE - must be FALSE to proceed
     // Once readyToBuy becomes TRUE, it stays TRUE (sticky state)
     // UNLESS: Condition 1 activates (Safety Brake) → readyToBuy resets to FALSE
-    // Logic: Cond1=FALSE AND Cond2=TRUE AND (Cond3=TRUE OR Cond4=TRUE)
+    // Logic: Cond1=FALSE AND Cond2=TRUE AND Cond3=TRUE (sequential)
     // ═════════════════════════════════════════════════════════════
-    const cond3or4Met = this._selectionState.cond3_candleBreakout || this._selectionState.cond4_ma20Uptrend;
     const shouldBeReady =
       !this._selectionState.cond1_ma99SafetyBrake &&
       this._selectionState.cond2_ma99Decelerate &&
-      cond3or4Met;
+      this._selectionState.cond3_candleBreakout;
 
     // CIRCUIT BREAKER: If Safety Brake activates while readyToBuy is TRUE, reset it
     if (this._selectionState.readyToBuy && this._selectionState.cond1_ma99SafetyBrake) {
@@ -780,11 +765,10 @@ class CryptoObserver {
    */
   getConditions() {
     return {
-      // v1.4.0-beta: Conditions 3 and 4 are parallel (OR logic)
+      // v1.4.0-beta: Three sequential conditions with safety brake
       cond1_ma99SafetyBrake: this._selectionState.cond1_ma99SafetyBrake,
       cond2_ma99Decelerate: this._selectionState.cond2_ma99Decelerate,
       cond3_candleBreakout: this._selectionState.cond3_candleBreakout,
-      cond4_ma20Uptrend: this._selectionState.cond4_ma20Uptrend,
       readyToBuy: this._selectionState.readyToBuy,
 
       // Technical indicators (for reference)
