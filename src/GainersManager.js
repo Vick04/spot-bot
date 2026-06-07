@@ -429,32 +429,28 @@ class GainersManager extends EventEmitter {
         buyRatio: observer.buyRatio,
         avgBuyRatio: observer.avgBuyRatio,
         isBuyingPressure: observer.isBuyingPressure(),
-        // v1.4.0-beta: Three sequential conditions with safety brake
+        // v1.4.0-beta: Two sequential conditions (Safety Brake + Candle Breakout)
         cond1_ma99SafetyBrake: conditions.cond1_ma99SafetyBrake,
-        cond2_ma99Decelerate: conditions.cond2_ma99Decelerate,
-        cond3_candleBreakout: conditions.cond3_candleBreakout,
+        cond2_candleBreakout: conditions.cond2_candleBreakout,
         readyToBuy: conditions.readyToBuy,
         // Ready to buy timing (for UI display)
         readyToBuyTime: conditions.readyToBuyTime,
         readyToBuyMinutesElapsed: conditions.readyToBuyMinutesElapsed,
         // Calculate progress (which condition is furthest reached)
         // If cond1 (brake) is TRUE, progress = 0 (locked out)
-        // If cond2 is FALSE, progress = 1 (waiting for cond2)
-        // If cond2 is TRUE but cond3 is FALSE, progress = 2 (waiting for cond3)
-        // If cond2 AND cond3, progress = 3 (readyToBuy)
+        // If cond2 is FALSE, progress = 1 (waiting for cond2 breakout)
+        // If cond2 is TRUE, progress = 2 (readyToBuy)
         progress: conditions.cond1_ma99SafetyBrake ? 0 :
-                  !conditions.cond2_ma99Decelerate ? 1 :
-                  !conditions.cond3_candleBreakout ? 2 : 3,
+                  !conditions.cond2_candleBreakout ? 1 : 2,
       };
     });
 
     // v1.4.0-beta: Show symbols grouped by progress level
-    // Level 3 (readyToBuy): Cond2 AND Cond3 met - EXECUTE BUY
-    // Level 2: Cond2 met - waiting for Cond3 (Candle breakout + bullish)
-    // Level 1: Cond2 not met - waiting for Cond2 (MA99 deceleration)
+    // Level 2 (readyToBuy): Cond2 met - EXECUTE BUY (Candle breakout + bullish)
+    // Level 1: Cond2 not met - waiting for Cond2 (Candle breakout + bullish)
     // Level 0: Cond1 is TRUE - brake activated (locked out)
 
-    for (let level = 3; level >= 0; level--) {
+    for (let level = 2; level >= 0; level--) {
       const atLevel = withConditions.filter((obs) => obs.progress === level);
 
       if (atLevel.length > 0) {

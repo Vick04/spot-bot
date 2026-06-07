@@ -138,10 +138,9 @@ class GainersDashboard {
         const bbUpper = gainer.bbUpper || 0;
         const bbLower = gainer.bbLower || 0;
 
-        // v1.4.0-beta: Buy signal conditions (sequential: 1 → 2 → 3)
+        // v1.4.0-beta: Buy signal conditions (sequential: 1 → 2)
         const cond1_ma99SafetyBrake = gainer.cond1_ma99SafetyBrake || false;
-        const cond2_ma99Decelerate = gainer.cond2_ma99Decelerate || false;
-        const cond3_candleBreakout = gainer.cond3_candleBreakout || false;
+        const cond2_candleBreakout = gainer.cond2_candleBreakout || false;
         const readyToBuy = gainer.readyToBuy || false;
         const canBuyUP = readyToBuy ? "✅" : "—";
 
@@ -192,34 +191,28 @@ class GainersDashboard {
               </div>
             </div>
 
-            <!-- v1.4.0-beta: Buy Signal Conditions (Sequential: 1 → 2 → 3) -->
+            <!-- v1.4.0-beta: Buy Signal Conditions (Sequential: 1 → 2) -->
             <div style="margin-bottom: 8px; padding: 8px; background-color: ${cond1_ma99SafetyBrake ? 'rgba(245, 101, 101, 0.1)' : (readyToBuy ? 'rgba(34, 197, 94, 0.15)' : 'rgba(76, 175, 80, 0.05)')}; border-radius: 6px;">
               <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">Buy Signal ${cond1_ma99SafetyBrake ? '🔴 BRAKE ON' : '🟢 Ready'}:</div>
               <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${cond1_ma99SafetyBrake ? 'rgba(245, 101, 101, 0.4)' : 'rgba(72, 187, 120, 0.4)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${cond1_ma99SafetyBrake ? 'var(--danger)' : 'var(--success)'}; text-align: center;"><span>${cond1_ma99SafetyBrake ? '① BRAKE' : '① OK'}</span></div>
-                <div style="width: 8px; height: 2px; background-color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>② Decel</span></div>
-                <div style="width: 8px; height: 2px; background-color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond3_candleBreakout ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond3_candleBreakout ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>③ Break</span></div>
+                <div style="width: 8px; height: 2px; background-color: ${!cond1_ma99SafetyBrake && cond2_candleBreakout ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
+                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${!cond1_ma99SafetyBrake && cond2_candleBreakout ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${!cond1_ma99SafetyBrake && cond2_candleBreakout ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>② Break</span></div>
               </div>
             </div>
 
             <div class="gainer-details">
               <div class="detail-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
                 <span class="detail-label">Buy Conditions (v1.4.0-beta):</span>
-                <span class="detail-value" style="font-size: 9px; color: var(--text-secondary);">Sequential: ① → ② → ③</span>
+                <span class="detail-value" style="font-size: 9px; color: var(--text-secondary);">Sequential: ① → ②</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
                 <span class="detail-label">① Safety Brake (MA99 Down):</span>
                 <span class="detail-value condition-step" style="background-color: ${cond1_ma99SafetyBrake ? 'rgba(245, 101, 101, 0.3)' : 'rgba(72, 187, 120, 0.2)'}; color: ${cond1_ma99SafetyBrake ? 'var(--danger)' : 'var(--success)'};">${cond1_ma99SafetyBrake ? '🔴 ON' : '✅ OFF'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">② MA99 Decelerate:</span>
-                <span class="detail-value condition-step ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate ? 'step-met' : 'step-pending'}">${!cond1_ma99SafetyBrake && cond2_ma99Decelerate ? '✓' : '✗'}</span>
-              </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">③ Candle Breakout:</span>
-                <span class="detail-value condition-step ${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond3_candleBreakout ? 'step-met' : 'step-pending'}">${!cond1_ma99SafetyBrake && cond2_ma99Decelerate && cond3_candleBreakout ? '✓' : '✗'}</span>
+                <span class="detail-label">② Candle Breakout:</span>
+                <span class="detail-value condition-step ${!cond1_ma99SafetyBrake && cond2_candleBreakout ? 'step-met' : 'step-pending'}">${!cond1_ma99SafetyBrake && cond2_candleBreakout ? '✓' : '✗'}</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
                 <span class="detail-label" style="font-weight: 700; color: ${readyToBuy ? 'var(--success)' : 'var(--text-secondary)'};">READY TO BUY:</span>
@@ -234,9 +227,9 @@ class GainersDashboard {
                 <span class="detail-value condition-step" style="background-color: rgba(34, 197, 94, 0.1); color: ${readyToBuyMinutes !== null ? 'var(--success)' : 'var(--text-secondary)'};">${readyToBuyMinutesDisplay}</span>
               </div>
 
-              <!-- Technical Details: Condition 3 Evaluation -->
+              <!-- Technical Details: Condition 2 Evaluation -->
               <div class="detail-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(160, 174, 192, 0.2); font-size: 10px; color: var(--text-secondary); font-weight: 600;">
-                <span>③ Candle Breakout + Bullish (±1% tolerance):</span>
+                <span>② Candle Breakout + Bullish (±0.05% precision):</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 4px;">
                 <span class="detail-label">BBUpper:</span>
@@ -251,19 +244,19 @@ class GainersDashboard {
                 <span class="detail-value" style="font-family: monospace; font-size: 10px;">$${bbLower.toFixed(8)}</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
-                <span class="detail-label">Pattern 1:</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low &lt; MA20×1.01 ∧ high×0.99 &gt; BBUpper</span>
+                <span class="detail-label">P1 (MA20 Bridge):</span>
+                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low &lt; MA20×1.0005 ∧ high×0.9995 &gt; BBUpper</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px;">
-                <span class="detail-label">Pattern 2:</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low &lt; BBLower×1.01 ∧ high &gt; MA20×0.99</span>
+                <span class="detail-label">P2 (BBLower Bridge):</span>
+                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low &lt; BBLower×1.0005 ∧ high &gt; MA20×0.9995</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px;">
-                <span class="detail-label">Bullish Check:</span>
+                <span class="detail-label">Bullish:</span>
                 <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">close &gt; open</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
-                <span class="detail-label">Final:</span>
+                <span class="detail-label">Result:</span>
                 <span class="detail-value" style="font-size: 9px; color: rgba(72, 187, 120, 0.8); font-style: italic;">(P1 ∨ P2) ∧ Bullish</span>
               </div>
             </div>
