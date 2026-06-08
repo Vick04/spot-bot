@@ -39,8 +39,8 @@ class CryptoObserver {
     //   If cond1 is TRUE (BBUpper < MA99) → allows condition 2 to flow (price is safe)
     //   If cond1 is FALSE (BBUpper >= MA99) → blocks all trading (price too high relative to MA99)
     // Condition 2: Candle breakout + bullish confirmation (can revert)
-    //   TRUE when: ((low < ma20*1.0001 && high*0.9999 > bbUpper) || (low < bbLower*1.0001 && high > ma20*0.9999)) AND (close > open)
-    //   Tolerance: ±0.01% margin on price levels (ultra-high precision)
+    //   TRUE when: ((low < ma20 && high > bbUpper) || (low < bbLower && high > ma20)) AND (close > open)
+    //   Requires: Pure breakout pattern without tolerance margins
     // readyToBuy: Cond1=TRUE AND Cond2=TRUE
     this._selectionState = {
       cond1_bbUpperBelowMa99: false,   // 1) TRUE if BBUpper < MA99 (price level gate - required to proceed)
@@ -396,9 +396,8 @@ class CryptoObserver {
     // ═════════════════════════════════════════════════════════════
     // CONDITION 2: Candle breakout pattern + bullish confirmation
     // ═════════════════════════════════════════════════════════════
-    // TRUE when: ((low < ma20*1.0001 && high*0.9999 > bbUpper) || (low < bbLower*1.0001 && high > ma20*0.9999)) AND (close > open)
-    // Requires: breakout pattern with ultra-high precision tolerance + bullish candle (price action)
-    // Tolerance: ±0.01% margin on price levels (ultra-high precision matching)
+    // TRUE when: ((low < ma20 && high > bbUpper) || (low < bbLower && high > ma20)) AND (close > open)
+    // Requires: breakout pattern + bullish candle (price action)
     const currentCandle = this.buffer[this.buffer.length - 1];
     const low = currentCandle ? currentCandle.low : 0;
     const high = currentCandle ? currentCandle.high : 0;
@@ -407,11 +406,11 @@ class CryptoObserver {
     const bbLower = this.bbLower;
 
     if (currentCandle && low > 0 && high > 0 && open > 0 && close > 0) {
-      // Pattern 1: low touches MA20 (with +0.01% tolerance) AND high touches BBUpper (with -0.01% tolerance)
-      const pattern1 = (low < ma20 * 1.0001) && (high * 0.9999 > this.bbUpper);
+      // Pattern 1: low < MA20 AND high > BBUpper
+      const pattern1 = (low < ma20) && (high > this.bbUpper);
 
-      // Pattern 2: low touches BBLower (with +0.01% tolerance) AND high touches MA20 (with -0.01% tolerance)
-      const pattern2 = (low < bbLower * 1.0001) && (high > ma20 * 0.9999);
+      // Pattern 2: low < BBLower AND high > MA20
+      const pattern2 = (low < bbLower) && (high > ma20);
 
       const breakoutPattern = pattern1 || pattern2;
       const bullishCandle = close > open;
