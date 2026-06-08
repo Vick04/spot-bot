@@ -462,26 +462,26 @@ class GainersManager extends EventEmitter {
         buyRatio: observer.buyRatio,
         avgBuyRatio: observer.avgBuyRatio,
         isBuyingPressure: observer.isBuyingPressure(),
-        // v1.4.0-beta: Two sequential conditions (Safety Brake + Candle Breakout)
-        cond1_ma99SafetyBrake: conditions.cond1_ma99SafetyBrake,
+        // v1.4.0-beta: Two sequential conditions (Price Gate + Candle Breakout)
+        cond1_bbUpperBelowMa99: conditions.cond1_bbUpperBelowMa99,
         cond2_candleBreakout: conditions.cond2_candleBreakout,
         readyToBuy: conditions.readyToBuy,
         // Ready to buy timing (for UI display)
         readyToBuyTime: conditions.readyToBuyTime,
         readyToBuyMinutesElapsed: conditions.readyToBuyMinutesElapsed,
         // Calculate progress (which condition is furthest reached)
-        // If cond1 (brake) is TRUE, progress = 0 (locked out)
-        // If cond2 is FALSE, progress = 1 (waiting for cond2 breakout)
-        // If cond2 is TRUE, progress = 2 (readyToBuy)
-        progress: conditions.cond1_ma99SafetyBrake ? 0 :
+        // If cond1 is FALSE, progress = 0 (gate closed - price too high)
+        // If cond1 is TRUE but cond2 is FALSE, progress = 1 (waiting for breakout)
+        // If cond1 AND cond2 are TRUE, progress = 2 (readyToBuy)
+        progress: !conditions.cond1_bbUpperBelowMa99 ? 0 :
                   !conditions.cond2_candleBreakout ? 1 : 2,
       };
     });
 
     // v1.4.0-beta: Show symbols grouped by progress level
-    // Level 2 (readyToBuy): Cond2 met - EXECUTE BUY (Candle breakout + bullish)
-    // Level 1: Cond2 not met - waiting for Cond2 (Candle breakout + bullish)
-    // Level 0: Cond1 is TRUE - brake activated (locked out)
+    // Level 2 (readyToBuy): Cond1=TRUE AND Cond2=TRUE - EXECUTE BUY
+    // Level 1: Cond1=TRUE but Cond2=FALSE - waiting for Candle breakout
+    // Level 0: Cond1=FALSE - gate closed (price too high, blocked)
 
     for (let level = 2; level >= 0; level--) {
       const atLevel = withConditions.filter((obs) => obs.progress === level);
