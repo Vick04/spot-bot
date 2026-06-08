@@ -229,7 +229,7 @@ class GainersDashboard {
 
               <!-- Technical Details: Condition 2 Evaluation -->
               <div class="detail-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(160, 174, 192, 0.2); font-size: 10px; color: var(--text-secondary); font-weight: 600;">
-                <span>② Candle Breakout + Bullish (±0.05% precision):</span>
+                <span>② Candle Breakout + Bullish (±0.01% precision):</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 4px;">
                 <span class="detail-label">BBUpper:</span>
@@ -245,11 +245,11 @@ class GainersDashboard {
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
                 <span class="detail-label">P1 (MA20 Bridge):</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low &lt; MA20×1.0005 ∧ high×0.9995 &gt; BBUpper</span>
+                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low &lt; MA20×1.0001 ∧ high×0.9991 &gt; BBUpper</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px;">
                 <span class="detail-label">P2 (BBLower Bridge):</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low &lt; BBLower×1.0005 ∧ high &gt; MA20×0.9995</span>
+                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low &lt; BBLower×1.0001 ∧ high &gt; MA20×0.9991</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px;">
                 <span class="detail-label">Bullish:</span>
