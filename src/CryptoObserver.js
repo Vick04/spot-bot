@@ -39,7 +39,7 @@ class CryptoObserver {
     //   If cond1 is TRUE (MA99 in strong downtrend) → reset condition 2 and readyToBuy
     //   If cond1 is FALSE (MA99 not downtrending) → allows condition 2 to flow
     // Condition 2: Candle breakout + bullish confirmation (can revert)
-    //   TRUE when: ((low < ma20*1.0001 && high*0.9991 > bbUpper) || (low < bbLower*1.0001 && high > ma20*0.9991)) AND (close > open)
+    //   TRUE when: ((low < ma20*1.0001 && high*0.9999 > bbUpper) || (low < bbLower*1.0001 && high > ma20*0.9999)) AND (close > open)
     //   Tolerance: ±0.01% margin on price levels (ultra-high precision)
     // readyToBuy: Cond1=FALSE AND Cond2=TRUE
     this._selectionState = {
@@ -391,7 +391,7 @@ class CryptoObserver {
     // ═════════════════════════════════════════════════════════════
     // CONDITION 2: Candle breakout pattern + bullish confirmation
     // ═════════════════════════════════════════════════════════════
-    // TRUE when: ((low < ma20*1.0001 && high*0.9991 > bbUpper) || (low < bbLower*1.0001 && high > ma20*0.9991)) AND (close > open)
+    // TRUE when: ((low < ma20*1.0001 && high*0.9999 > bbUpper) || (low < bbLower*1.0001 && high > ma20*0.9999)) AND (close > open)
     // Requires: breakout pattern with ultra-high precision tolerance + bullish candle (price action)
     // Tolerance: ±0.01% margin on price levels (ultra-high precision matching)
     const currentCandle = this.buffer[this.buffer.length - 1];
@@ -403,10 +403,10 @@ class CryptoObserver {
 
     if (currentCandle && low > 0 && high > 0 && open > 0 && close > 0) {
       // Pattern 1: low touches MA20 (with +0.01% tolerance) AND high touches BBUpper (with -0.01% tolerance)
-      const pattern1 = (low < ma20 * 1.0001) && (high * 0.9991 > this.bbUpper);
+      const pattern1 = (low < ma20 * 1.0001) && (high * 0.9999 > this.bbUpper);
 
       // Pattern 2: low touches BBLower (with +0.01% tolerance) AND high touches MA20 (with -0.01% tolerance)
-      const pattern2 = (low < bbLower * 1.0001) && (high > ma20 * 0.9991);
+      const pattern2 = (low < bbLower * 1.0001) && (high > ma20 * 0.9999);
 
       const breakoutPattern = pattern1 || pattern2;
       const bullishCandle = close > open;
