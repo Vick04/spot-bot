@@ -8,6 +8,13 @@ class GainersDashboard {
     this.topGainers = [];
     this.lastUpdate = null;
     this.gainersManager = null; // Will reference backend manager data
+    this.symbolStats = {
+      totalAttempted: 0,
+      activeSymbols: 0,
+      discardedSymbols: 0,
+      blacklistedSymbols: 0,
+      failedSymbols: 0,
+    };
     this.tradingState = {
       balance: 0,
       activeCandleObserver: null,
@@ -66,6 +73,16 @@ class GainersDashboard {
   // ── Message Handling ────────────────────────────────────────────────
   handleMessage(message) {
     switch (message.type) {
+      case "welcome":
+        if (message.status && message.status.symbolStats) {
+          this.updateSymbolStats(message.status.symbolStats);
+        }
+        break;
+      case "manager-status":
+        if (message.status && message.status.symbolStats) {
+          this.updateSymbolStats(message.status.symbolStats);
+        }
+        break;
       case "gainers-update":
         this.updateGainers(message.gainers, message.timestamp);
         break;
@@ -87,6 +104,25 @@ class GainersDashboard {
   }
 
   // ── UI Updates ──────────────────────────────────────────────────────
+  updateSymbolStats(symbolStats) {
+    this.symbolStats = symbolStats;
+    console.log("[Dashboard] Symbol stats updated:", symbolStats);
+    this.renderSymbolStats();
+  }
+
+  renderSymbolStats() {
+    const { totalAttempted, activeSymbols, discardedSymbols, blacklistedSymbols, failedSymbols } = this.symbolStats;
+
+    const successRate = totalAttempted > 0 ? ((activeSymbols / totalAttempted) * 100).toFixed(1) : 0;
+
+    document.getElementById("statTotalAttempted").textContent = totalAttempted.toLocaleString();
+    document.getElementById("statActiveSymbols").textContent = activeSymbols.toLocaleString();
+    document.getElementById("statDiscardedSymbols").textContent = discardedSymbols.toLocaleString();
+    document.getElementById("statBlacklistedSymbols").textContent = blacklistedSymbols.toLocaleString();
+    document.getElementById("statFailedSymbols").textContent = failedSymbols.toLocaleString();
+    document.getElementById("statSuccessRate").textContent = `${successRate}%`;
+  }
+
   updateGainers(gainers, timestamp) {
     this.topGainers = gainers;
     this.lastUpdate = timestamp;

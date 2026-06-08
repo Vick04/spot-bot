@@ -1,6 +1,7 @@
 {
   "blacklist": [
-    "U",
+    "UUSDT",
+    "USD1USDT",
     "USDCUSDT",
     "BUSDUSDT",
     "TUSDUSDT",

@@ -31,6 +31,14 @@ class GainersManager extends EventEmitter {
     this._initialized = false;
     this._initializationPromise = null;
 
+    // Symbol statistics
+    this.symbolStats = {
+      totalAttempted: 0,      // Total symbols passed to initialize()
+      activeSymbols: 0,       // Successfully initialized
+      blacklistedSymbols: 0,  // Excluded by blacklist
+      failedSymbols: 0,       // Failed to initialize
+    };
+
     // Trading state
     this.tradingState = {
       balance: 10000, // Initial balance
@@ -77,17 +85,21 @@ class GainersManager extends EventEmitter {
 
     this._initializationPromise = (async () => {
       try {
+        // Track statistics
+        this.symbolStats.totalAttempted = symbols.length;
+
         // Filter out blacklisted symbols
         const filteredSymbols = symbols.filter((symbol) => {
           if (this._isBlacklisted(symbol)) {
             console.log(`[GainersManager] ⛔ Skipping blacklisted symbol: ${symbol}`);
+            this.symbolStats.blacklistedSymbols++;
             return false;
           }
           return true;
         });
 
         console.log(
-          `[GainersManager] Initializing ${filteredSymbols.length}/${symbols.length} symbols (${symbols.length - filteredSymbols.length} blacklisted)...`
+          `[GainersManager] Initializing ${filteredSymbols.length}/${symbols.length} symbols (${this.symbolStats.blacklistedSymbols} blacklisted)...`
         );
 
         // Create observers for each symbol
@@ -100,6 +112,7 @@ class GainersManager extends EventEmitter {
           } catch (error) {
             console.error(`[GainersManager] Failed to initialize ${symbol}:`, error.message);
             this.observers.delete(symbol); // Remove failed observer
+            this.symbolStats.failedSymbols++;
           }
         });
 
@@ -107,12 +120,18 @@ class GainersManager extends EventEmitter {
         await Promise.all(initPromises);
 
         const successCount = this.observers.size;
+        this.symbolStats.activeSymbols = successCount;
+
+        const discardedCount = this.symbolStats.blacklistedSymbols + this.symbolStats.failedSymbols;
         console.log(
-          `[GainersManager] ✅ Initialized ${successCount}/${symbols.length} symbols`
+          `[GainersManager] ✅ Initialized ${successCount}/${symbols.length} symbols (${discardedCount} discarded)`
         );
 
         this._initialized = true;
-        this.emit("initialized", { count: successCount });
+        this.emit("initialized", {
+          count: successCount,
+          stats: this.symbolStats
+        });
       } catch (error) {
         console.error("[GainersManager] Initialization failed:", error.message);
         throw error;
@@ -551,6 +570,13 @@ class GainersManager extends EventEmitter {
       totalSymbols: this.totalSymbols,
       readyCount: this.readyCount,
       isReady: this.isReady,
+      symbolStats: {
+        totalAttempted: this.symbolStats.totalAttempted,
+        activeSymbols: this.symbolStats.activeSymbols,
+        discardedSymbols: this.symbolStats.blacklistedSymbols + this.symbolStats.failedSymbols,
+        blacklistedSymbols: this.symbolStats.blacklistedSymbols,
+        failedSymbols: this.symbolStats.failedSymbols,
+      },
       topGainers: this.getTop1hGainers(30),
     };
   }
