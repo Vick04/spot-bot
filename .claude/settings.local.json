@@ -119,7 +119,8 @@
       "Bash(ssh -o StrictHostKeyChecking=no root@139.59.114.2 'cd /opt/spot-bot && git pull origin main && docker-compose up -d --build')",
       "Bash(curl -s http://localhost:4445/api/gainers)",
       "Bash(curl -s \"http://localhost:4445/api/gainers?limit=1\")",
-      "Bash(npm start 2>&1 & *)"
+      "Bash(npm start 2>&1 & *)",
+      "Bash(curl -s \"https://api.binance.com/api/v3/exchangeInfo\")"
     ]
   }
 }

@@ -176,28 +176,33 @@ async function fetch24hTicker() {
 }
 
 /**
- * Fetch exchange info to get symbol listing dates
- * @returns {Promise<Map<string, number>>} Map of symbol to listingDate timestamp
+ * Fetch exchange info and check for restricted/under-review symbols
+ * @returns {Promise<Map<string, Object>>} Map of symbol to restrictions info
  */
-async function getSymbolListingDates() {
+async function getSymbolRestrictions() {
   try {
     const response = await retryRequest(async () => {
       return await binanceClient.get("/api/v3/exchangeInfo");
     });
 
-    const listingDates = new Map();
+    const restrictions = new Map();
     if (response.data.symbols) {
       response.data.symbols.forEach((symbol) => {
-        // Binance returns a numeric timestamp for when symbol was listed
-        // Use it to filter out recently listed symbols
-        if (symbol.symbol && symbol.icebergAllowed !== undefined) {
-          listingDates.set(symbol.symbol, symbol.icebergAllowed ? -1 : -1);
-        }
+        if (!symbol.symbol) return;
+
+        restrictions.set(symbol.symbol, {
+          status: symbol.status,
+          isSpotTradingAllowed: symbol.isSpotTradingAllowed !== false,
+          icebergAllowed: symbol.icebergAllowed !== false,
+          ocoAllowed: symbol.ocoAllowed !== false,
+          restrictions: symbol.restrictions ? symbol.restrictions.length : 0,
+          underReview: symbol.status !== "TRADING" || !symbol.isSpotTradingAllowed,
+        });
       });
     }
-    return listingDates;
+    return restrictions;
   } catch (error) {
-    console.warn("[BinanceAPI] Could not fetch exchange info, skipping listing date filter:", error.message);
+    console.warn("[BinanceAPI] Could not fetch exchange info, skipping restriction filter:", error.message);
     return new Map();
   }
 }
@@ -223,22 +228,9 @@ async function getAvailableSymbols(minVolume = 10000, minListingAgeDays = 30) {
       return await binanceClient.get("/api/v3/ticker/24hr");
     });
 
-    // Get exchange info for listing dates to filter recently listed symbols
-    console.log("[BinanceAPI] Fetching exchange info to filter recently listed symbols...");
-    const exchangeInfo = await retryRequest(async () => {
-      return await binanceClient.get("/api/v3/exchangeInfo");
-    });
-
-    // Create a map of symbol to listing date
-    const symbolInfo = new Map();
-    if (exchangeInfo.data.symbols) {
-      exchangeInfo.data.symbols.forEach((sym) => {
-        symbolInfo.set(sym.symbol, {
-          status: sym.status, // TRADING, BREAK, etc.
-          icebergAllowed: sym.icebergAllowed,
-        });
-      });
-    }
+    // Get exchange info to filter restricted symbols
+    console.log("[BinanceAPI] Fetching exchange info to filter restricted/under-review symbols...");
+    const symbolRestrictions = await getSymbolRestrictions();
 
     const now = Date.now();
     const minListingAgeMs = minListingAgeDays * 24 * 60 * 60 * 1000;
@@ -271,11 +263,24 @@ async function getAvailableSymbols(minVolume = 10000, minListingAgeDays = 30) {
           return false;
         }
 
-        // Check symbol status if available (exclude HALT, PAUSE, etc)
-        const info = symbolInfo.get(ticker.symbol);
-        if (info && info.status !== "TRADING") {
-          console.log(`[BinanceAPI] Excluding ${ticker.symbol} - Status not TRADING: ${info.status}`);
-          return false;
+        // Check symbol restrictions (CRITICAL: Status not TRADING or Spot trading disabled)
+        const restrictions = symbolRestrictions.get(ticker.symbol);
+        if (restrictions) {
+          // CRITICAL: Block symbols not in TRADING status or with spot trading disabled
+          if (!restrictions.isSpotTradingAllowed) {
+            console.log(`[BinanceAPI] Excluding ${ticker.symbol} - Spot trading DISABLED (under review/restricted)`);
+            return false;
+          }
+
+          if (restrictions.underReview) {
+            console.log(`[BinanceAPI] Excluding ${ticker.symbol} - Status: ${restrictions.status} (under review)`);
+            return false;
+          }
+
+          // WARNING: Log symbols with order restrictions (but don't exclude)
+          if (restrictions.restrictions > 0) {
+            console.log(`[BinanceAPI] ⚠️ WARNING: ${ticker.symbol} has ${restrictions.restrictions} restriction(s)`);
+          }
         }
 
         return true;
@@ -285,7 +290,7 @@ async function getAvailableSymbols(minVolume = 10000, minListingAgeDays = 30) {
 
     console.log(
       `[BinanceAPI] Found ${filtered.length} symbols with volume >= ${minVolume.toLocaleString()} ` +
-      `(excluded inactive, recently listed, and extremely volatile symbols)`
+      `(excluded: inactive, under-review, restricted, extremely volatile, low-volume)`
     );
 
     // Save to cache for reuse today
@@ -310,4 +315,5 @@ module.exports = {
   fetchKlines,
   fetch24hTicker,
   getAvailableSymbols,
+  getSymbolRestrictions,
 };
