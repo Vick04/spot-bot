@@ -478,22 +478,20 @@ class GainersManager extends EventEmitter {
       };
     });
 
-    // v1.4.0-beta: Show symbols grouped by progress level
-    // Level 2 (readyToBuy): Cond1=TRUE AND Cond2=TRUE - EXECUTE BUY
-    // Level 1: Cond1=TRUE but Cond2=FALSE - waiting for Candle breakout
-    // Level 0: Cond1=FALSE - gate closed (price too high, blocked)
+    // v1.4.0-beta: Filter readyToBuy symbols by elapsed time
+    // Only show symbols with readyToBuy=TRUE and elapsed < 5 minutes
+    // Sort by elapsed time ascending (smallest first - earliest activation)
 
-    for (let level = 2; level >= 0; level--) {
-      const atLevel = withConditions.filter((obs) => obs.progress === level);
+    const readySymbols = withConditions.filter((obs) =>
+      obs.readyToBuy &&
+      obs.readyToBuyMinutesElapsed !== null &&
+      obs.readyToBuyMinutesElapsed < 5
+    );
 
-      if (atLevel.length > 0) {
-        return atLevel
-          .sort((a, b) => b.price - a.price) // Sort by price descending (highest price first)
-          .slice(0, limit);
-      }
-    }
-
-    return []; // No symbols at any level
+    // Sort by elapsed time ascending (earliest first)
+    return readySymbols
+      .sort((a, b) => a.readyToBuyMinutesElapsed - b.readyToBuyMinutesElapsed)
+      .slice(0, limit);
   }
 
   /**
