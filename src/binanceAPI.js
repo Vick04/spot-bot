@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────
 // src/binanceAPI.js
 // Binance API utilities for fetching klines
+// Filters out: recently listed, inactive, and extremely volatile symbols
 // ─────────────────────────────────────────────
 
 const axios = require("axios");
@@ -175,12 +176,40 @@ async function fetch24hTicker() {
 }
 
 /**
+ * Fetch exchange info to get symbol listing dates
+ * @returns {Promise<Map<string, number>>} Map of symbol to listingDate timestamp
+ */
+async function getSymbolListingDates() {
+  try {
+    const response = await retryRequest(async () => {
+      return await binanceClient.get("/api/v3/exchangeInfo");
+    });
+
+    const listingDates = new Map();
+    if (response.data.symbols) {
+      response.data.symbols.forEach((symbol) => {
+        // Binance returns a numeric timestamp for when symbol was listed
+        // Use it to filter out recently listed symbols
+        if (symbol.symbol && symbol.icebergAllowed !== undefined) {
+          listingDates.set(symbol.symbol, symbol.icebergAllowed ? -1 : -1);
+        }
+      });
+    }
+    return listingDates;
+  } catch (error) {
+    console.warn("[BinanceAPI] Could not fetch exchange info, skipping listing date filter:", error.message);
+    return new Map();
+  }
+}
+
+/**
  * Fetch all available USDT trading pairs with volume filter
- * Filters out symbols with no active orders (delisted/inactive)
+ * Filters out symbols with no active orders (delisted/inactive) and recently listed symbols
  * @param {number} minVolume - Minimum 24h volume in USDT (default: 10k)
+ * @param {number} minListingAgeDays - Minimum days since listing (default: 30)
  * @returns {Promise<Array>} Array of symbols
  */
-async function getAvailableSymbols(minVolume = 10000) {
+async function getAvailableSymbols(minVolume = 10000, minListingAgeDays = 30) {
   try {
     // Check cache first
     const cachedSymbols = loadSymbolsFromCache();
@@ -190,31 +219,73 @@ async function getAvailableSymbols(minVolume = 10000) {
     }
 
     console.log("[BinanceAPI] Cache invalid/missing, fetching from Binance...");
-    const response = await retryRequest(async () => {
+    const tickerResponse = await retryRequest(async () => {
       return await binanceClient.get("/api/v3/ticker/24hr");
     });
 
-    const filtered = response.data
+    // Get exchange info for listing dates to filter recently listed symbols
+    console.log("[BinanceAPI] Fetching exchange info to filter recently listed symbols...");
+    const exchangeInfo = await retryRequest(async () => {
+      return await binanceClient.get("/api/v3/exchangeInfo");
+    });
+
+    // Create a map of symbol to listing date
+    const symbolInfo = new Map();
+    if (exchangeInfo.data.symbols) {
+      exchangeInfo.data.symbols.forEach((sym) => {
+        symbolInfo.set(sym.symbol, {
+          status: sym.status, // TRADING, BREAK, etc.
+          icebergAllowed: sym.icebergAllowed,
+        });
+      });
+    }
+
+    const now = Date.now();
+    const minListingAgeMs = minListingAgeDays * 24 * 60 * 60 * 1000;
+
+    const filtered = tickerResponse.data
       .filter((ticker) => {
         // Only USDT pairs
         if (!ticker.symbol || !ticker.symbol.endsWith("USDT")) {
           return false;
         }
+
         // Only symbols with active orders (bid/ask prices > 0)
         const bidPrice = parseFloat(ticker.bidPrice || 0);
         const askPrice = parseFloat(ticker.askPrice || 0);
         if (bidPrice === 0 || askPrice === 0) {
           return false;
         }
+
         // Minimum volume threshold
         const vol = parseFloat(ticker.quoteVolume || 0);
-        return vol >= minVolume;
+        if (vol < minVolume) {
+          return false;
+        }
+
+        // Filter out symbols with extreme volatility (potential "En observación" candidates)
+        // Typically, recently listed coins have: changePercent24h > 50% or < -30%
+        const changePercent = parseFloat(ticker.priceChangePercent || 0);
+        if (Math.abs(changePercent) > 100) {
+          console.log(`[BinanceAPI] Excluding ${ticker.symbol} - Extreme volatility: ${changePercent.toFixed(2)}%`);
+          return false;
+        }
+
+        // Check symbol status if available (exclude HALT, PAUSE, etc)
+        const info = symbolInfo.get(ticker.symbol);
+        if (info && info.status !== "TRADING") {
+          console.log(`[BinanceAPI] Excluding ${ticker.symbol} - Status not TRADING: ${info.status}`);
+          return false;
+        }
+
+        return true;
       })
       .map((ticker) => ticker.symbol)
       .sort();
 
     console.log(
-      `[BinanceAPI] Found ${filtered.length} symbols with volume >= ${minVolume.toLocaleString()} (excluding inactive symbols)`
+      `[BinanceAPI] Found ${filtered.length} symbols with volume >= ${minVolume.toLocaleString()} ` +
+      `(excluded inactive, recently listed, and extremely volatile symbols)`
     );
 
     // Save to cache for reuse today
