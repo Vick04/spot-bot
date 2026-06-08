@@ -373,7 +373,6 @@ class CryptoObserver {
     // Condition 1 acts as a GATE: TRUE only during strong uptrend
     // If TRUE (MA99 slope >= 0.02 AND accel >= 0) → strong uptrend, allows condition 2 to be evaluated
     // If FALSE (MA99 slope < 0.02 OR stable/downtrend) → blocks trading (no uptrend momentum)
-    const ma99Mom = this.getMa99Momentum();
 
     if (ma99Mom && ma99Mom.slope >= 0.02 && ma99Mom.accel >= 0) {
       // MA99 in strong uptrend = GATE OPENED (momentum is positive, allow evaluation)
