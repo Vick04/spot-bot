@@ -373,10 +373,10 @@ class CryptoObserver {
     // Condition 1 acts as a GATE: TRUE means price is safe (BBUpper below MA99)
     // If TRUE (BBUpper < MA99) → allows condition 2 to be evaluated (price is safe)
     // If FALSE (BBUpper >= MA99) → blocks trading (price too high)
-    const ma99 = this.ma99;
-    const bbUpper = this.bbUpper;
+    const bbUpper_cond1 = this.bbUpper;
+    const ma99_cond1 = this.ma99;
 
-    if (bbUpper > 0 && ma99 > 0 && bbUpper < ma99) {
+    if (bbUpper_cond1 > 0 && ma99_cond1 > 0 && bbUpper_cond1 < ma99_cond1) {
       // BBUpper below MA99 = GATE OPENED (price is safe, allow evaluation)
       this._selectionState.cond1_bbUpperBelowMa99 = true;
     } else {
