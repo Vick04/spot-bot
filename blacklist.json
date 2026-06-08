@@ -1,0 +1,30 @@
+{
+  "blacklist": [
+    "U",
+    "USDCUSDT",
+    "BUSDUSDT",
+    "TUSDUSDT",
+    "USDPUSDT",
+    "USTUSDT",
+    "FRAXUSDT",
+    "LUSDUSDT",
+    "GUSDUSDT",
+    "SUSDUSDT",
+    "DAIUSDT",
+    "EUSDUSDT",
+    "USDDUSDT",
+    "ALUSDUSDT",
+    "CUSDUSDT",
+    "MUSDUSDT",
+    "USDSUSDT",
+    "WBTCUSDT",
+    "WBNBUSDT",
+    "WETHUSDT",
+    "WBETHUSDT",
+    "BETHUSDT",
+    "STETHUSDT",
+    "RETHUSDT",
+    "EURSUSDT",
+    "GBPTUSDT"
+  ]
+}

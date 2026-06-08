@@ -4,11 +4,25 @@
 // ─────────────────────────────────────────────
 
 const { EventEmitter } = require("events");
+const fs = require("fs");
+const path = require("path");
 const CryptoObserver = require("./CryptoObserver");
 const OrderObserver = require("./OrderObserver");
 const { getAvailableSymbols } = require("./binanceAPI");
 
 const FEE = 0.001; // 0.1% fee
+
+// Load blacklist from file
+let BLACKLIST = [];
+try {
+  const blacklistPath = path.join(__dirname, "../blacklist.json");
+  const blacklistData = JSON.parse(fs.readFileSync(blacklistPath, "utf8"));
+  BLACKLIST = blacklistData.blacklist || [];
+  console.log(`[GainersManager] Loaded blacklist with ${BLACKLIST.length} symbols`);
+} catch (error) {
+  console.warn("[GainersManager] Could not load blacklist.json:", error.message);
+  BLACKLIST = [];
+}
 
 class GainersManager extends EventEmitter {
   constructor() {
@@ -38,6 +52,14 @@ class GainersManager extends EventEmitter {
   }
 
   /**
+   * Check if a symbol is in the blacklist
+   * @private
+   */
+  _isBlacklisted(symbol) {
+    return BLACKLIST.includes(symbol);
+  }
+
+  /**
    * Initialize manager with a list of symbols
    * Downloads initial 60 klines for each symbol in parallel
    *
@@ -55,10 +77,21 @@ class GainersManager extends EventEmitter {
 
     this._initializationPromise = (async () => {
       try {
-        console.log(`[GainersManager] Initializing ${symbols.length} symbols...`);
+        // Filter out blacklisted symbols
+        const filteredSymbols = symbols.filter((symbol) => {
+          if (this._isBlacklisted(symbol)) {
+            console.log(`[GainersManager] ⛔ Skipping blacklisted symbol: ${symbol}`);
+            return false;
+          }
+          return true;
+        });
+
+        console.log(
+          `[GainersManager] Initializing ${filteredSymbols.length}/${symbols.length} symbols (${symbols.length - filteredSymbols.length} blacklisted)...`
+        );
 
         // Create observers for each symbol
-        const initPromises = symbols.map(async (symbol) => {
+        const initPromises = filteredSymbols.map(async (symbol) => {
           const observer = new CryptoObserver(symbol);
           this.observers.set(symbol, observer);
 
