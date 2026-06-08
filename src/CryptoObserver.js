@@ -35,16 +35,16 @@ class CryptoObserver {
     this._loading = false;
 
     // Sequential state machine for buy signal (v1.4.0-beta)
-    // Condition 1: Price level gate (GATE - FALSE = blocked)
-    //   If cond1 is TRUE (BBUpper < MA99) → allows condition 2 to flow (price is safe)
-    //   If cond1 is FALSE (BBUpper >= MA99) → blocks all trading (price too high relative to MA99)
+    // Condition 1: MA99 momentum gate (GATE - TRUE only with strong uptrend)
+    //   If cond1 is TRUE (MA99 slope >= 0.02 AND positive accel) → strong uptrend, allows condition 2 to flow
+    //   If cond1 is FALSE (MA99 slope < 0.02 OR stable/downtrend) → blocks all trading (no uptrend momentum)
     // Condition 2: Candle breakout + bullish confirmation (can revert)
     //   TRUE when: ((low < ma20 && high > bbUpper) || (low < bbLower && high > ma20)) AND (close > open)
     //   Requires: Pure breakout pattern without tolerance margins
     // readyToBuy: Cond1=TRUE AND Cond2=TRUE
     this._selectionState = {
-      cond1_bbUpperBelowMa99: false,   // 1) TRUE if BBUpper < MA99 (price level gate - required to proceed)
-      cond2_candleBreakout: false,     // 2) Candle breakout + bullish with ±0.01% tolerance
+      cond1_ma99StrongUptrend: false,  // 1) TRUE if MA99 slope >= 0.02 AND accel >= 0 (strong uptrend gate - required to proceed)
+      cond2_candleBreakout: false,     // 2) Candle breakout + bullish
       // Derived state
       readyToBuy: false,               // Cond1=TRUE AND Cond2=TRUE = ready to buy
       readyToBuyTimestamp: null,       // Timestamp when readyToBuy becomes TRUE
@@ -368,24 +368,23 @@ class CryptoObserver {
     const ma20Mom = this.getMa20Momentum();
 
     // ═════════════════════════════════════════════════════════════
-    // CONDITION 1: Price Level Gate (BBUpper < MA99)
+    // CONDITION 1: MA99 Strong Uptrend Gate
     // ═════════════════════════════════════════════════════════════
-    // Condition 1 acts as a GATE: TRUE means price is safe (BBUpper below MA99)
-    // If TRUE (BBUpper < MA99) → allows condition 2 to be evaluated (price is safe)
-    // If FALSE (BBUpper >= MA99) → blocks trading (price too high)
-    const bbUpper_cond1 = this.bbUpper;
-    const ma99_cond1 = this.ma99;
+    // Condition 1 acts as a GATE: TRUE only during strong uptrend
+    // If TRUE (MA99 slope >= 0.02 AND accel >= 0) → strong uptrend, allows condition 2 to be evaluated
+    // If FALSE (MA99 slope < 0.02 OR stable/downtrend) → blocks trading (no uptrend momentum)
+    const ma99Mom = this.getMa99Momentum();
 
-    if (bbUpper_cond1 > 0 && ma99_cond1 > 0 && bbUpper_cond1 < ma99_cond1) {
-      // BBUpper below MA99 = GATE OPENED (price is safe, allow evaluation)
-      this._selectionState.cond1_bbUpperBelowMa99 = true;
+    if (ma99Mom && ma99Mom.slope >= 0.02 && ma99Mom.accel >= 0) {
+      // MA99 in strong uptrend = GATE OPENED (momentum is positive, allow evaluation)
+      this._selectionState.cond1_ma99StrongUptrend = true;
     } else {
-      // BBUpper at or above MA99 = GATE CLOSED (price too high, block trading)
-      this._selectionState.cond1_bbUpperBelowMa99 = false;
+      // MA99 stable or downtrend = GATE CLOSED (no uptrend momentum, block trading)
+      this._selectionState.cond1_ma99StrongUptrend = false;
     }
 
     // If condition 1 is FALSE (GATE closed), reset condition 2 and readyToBuy
-    if (!this._selectionState.cond1_bbUpperBelowMa99) {
+    if (!this._selectionState.cond1_ma99StrongUptrend) {
       this._selectionState.cond2_candleBreakout = false;
       this._selectionState.readyToBuy = false;
       return;
@@ -420,18 +419,18 @@ class CryptoObserver {
     }
 
     // ═════════════════════════════════════════════════════════════
-    // FINAL: Ready to buy - STICKY with Price Gate
-    // Note: Condition 1 is a GATE - must be TRUE to proceed
+    // FINAL: Ready to buy - STICKY with MA99 Uptrend Gate
+    // Note: Condition 1 is a GATE - must be TRUE (MA99 strong uptrend) to proceed
     // Once readyToBuy becomes TRUE, it stays TRUE (sticky state)
-    // UNLESS: Condition 1 closes (Gate closes) → readyToBuy resets to FALSE
+    // UNLESS: Condition 1 closes (uptrend ends) → readyToBuy resets to FALSE
     // Logic: Cond1=TRUE AND Cond2=TRUE (both required)
     // ═════════════════════════════════════════════════════════════
     const shouldBeReady =
-      this._selectionState.cond1_bbUpperBelowMa99 &&
+      this._selectionState.cond1_ma99StrongUptrend &&
       this._selectionState.cond2_candleBreakout;
 
     // GATE CLOSURE: If gate closes while readyToBuy is TRUE, reset it
-    if (this._selectionState.readyToBuy && !this._selectionState.cond1_bbUpperBelowMa99) {
+    if (this._selectionState.readyToBuy && !this._selectionState.cond1_ma99StrongUptrend) {
       this._selectionState.readyToBuy = false;
       this._selectionState.readyToBuyTimestamp = null;
     }
@@ -756,8 +755,8 @@ class CryptoObserver {
    */
   getConditions() {
     return {
-      // v1.4.0-beta: Two sequential conditions (Price Gate + Candle Breakout)
-      cond1_bbUpperBelowMa99: this._selectionState.cond1_bbUpperBelowMa99,
+      // v1.4.0-beta: Two sequential conditions (MA99 Uptrend Gate + Candle Breakout)
+      cond1_ma99StrongUptrend: this._selectionState.cond1_ma99StrongUptrend,
       cond2_candleBreakout: this._selectionState.cond2_candleBreakout,
       readyToBuy: this._selectionState.readyToBuy,
 
