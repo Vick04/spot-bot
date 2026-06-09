@@ -34,20 +34,40 @@ class CryptoObserver {
     this._initialized = false;
     this._loading = false;
 
-    // Sequential state machine for buy signal (v1.4.0-beta)
+    // Sequential state machine for buy signal (v1.5.0-beta)
     // Condition 1: MA99 momentum gate (GATE - TRUE only with strong uptrend)
     //   If cond1 is TRUE (MA99 slope >= 0.001 AND positive accel) → strong uptrend, allows condition 2 to flow
     //   If cond1 is FALSE (MA99 slope < 0.001 OR stable/downtrend) → blocks all trading (no uptrend momentum)
-    // Condition 2: Strong impulse candle (can revert)
-    //   TRUE when: (low === open) AND (close >= open * 1.008)
-    //   Requires: No lower wick + 0.8% minimum gain in single candle
+    // Condition 2: Real-time 1-second impulse detection (can revert)
+    //   Evaluates 1m candle opening at 1s resolution
+    //   TRUE when: (low === open of 1m) AND (close >= open × 1.008) during the 1m candle
+    //   Features: Sticky state (30s retention), observation cancellation, progressive tracking
     // readyToBuy: Cond1=TRUE AND Cond2=TRUE
     this._selectionState = {
       cond1_ma99StrongUptrend: false,  // 1) TRUE if MA99 slope >= 0.001 AND accel >= 0 (strong uptrend gate - required to proceed)
-      cond2_candleBreakout: false,     // 2) Candle breakout + bullish
+      cond2_candleBreakout: false,     // 2) Real-time 1s impulse detection with sticky state
       // Derived state
       readyToBuy: false,               // Cond1=TRUE AND Cond2=TRUE = ready to buy
       readyToBuyTimestamp: null,       // Timestamp when readyToBuy becomes TRUE
+    };
+
+    // Condition 2 real-time observation (v1.5.0-beta) - 1 second candle tracking
+    this._condition2OneSecState = {
+      // Tracking de vela 1m actual
+      currentMinuteOpenPrice: null,      // open[1m] que recordamos
+      oneMinuteStartTime: null,          // timestamp cuando inició el minuto actual
+
+      // Tracking de velas 1s
+      lastOneSecondClose: null,          // close[1s anterior]
+      oneSecondCount: 0,                 // contador 0-60 velas de 1s en este minuto
+
+      // Estado de observación
+      observationCancelled: false,       // se cancela si check A falla (precio bajó)
+
+      // Condition 2 sticky state
+      condition2IsTrue: false,           // valor actual TRUE/FALSE
+      stickyActivatedAt: null,           // timestamp cuando se activó el sticky
+      stickyDurationMs: 30000            // 30 segundos de retención
     };
   }
 
@@ -121,13 +141,23 @@ class CryptoObserver {
    * Add a new 1-minute candle to the buffer
    * Automatically maintains FIFO queue (max bufferSize candles)
    * Recalculates gainer
+   * Initializes 1-second observation for new 1m candle
    *
-   * @param {Object} candle - New candle data
+   * @param {Object} candle - New candle data {openTime, open, high, low, close, volume}
    */
   updateCandle(candle) {
     if (!this._initialized) {
       console.warn(`[CryptoObserver] ${this.symbol}: Candle received before initialization`);
       return;
+    }
+
+    // Detect if this is a NEW 1-minute candle (not an update to existing)
+    const isNewOneMinuteCandle = this.buffer.length > 0 &&
+      candle.openTime !== this.buffer[this.buffer.length - 1].openTime;
+
+    // If new 1m candle arrived, initialize 1-second observation
+    if (isNewOneMinuteCandle) {
+      this._initializeOneSecondObservation(candle.open);
     }
 
     // Remove oldest if buffer is full
@@ -146,6 +176,20 @@ class CryptoObserver {
 
     // Update sequential selection state machine
     this._updateSelectionState();
+  }
+
+  /**
+   * Process a 1-second candle for Condition 2 evaluation
+   * Called in real-time as 1-second candles arrive
+   * Does NOT modify 1m buffer, only evaluates Condition 2
+   *
+   * @param {Object} oneSecCandle - 1-second candle {openTime, open, high, low, close, volume}
+   */
+  updateOneSecondCandle(oneSecCandle) {
+    if (!this._initialized) {
+      return;
+    }
+    this._processOneSecondCandle(oneSecCandle);
   }
 
   /**
@@ -345,10 +389,104 @@ class CryptoObserver {
   }
 
   /**
-   * Update sequential buy signal state machine (v1.3.0)
-   * 4 sequential conditions for buy execution
-   * Each condition depends on previous being true
-   * Some conditions can revert to false if criteria no longer met
+   * Initialize observation of 1-second candles with new 1m candle
+   * Called when a new 1m candle arrives
+   * @param {number} openPrice - Open price of the new 1m candle
+   * @private
+   */
+  _initializeOneSecondObservation(openPrice) {
+    this._condition2OneSecState = {
+      currentMinuteOpenPrice: openPrice,
+      oneMinuteStartTime: Date.now(),
+      lastOneSecondClose: null,
+      oneSecondCount: 0,
+      observationCancelled: false,
+      condition2IsTrue: false,
+      stickyActivatedAt: null,
+      stickyDurationMs: 30000
+    };
+  }
+
+  /**
+   * Process a 1-second candle for Condition 2 evaluation
+   * Implements the real-time impulse detection logic
+   * @param {Object} oneSecCandle - One-second candle {open, high, low, close, volume}
+   * @private
+   */
+  _processOneSecondCandle(oneSecCandle) {
+    const state = this._condition2OneSecState;
+
+    // If in sticky state (30s retention), only update data without observing
+    if (state.condition2IsTrue && this._isStickyActive()) {
+      state.lastOneSecondClose = oneSecCandle.close;
+      state.oneSecondCount++;
+      return;
+    }
+
+    // If observation was cancelled, only update data
+    if (state.observationCancelled) {
+      state.lastOneSecondClose = oneSecCandle.close;
+      state.oneSecondCount++;
+      return;
+    }
+
+    // CHECK A: Verify price continuity (no drop below open[1m])
+    if (state.lastOneSecondClose !== null) {
+      if (state.lastOneSecondClose < state.currentMinuteOpenPrice) {
+        state.observationCancelled = true;
+        state.lastOneSecondClose = oneSecCandle.close;
+        state.oneSecondCount++;
+        return;
+      }
+    }
+
+    // CHECK B: Verify 0.8% gain if price stayed above open[1m]
+    const targetPrice = state.currentMinuteOpenPrice * 1.008;
+    if (oneSecCandle.close >= targetPrice) {
+      state.condition2IsTrue = true;
+      state.stickyActivatedAt = Date.now();
+    }
+
+    // Update tracking
+    state.lastOneSecondClose = oneSecCandle.close;
+    state.oneSecondCount++;
+
+    // CHECK C: End of minute (60 one-second candles)
+    // Will be handled when new 1m candle arrives via _initializeOneSecondObservation()
+  }
+
+  /**
+   * Check if sticky state (30s retention) is still active
+   * @returns {boolean} true if sticky is active, false if timer expired
+   * @private
+   */
+  _isStickyActive() {
+    const state = this._condition2OneSecState;
+    if (!state.stickyActivatedAt) return false;
+
+    const elapsed = Date.now() - state.stickyActivatedAt;
+    if (elapsed >= state.stickyDurationMs) {
+      // Timer expired, exit sticky state and resume observation
+      state.condition2IsTrue = false;
+      state.stickyActivatedAt = null;
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Get current Condition 2 value (from 1-second observation)
+   * @returns {boolean} true if 0.8% gain achieved and sticky not expired
+   */
+  getCondition2Value() {
+    return this._condition2OneSecState.condition2IsTrue;
+  }
+
+  /**
+   * Update sequential buy signal state machine (v1.5.0-beta)
+   * 2 sequential conditions for buy execution
+   * Condition 1: MA99 momentum gate
+   * Condition 2: Real-time 1s impulse detection with sticky state
    * @private
    */
   _updateSelectionState() {
@@ -392,23 +530,12 @@ class CryptoObserver {
     // GATE is open (condition 1 is TRUE), proceed with condition 2
 
     // ═════════════════════════════════════════════════════════════
-    // CONDITION 2: Strong Impulse Candle
+    // CONDITION 2: Real-time 1-second Impulse Detection (v1.5.0-beta)
     // ═════════════════════════════════════════════════════════════
-    // TRUE when: (low === open) AND (close >= open * 1.008)
-    // Requires: No lower wick (open = lowest point) + 0.8% minimum gain
-    const currentCandle = this.buffer[this.buffer.length - 1];
-    const low = currentCandle ? currentCandle.low : 0;
-    const open = currentCandle ? currentCandle.open : 0;
-    const close = currentCandle ? currentCandle.close : 0;
-
-    if (currentCandle && low > 0 && open > 0 && close > 0) {
-      // Strong impulse: No lower wick AND 0.8% gain in single candle
-      const noLowerWick = low === open;
-      const strongGain = close >= open * 1.008;
-      this._selectionState.cond2_candleBreakout = noLowerWick && strongGain;
-    } else {
-      this._selectionState.cond2_candleBreakout = false;
-    }
+    // Evaluated second-by-second via _processOneSecondCandle()
+    // TRUE when: (1s close >= 1m open AND close >= open × 1.008) + sticky 30s
+    // Updated in real-time, not on 1m candle boundaries
+    this._selectionState.cond2_candleBreakout = this.getCondition2Value();
 
     // ═════════════════════════════════════════════════════════════
     // FINAL: Ready to buy - STICKY with MA99 Uptrend Gate
