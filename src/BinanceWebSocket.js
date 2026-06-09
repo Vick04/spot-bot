@@ -21,16 +21,20 @@ class BinanceWebSocket extends EventEmitter {
 
   /**
    * Connect to Binance WebSocket and subscribe to symbols
+   * Subscribes to both 1m klines (for main analysis) and 1s klines (for Condition 2)
    * @param {Array<string>} symbols - Array of symbols to subscribe (e.g., ['BTCUSDT', 'ETHUSDT'])
    */
   async connect(symbols) {
     return new Promise((resolve, reject) => {
       try {
         // Build stream URL with all symbols
-        const streams = symbols.map((symbol) => `${symbol.toLowerCase()}@kline_1m`).join('/');
-        const wsUrl = `${BINANCE_WS_URL}?streams=${streams}`;
+        // Subscribe to both 1m (main) and 1s (Condition 2 real-time evaluation)
+        const streams1m = symbols.map((symbol) => `${symbol.toLowerCase()}@kline_1m`);
+        const streams1s = symbols.map((symbol) => `${symbol.toLowerCase()}@kline_1s`);
+        const allStreams = [...streams1m, ...streams1s].join('/');
+        const wsUrl = `${BINANCE_WS_URL}?streams=${allStreams}`;
 
-        console.log(`[BinanceWS] Connecting to Binance WebSocket with ${symbols.length} symbols...`);
+        console.log(`[BinanceWS] Connecting to Binance WebSocket with ${symbols.length} symbols (1m + 1s)...`);
 
         this.ws = new WebSocket(wsUrl);
 
@@ -38,7 +42,8 @@ class BinanceWebSocket extends EventEmitter {
           console.log("[BinanceWS] ✅ Connected");
           this._reconnectAttempts = 0;
           this.subscribedSymbols = new Set(symbols);
-          console.log(`[BinanceWS] Subscribed to ${symbols.length} symbols (via URL)`);
+          this.subscribedSymbols1s = new Set(symbols);
+          console.log(`[BinanceWS] Subscribed to ${symbols.length} symbols (1m + 1s klines)`);
           resolve();
         });
 

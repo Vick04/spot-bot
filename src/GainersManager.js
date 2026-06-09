@@ -194,6 +194,22 @@ class GainersManager extends EventEmitter {
   }
 
   /**
+   * Process a 1-second candle for Condition 2 real-time evaluation (v1.5.0-beta)
+   * Updates observer with sub-minute price data for impulse detection
+   * @param {string} symbol - Trading symbol
+   * @param {Object} candle1s - 1-second candle data
+   */
+  processOneSecondCandle(symbol, candle1s) {
+    const observer = this.observers.get(symbol);
+    if (!observer) {
+      return; // Observer doesn't exist yet or was removed
+    }
+
+    // Pass 1s candle to observer for Condition 2 evaluation
+    observer.updateOneSecondCandle(candle1s);
+  }
+
+  /**
    * Check if a symbol is in the current top 30 gainers
    * @private
    */

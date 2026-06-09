@@ -256,7 +256,18 @@ binanceWS.on("candle", (candle) => {
 
 // Listen to BinanceWebSocket 1-second candles for active order monitoring
 binanceWS.on("candle1s", (candle) => {
-  // Only process if there's an active order for this symbol
+  // Process 1-second candle for Condition 2 real-time evaluation (v1.5.0-beta)
+  // Pass to observer for sub-minute impulse detection
+  gainersManager.processOneSecondCandle(candle.symbol, {
+    openTime: candle.openTime,
+    open: candle.open,
+    high: candle.high,
+    low: candle.low,
+    close: candle.close,
+    volume: candle.volume,
+  });
+
+  // Only process for sell condition if there's an active order for this symbol
   if (gainersManager.tradingState.activeCandleObserver &&
       gainersManager.tradingState.activeCandleObserver.symbol === candle.symbol) {
     // Pass 1s candle to GainersManager for sell condition checking
