@@ -874,10 +874,22 @@ class CryptoObserver {
    */
   getConditions() {
     return {
-      // v1.4.0-beta: Two sequential conditions (MA99 Uptrend Gate + Candle Breakout)
+      // v1.5.0-beta: Two sequential conditions (MA99 Uptrend Gate + Real-time 1-second Impulse)
       cond1_ma99StrongUptrend: this._selectionState.cond1_ma99StrongUptrend,
       cond2_candleBreakout: this._selectionState.cond2_candleBreakout,
       readyToBuy: this._selectionState.readyToBuy,
+
+      // Condition 2 real-time 1-second observation state (v1.5.0-beta)
+      cond2_oneSecondState: {
+        currentMinuteOpenPrice: this._condition2OneSecState.currentMinuteOpenPrice,
+        observationCancelled: this._condition2OneSecState.observationCancelled,
+        oneSecondCount: this._condition2OneSecState.oneSecondCount,
+        sticky: this._condition2OneSecState.condition2IsTrue,
+        stickyElapsedMs: this._condition2OneSecState.stickyActivatedAt ?
+          Date.now() - this._condition2OneSecState.stickyActivatedAt : null,
+        stickyRemainingMs: this._condition2OneSecState.stickyActivatedAt ?
+          Math.max(0, this._condition2OneSecState.stickyDurationMs - (Date.now() - this._condition2OneSecState.stickyActivatedAt)) : null,
+      },
 
       // Technical indicators (for reference)
       ma20: this.ma20,
