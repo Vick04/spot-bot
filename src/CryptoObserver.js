@@ -39,8 +39,8 @@ class CryptoObserver {
     //   If cond1 is TRUE (MA99 slope >= 0.02 AND positive accel) → strong uptrend, allows condition 2 to flow
     //   If cond1 is FALSE (MA99 slope < 0.02 OR stable/downtrend) → blocks all trading (no uptrend momentum)
     // Condition 2: Candle breakout + bullish confirmation (can revert)
-    //   TRUE when: ((low < ma20 && high > bbUpper) || (low < bbLower && high > ma20)) AND (close > open)
-    //   Requires: Pure breakout pattern without tolerance margins
+    //   TRUE when: ((low <= ma20 && high >= bbUpper) || (low <= bbLower && high >= ma20)) AND (close > open)
+    //   Requires: Pure breakout pattern without tolerance margins (inclusive comparisons)
     // readyToBuy: Cond1=TRUE AND Cond2=TRUE
     this._selectionState = {
       cond1_ma99StrongUptrend: false,  // 1) TRUE if MA99 slope >= 0.02 AND accel >= 0 (strong uptrend gate - required to proceed)
@@ -374,7 +374,7 @@ class CryptoObserver {
     // If TRUE (MA99 slope >= 0.02 AND accel >= 0) → strong uptrend, allows condition 2 to be evaluated
     // If FALSE (MA99 slope < 0.02 OR stable/downtrend) → blocks trading (no uptrend momentum)
 
-    if (ma99Mom && ma99Mom.slope >= 0.02 && ma99Mom.accel >= 0) {
+    if (ma99Mom && ma99Mom.slope >= 0.0004 && ma99Mom.accel >= 0) {
       // MA99 in strong uptrend = GATE OPENED (momentum is positive, allow evaluation)
       this._selectionState.cond1_ma99StrongUptrend = true;
     } else {
@@ -394,8 +394,8 @@ class CryptoObserver {
     // ═════════════════════════════════════════════════════════════
     // CONDITION 2: Candle breakout pattern + bullish confirmation
     // ═════════════════════════════════════════════════════════════
-    // TRUE when: ((low < ma20 && high > bbUpper) || (low < bbLower && high > ma20)) AND (close > open)
-    // Requires: breakout pattern + bullish candle (price action)
+    // TRUE when: ((low <= ma20 && high >= bbUpper) || (low <= bbLower && high >= ma20)) AND (close > open)
+    // Requires: breakout pattern + bullish candle (inclusive comparisons for exact touches)
     const currentCandle = this.buffer[this.buffer.length - 1];
     const low = currentCandle ? currentCandle.low : 0;
     const high = currentCandle ? currentCandle.high : 0;
@@ -404,11 +404,11 @@ class CryptoObserver {
     const bbLower = this.bbLower;
 
     if (currentCandle && low > 0 && high > 0 && open > 0 && close > 0) {
-      // Pattern 1: low < MA20 AND high > BBUpper
-      const pattern1 = (low < ma20) && (high > this.bbUpper);
+      // Pattern 1: low <= MA20 AND high >= BBUpper
+      const pattern1 = (low <= ma20) && (high >= this.bbUpper);
 
-      // Pattern 2: low < BBLower AND high > MA20
-      const pattern2 = (low < bbLower) && (high > ma20);
+      // Pattern 2: low <= BBLower AND high >= MA20
+      const pattern2 = (low <= bbLower) && (high >= ma20);
 
       const breakoutPattern = pattern1 || pattern2;
       const bullishCandle = close > open;

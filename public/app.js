@@ -281,11 +281,11 @@ class GainersDashboard {
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
                 <span class="detail-label">P1 (MA20 Bridge):</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low &lt; MA20 ∧ high &gt; BBUpper</span>
+                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low ≤ MA20 ∧ high ≥ BBUpper</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px;">
                 <span class="detail-label">P2 (BBLower Bridge):</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low &lt; BBLower ∧ high &gt; MA20</span>
+                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low ≤ BBLower ∧ high ≥ MA20</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px;">
                 <span class="detail-label">Bullish:</span>
