@@ -184,7 +184,6 @@ class GainersDashboard {
             <div class="gainer-rank">#${index + 1}</div>
             <div class="gainer-symbol">
               <a href="https://www.binance.com/es-AR/trade/${gainer.symbol.replace('USDT', '')}_USDT?type=spot" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer;">${gainer.symbol}</a>
-              <span class="gainer-change ${percentClass}">${changeSign}${gainer.gainer5m.toFixed(2)}%</span>
             </div>
             <div class="gainer-price">Price: $${gainer.price.toFixed(8)}</div>
 
@@ -209,14 +208,6 @@ class GainersDashboard {
               <div style="text-align: center;">
                 <div style="font-size: 9px; color: var(--text-secondary); font-weight: 600;">1h</div>
                 <div style="font-size: 12px; font-weight: 600; color: ${gainer.gainer1h > 0 ? 'var(--success)' : gainer.gainer1h < 0 ? 'var(--danger)' : 'var(--text-secondary)'};">${gainer.gainer1h > 0 ? '+' : ''}${gainer.gainer1h.toFixed(2)}%</div>
-              </div>
-            </div>
-
-            <!-- Buying Pressure Indicator -->
-            <div style="margin-bottom: 8px; padding: 8px; background-color: rgba(255, 152, 0, 0.05); border-radius: 6px; text-align: center;">
-              <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px;">Buying Pressure:</div>
-              <div style="font-size: 14px; font-weight: 600; color: ${gainer.isBuyingPressure ? 'var(--success)' : 'var(--danger)'};">
-                ${gainer.isBuyingPressure ? '✓ Strong' : '✗ Weak'} (${(gainer.buyRatio * 100).toFixed(1)}%)
               </div>
             </div>
 
@@ -247,27 +238,10 @@ class GainersDashboard {
                 <span class="detail-label" style="font-weight: 700; color: ${readyToBuy ? 'var(--success)' : 'var(--text-secondary)'};">READY TO BUY:</span>
                 <span class="detail-value condition-step" style="background-color: ${readyToBuy ? 'rgba(34, 197, 94, 0.3)' : 'rgba(160, 174, 192, 0.1)'}; color: ${readyToBuy ? 'var(--success)' : 'var(--text-secondary)'};">${readyToBuy ? '✅ YES' : '⏳ WAITING'}</span>
               </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px;">
-                <span class="detail-label">Ready Time:</span>
-                <span class="detail-value condition-step" style="background-color: rgba(34, 197, 94, 0.1); color: ${readyToBuyTime ? 'var(--success)' : 'var(--text-secondary)'};">${readyToBuyTimeDisplay}</span>
-              </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px;">
-                <span class="detail-label">Elapsed:</span>
-                <span class="detail-value condition-step" style="background-color: rgba(34, 197, 94, 0.1); color: ${readyToBuyMinutes !== null ? 'var(--success)' : 'var(--text-secondary)'};">${readyToBuyMinutesDisplay}</span>
-              </div>
 
               <!-- Technical Details: Condition 2 Real-time 1-second Observation (v1.5.0-beta) -->
               <div class="detail-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(160, 174, 192, 0.2); font-size: 10px; color: var(--text-secondary); font-weight: 600;">
                 <span>② Real-time 1-second Impulse Detection:</span>
-              </div>
-
-              <!-- 1s Progress Bar -->
-              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px;">
-                <span class="detail-label">Progress (0-60s):</span>
-                <span class="detail-value">${cond2_oneSecCount}/60</span>
-              </div>
-              <div style="margin-left: 12px; margin-top: 4px; height: 12px; background-color: rgba(160, 174, 192, 0.1); border-radius: 4px; overflow: hidden;">
-                <div style="height: 100%; background-color: ${progressColor}; width: ${progressPercent}%; transition: width 0.3s ease;"></div>
               </div>
 
               <!-- Observation State -->
@@ -289,15 +263,7 @@ class GainersDashboard {
               <!-- Condition 2 Formula -->
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
                 <span class="detail-label">Formula:</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low === open ∧ close ≥ open × 1.008</span>
-              </div>
-              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px;">
-                <span class="detail-label">Bullish:</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">close &gt; open</span>
-              </div>
-              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
-                <span class="detail-label">Result:</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(72, 187, 120, 0.8); font-style: italic;">(P1 ∨ P2) ∧ Bullish</span>
+                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">close ≥ open × 1.008</span>
               </div>
             </div>
           </div>
