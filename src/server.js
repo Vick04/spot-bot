@@ -660,6 +660,44 @@ async function start() {
     server.listen(PORT, () => {
       console.log(`[Server] Listening on port ${PORT}`);
     });
+
+    // Broadcast gainers update every 1 second (for real-time card updates)
+    setInterval(() => {
+      const topThirty = gainersManager.getTop1hGainers(30);
+      const gainersToSend = topThirty.map((gainer) => {
+        const observer = gainersManager.observers.get(gainer.symbol);
+        return {
+          symbol: gainer.symbol,
+          price: gainer.price,
+          gainer1m: gainer.gainer1m,
+          gainer1h: gainer.gainer1h,
+          gainer5m: gainer.gainer5m,
+          gainer15m: gainer.gainer15m,
+          gainer30m: gainer.gainer30m,
+          // Indicators
+          ma20: gainer.ma20,
+          ma99: gainer.ma99,
+          bbUpper: gainer.bbUpper,
+          bbLower: gainer.bbLower,
+          // Buy conditions
+          cond1_ma99StrongUptrend: gainer.cond1_ma99StrongUptrend,
+          cond2_candleBreakout: gainer.cond2_candleBreakout,
+          readyToBuy: gainer.readyToBuy,
+          cond2_oneSecondState: observer?.getConditions().cond2_oneSecondState || {},
+          readyToBuyTime: gainer.readyToBuyTime,
+          readyToBuyMinutesElapsed: gainer.readyToBuyMinutesElapsed,
+          // Volume indicators
+          isBuyingPressure: gainer.isBuyingPressure,
+          buyRatio: gainer.buyRatio,
+        };
+      });
+
+      broadcastEvent({
+        type: "gainers-update",
+        gainers: gainersToSend,
+        timestamp: new Date().toISOString(),
+      });
+    }, 1000); // Update every 1 second
   } catch (error) {
     console.error("[Server] Failed to start:", error.message);
     process.exit(1);
