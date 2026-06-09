@@ -170,6 +170,10 @@ class GainersDashboard {
         const cond2_observationCancelled = cond2_1s.observationCancelled || false;
         const cond2_sticky = cond2_1s.sticky || false;
         const cond2_stickyRemaining = cond2_1s.stickyRemainingMs || 0;
+        const cond2_lastClose = cond2_1s.lastOneSecondClose || 0;
+        const cond2_1mOpen = cond2_1s.currentMinuteOpenPrice || 0;
+        const cond2_checkA = cond2_1s.checkA_passed || false;
+        const cond2_checkB = cond2_1s.checkB_passed || false;
         const progressPercent = (cond2_oneSecCount / 60) * 100;
         const progressColor = cond2_observationCancelled ? 'var(--danger)' : (cond2_sticky ? 'var(--success)' : 'rgba(160, 174, 192, 0.5)');
 
@@ -259,6 +263,27 @@ class GainersDashboard {
                 <span class="detail-value" style="color: var(--success);">${(cond2_stickyRemaining / 1000).toFixed(1)}s</span>
               </div>
               ` : ''}
+
+              <!-- Condition 2 Sequential Checks -->
+              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
+                <span class="detail-label">Sequential Checks:</span>
+              </div>
+
+              <!-- CHECK A -->
+              <div class="detail-row" style="font-size: 9px; color: var(--text-secondary); margin-left: 24px; margin-top: 4px;">
+                <span class="detail-label">① 1s close ≥ 1m open:</span>
+                <span class="detail-value condition-step" style="background-color: ${cond2_checkA ? 'rgba(72, 187, 120, 0.3)' : 'rgba(160, 174, 192, 0.1)'}; color: ${cond2_checkA ? 'var(--success)' : 'var(--text-secondary)'}; font-size: 8px;">
+                  ${cond2_checkA ? '✓' : '✗'} ${cond2_lastClose > 0 ? cond2_lastClose.toFixed(8) : '—'} ≥ ${cond2_1mOpen > 0 ? cond2_1mOpen.toFixed(8) : '—'}
+                </span>
+              </div>
+
+              <!-- CHECK B -->
+              <div class="detail-row" style="font-size: 9px; color: var(--text-secondary); margin-left: 24px; margin-top: 3px;">
+                <span class="detail-label">② 1s close ≥ 1m open × 1.008:</span>
+                <span class="detail-value condition-step" style="background-color: ${cond2_checkB ? 'rgba(72, 187, 120, 0.3)' : 'rgba(160, 174, 192, 0.1)'}; color: ${cond2_checkB ? 'var(--success)' : 'var(--text-secondary)'}; font-size: 8px;">
+                  ${cond2_checkB ? '✓' : '✗'} ${cond2_lastClose > 0 ? cond2_lastClose.toFixed(8) : '—'} ≥ ${cond2_1mOpen > 0 ? (cond2_1mOpen * 1.008).toFixed(8) : '—'}
+                </span>
+              </div>
 
               <!-- Condition 2 Formula -->
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">

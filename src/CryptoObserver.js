@@ -882,6 +882,7 @@ class CryptoObserver {
       // Condition 2 real-time 1-second observation state (v1.5.0-beta)
       cond2_oneSecondState: {
         currentMinuteOpenPrice: this._condition2OneSecState.currentMinuteOpenPrice,
+        lastOneSecondClose: this._condition2OneSecState.lastOneSecondClose,
         observationCancelled: this._condition2OneSecState.observationCancelled,
         oneSecondCount: this._condition2OneSecState.oneSecondCount,
         sticky: this._condition2OneSecState.condition2IsTrue,
@@ -889,6 +890,13 @@ class CryptoObserver {
           Date.now() - this._condition2OneSecState.stickyActivatedAt : null,
         stickyRemainingMs: this._condition2OneSecState.stickyActivatedAt ?
           Math.max(0, this._condition2OneSecState.stickyDurationMs - (Date.now() - this._condition2OneSecState.stickyActivatedAt)) : null,
+        // Condition 2 sequential checks
+        checkA_passed: this._condition2OneSecState.lastOneSecondClose !== null &&
+                       this._condition2OneSecState.currentMinuteOpenPrice !== null &&
+                       this._condition2OneSecState.lastOneSecondClose >= this._condition2OneSecState.currentMinuteOpenPrice,
+        checkB_passed: this._condition2OneSecState.lastOneSecondClose !== null &&
+                       this._condition2OneSecState.currentMinuteOpenPrice !== null &&
+                       this._condition2OneSecState.lastOneSecondClose >= this._condition2OneSecState.currentMinuteOpenPrice * 1.008,
       },
 
       // Technical indicators (for reference)
