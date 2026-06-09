@@ -210,11 +210,11 @@ async function getSymbolRestrictions() {
 /**
  * Fetch all available USDT trading pairs with volume filter
  * Filters out symbols with no active orders (delisted/inactive) and recently listed symbols
- * @param {number} minVolume - Minimum 24h volume in USDT (default: 10k)
+ * @param {number} minVolume - Minimum 24h volume in USDT (default: 1M)
  * @param {number} minListingAgeDays - Minimum days since listing (default: 30)
  * @returns {Promise<Array>} Array of symbols
  */
-async function getAvailableSymbols(minVolume = 10000, minListingAgeDays = 30) {
+async function getAvailableSymbols(minVolume = 1_000_000, minListingAgeDays = 30) {
   try {
     // Check cache first
     const cachedSymbols = loadSymbolsFromCache();
