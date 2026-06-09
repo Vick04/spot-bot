@@ -116,7 +116,6 @@ class GainersDashboard {
 
     container.innerHTML = html;
   }
-  }
 
   // ── WebSocket Connection ────────────────────────────────────────────
   connectWebSocket() {
