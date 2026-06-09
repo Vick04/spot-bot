@@ -174,11 +174,20 @@ class GainersDashboard {
         const bbUpper = gainer.bbUpper || 0;
         const bbLower = gainer.bbLower || 0;
 
-        // v1.4.0-beta: Buy signal conditions (sequential: 1 → 2)
+        // v1.5.0-beta: Buy signal conditions (sequential: 1 → 2 with real-time 1-second observation)
         const cond1_ma99StrongUptrend = gainer.cond1_ma99StrongUptrend || false;
         const cond2_candleBreakout = gainer.cond2_candleBreakout || false;
         const readyToBuy = gainer.readyToBuy || false;
         const canBuyUP = readyToBuy ? "✅" : "—";
+
+        // Condition 2 real-time 1-second observation state (v1.5.0-beta)
+        const cond2_1s = gainer.cond2_oneSecondState || {};
+        const cond2_oneSecCount = cond2_1s.oneSecondCount || 0;
+        const cond2_observationCancelled = cond2_1s.observationCancelled || false;
+        const cond2_sticky = cond2_1s.sticky || false;
+        const cond2_stickyRemaining = cond2_1s.stickyRemainingMs || 0;
+        const progressPercent = (cond2_oneSecCount / 60) * 100;
+        const progressColor = cond2_observationCancelled ? 'var(--danger)' : (cond2_sticky ? 'var(--success)' : 'rgba(160, 174, 192, 0.5)');
 
         // Ready to buy timing
         const readyToBuyTime = gainer.readyToBuyTime;
@@ -227,19 +236,19 @@ class GainersDashboard {
               </div>
             </div>
 
-            <!-- v1.4.0-beta: Buy Signal Conditions (Sequential: 1 → 2) -->
+            <!-- v1.5.0-beta: Buy Signal Conditions (Sequential: 1 → 2 with Real-time 1s) -->
             <div style="margin-bottom: 8px; padding: 8px; background-color: ${cond1_ma99StrongUptrend ? (readyToBuy ? 'rgba(34, 197, 94, 0.15)' : 'rgba(76, 175, 80, 0.05)') : 'rgba(245, 101, 101, 0.1)'}; border-radius: 6px;">
               <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">Buy Signal ${cond1_ma99StrongUptrend ? '🟢 Ready' : '🔴 BLOCKED'}:</div>
               <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
                 <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${cond1_ma99StrongUptrend ? 'rgba(72, 187, 120, 0.4)' : 'rgba(245, 101, 101, 0.4)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${cond1_ma99StrongUptrend ? 'var(--success)' : 'var(--danger)'}; text-align: center;"><span>${cond1_ma99StrongUptrend ? '① OPEN' : '① GATE'}</span></div>
                 <div style="width: 8px; height: 2px; background-color: ${cond1_ma99StrongUptrend && cond2_candleBreakout ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${cond1_ma99StrongUptrend && cond2_candleBreakout ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${cond1_ma99StrongUptrend && cond2_candleBreakout ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>② Break</span></div>
+                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${cond1_ma99StrongUptrend && cond2_candleBreakout ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${cond1_ma99StrongUptrend && cond2_candleBreakout ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>② 1s Impulse</span></div>
               </div>
             </div>
 
             <div class="gainer-details">
               <div class="detail-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
-                <span class="detail-label">Buy Conditions (v1.4.0-beta):</span>
+                <span class="detail-label">Buy Conditions (v1.5.0-beta):</span>
                 <span class="detail-value" style="font-size: 9px; color: var(--text-secondary);">Sequential: ① → ②</span>
               </div>
               <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
@@ -263,24 +272,39 @@ class GainersDashboard {
                 <span class="detail-value condition-step" style="background-color: rgba(34, 197, 94, 0.1); color: ${readyToBuyMinutes !== null ? 'var(--success)' : 'var(--text-secondary)'};">${readyToBuyMinutesDisplay}</span>
               </div>
 
-              <!-- Technical Details: Condition 2 Evaluation -->
+              <!-- Technical Details: Condition 2 Real-time 1-second Observation (v1.5.0-beta) -->
               <div class="detail-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(160, 174, 192, 0.2); font-size: 10px; color: var(--text-secondary); font-weight: 600;">
-                <span>② Candle Breakout + Bullish (±0.01% precision):</span>
+                <span>② Real-time 1-second Impulse Detection:</span>
               </div>
+
+              <!-- 1s Progress Bar -->
+              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px;">
+                <span class="detail-label">Progress (0-60s):</span>
+                <span class="detail-value">${cond2_oneSecCount}/60</span>
+              </div>
+              <div style="margin-left: 12px; margin-top: 4px; height: 12px; background-color: rgba(160, 174, 192, 0.1); border-radius: 4px; overflow: hidden;">
+                <div style="height: 100%; background-color: ${progressColor}; width: ${progressPercent}%; transition: width 0.3s ease;"></div>
+              </div>
+
+              <!-- Observation State -->
+              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
+                <span class="detail-label">State:</span>
+                <span class="detail-value" style="font-size: 9px; font-weight: 600; color: ${cond2_observationCancelled ? 'var(--danger)' : (cond2_sticky ? 'var(--success)' : 'var(--text-secondary)')};">
+                  ${cond2_observationCancelled ? '❌ CANCELLED (price dropped)' : (cond2_sticky ? '✅ STICKY (30s retention)' : '⏳ OBSERVING')}
+                </span>
+              </div>
+
+              <!-- Sticky Timer Info -->
+              ${cond2_sticky ? `
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 4px;">
-                <span class="detail-label">BBUpper:</span>
-                <span class="detail-value" style="font-family: monospace; font-size: 10px;">$${bbUpper.toFixed(8)}</span>
+                <span class="detail-label">Sticky Time Left:</span>
+                <span class="detail-value" style="color: var(--success);">${(cond2_stickyRemaining / 1000).toFixed(1)}s</span>
               </div>
-              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">MA20:</span>
-                <span class="detail-value" style="font-family: monospace; font-size: 10px;">$${ma20.toFixed(8)}</span>
-              </div>
-              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">BBLower:</span>
-                <span class="detail-value" style="font-family: monospace; font-size: 10px;">$${bbLower.toFixed(8)}</span>
-              </div>
-              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
-                <span class="detail-label">Condition 2 Formula:</span>
+              ` : ''}
+
+              <!-- Condition 2 Formula -->
+              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
+                <span class="detail-label">Formula:</span>
                 <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low === open ∧ close ≥ open × 1.008</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px;">
