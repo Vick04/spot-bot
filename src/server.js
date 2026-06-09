@@ -357,13 +357,26 @@ app.get("/api/gainers/all", (req, res) => {
 // Get observer state (debugging)
 app.get("/api/debug/observer/:symbol", (req, res) => {
   const { symbol } = req.params;
-  const state = gainersManager.getObserverState(symbol);
+  const observer = gainersManager.observers.get(symbol);
 
-  if (!state) {
+  if (!observer) {
     return res.status(404).json({ error: `Observer not found for ${symbol}` });
   }
 
-  res.json(state);
+  // Return both basic state and detailed conditions
+  res.json({
+    state: observer.getState(),
+    conditions: observer.getConditions(),
+  });
+});
+
+// Get detailed conditions for all observers
+app.get("/api/debug/all-conditions", (req, res) => {
+  const conditions = {};
+  for (const [symbol, observer] of gainersManager.observers) {
+    conditions[symbol] = observer.getConditions();
+  }
+  res.json(conditions);
 });
 
 // Get all observers states (debugging)

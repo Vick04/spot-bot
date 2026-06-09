@@ -120,7 +120,10 @@
       "Bash(curl -s http://localhost:4445/api/gainers)",
       "Bash(curl -s \"http://localhost:4445/api/gainers?limit=1\")",
       "Bash(npm start 2>&1 & *)",
-      "Bash(curl -s \"https://api.binance.com/api/v3/exchangeInfo\")"
+      "Bash(curl -s \"https://api.binance.com/api/v3/exchangeInfo\")",
+      "Bash(git tag *)",
+      "Bash(git checkout *)",
+      "Bash(curl -s http://localhost:3000/api/status)"
     ]
   }
 }

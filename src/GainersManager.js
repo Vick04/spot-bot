@@ -471,7 +471,6 @@ class GainersManager extends EventEmitter {
     // Map to include condition data
     const withConditions = allObservers.map((observer) => {
       const conditions = observer.getConditions();
-      const momentum = observer.ma99Momentum;
 
       return {
         symbol: observer.symbol,
@@ -497,36 +496,50 @@ class GainersManager extends EventEmitter {
         buyRatio: observer.buyRatio,
         avgBuyRatio: observer.avgBuyRatio,
         isBuyingPressure: observer.isBuyingPressure(),
-        // v1.4.0-beta: Two sequential conditions (Price Gate + Candle Breakout)
-        cond1_bbUpperBelowMa99: conditions.cond1_bbUpperBelowMa99,
+        // v1.5.0-beta: Two sequential conditions (MA99 Uptrend Gate + 1s Impulse)
+        cond1_ma99StrongUptrend: conditions.cond1_ma99StrongUptrend,
         cond2_candleBreakout: conditions.cond2_candleBreakout,
         readyToBuy: conditions.readyToBuy,
+        // 1-second observation state (for UI display)
+        cond2_oneSecondState: conditions.cond2_oneSecondState,
         // Ready to buy timing (for UI display)
         readyToBuyTime: conditions.readyToBuyTime,
         readyToBuyMinutesElapsed: conditions.readyToBuyMinutesElapsed,
         // Calculate progress (which condition is furthest reached)
-        // If cond1 is FALSE, progress = 0 (gate closed - price too high)
-        // If cond1 is TRUE but cond2 is FALSE, progress = 1 (waiting for breakout)
+        // If cond1 is FALSE, progress = 0 (uptrend not active)
+        // If cond1 is TRUE but cond2 is FALSE, progress = 1 (waiting for impulse)
         // If cond1 AND cond2 are TRUE, progress = 2 (readyToBuy)
-        progress: !conditions.cond1_bbUpperBelowMa99 ? 0 :
+        progress: !conditions.cond1_ma99StrongUptrend ? 0 :
                   !conditions.cond2_candleBreakout ? 1 : 2,
       };
     });
 
-    // v1.4.0-beta: Filter readyToBuy symbols by elapsed time
-    // Only show symbols with readyToBuy=TRUE and elapsed < 5 minutes
-    // Sort by elapsed time ascending (smallest first - earliest activation)
+    // v1.5.0-beta: Smart filtering
+    // 1. Show all symbols with Condition 1 (MA99 uptrend)
+    // 2. If ANY have Condition 2, show only those with Condition 2
+    // 3. If NONE have Condition 2, show those with Condition 1
 
-    const readySymbols = withConditions.filter((obs) =>
-      obs.readyToBuy &&
-      obs.readyToBuyMinutesElapsed !== null &&
-      obs.readyToBuyMinutesElapsed < 5
-    );
+    // Separate by condition
+    const cond1Symbols = withConditions.filter((obs) => obs.cond1_ma99StrongUptrend);
+    const cond2Symbols = cond1Symbols.filter((obs) => obs.cond2_candleBreakout);
 
-    // Sort by elapsed time ascending (earliest first)
-    return readySymbols
-      .sort((a, b) => a.readyToBuyMinutesElapsed - b.readyToBuyMinutesElapsed)
-      .slice(0, limit);
+    // Choose which list to display
+    let toDisplay;
+    if (cond2Symbols.length > 0) {
+      // Show Condition 2 symbols (sorted by readyToBuy time - earliest first)
+      toDisplay = cond2Symbols.sort((a, b) => {
+        if (a.readyToBuy && b.readyToBuy) {
+          return a.readyToBuyMinutesElapsed - b.readyToBuyMinutesElapsed;
+        }
+        // Put readyToBuy=true before readyToBuy=false
+        return b.readyToBuy - a.readyToBuy;
+      });
+    } else {
+      // Show Condition 1 symbols (sorted by gainer1h - highest first)
+      toDisplay = cond1Symbols.sort((a, b) => b.gainer1h - a.gainer1h);
+    }
+
+    return toDisplay.slice(0, limit);
   }
 
   /**
