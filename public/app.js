@@ -280,12 +280,8 @@ class GainersDashboard {
                 <span class="detail-value" style="font-family: monospace; font-size: 10px;">$${bbLower.toFixed(8)}</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 4px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
-                <span class="detail-label">P1 (MA20 Bridge):</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low ≤ MA20 ∧ high ≥ BBUpper</span>
-              </div>
-              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px;">
-                <span class="detail-label">P2 (BBLower Bridge):</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low ≤ BBLower ∧ high ≥ MA20</span>
+                <span class="detail-label">Condition 2 Formula:</span>
+                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">low === open ∧ close ≥ open × 1.008</span>
               </div>
               <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 2px;">
                 <span class="detail-label">Bullish:</span>
