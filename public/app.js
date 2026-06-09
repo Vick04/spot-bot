@@ -29,9 +29,93 @@ class GainersDashboard {
         avgProfitPercent: 0,
       },
     };
+    this.impulseRanking = [];
 
     this.connectWebSocket();
     this.setupConnectionStatus();
+    this.setupImpulseRankingUpdates();
+  }
+
+  // ── Impulse Tracking Ranking Updates ────────────────────────────────
+  setupImpulseRankingUpdates() {
+    // Fetch impulse ranking every 5 seconds
+    setInterval(() => {
+      fetch('/api/impulse-ranking')
+        .then(res => res.json())
+        .then(data => {
+          this.impulseRanking = data.ranking || [];
+          this.renderImpulseRanking();
+        })
+        .catch(err => console.error('[Dashboard] Error fetching impulse ranking:', err));
+    }, 5000);
+
+    // Initial fetch
+    fetch('/api/impulse-ranking')
+      .then(res => res.json())
+      .then(data => {
+        this.impulseRanking = data.ranking || [];
+        this.renderImpulseRanking();
+      })
+      .catch(err => console.error('[Dashboard] Error fetching impulse ranking:', err));
+  }
+
+  renderImpulseRanking() {
+    const container = document.getElementById('impulseRanking');
+    if (!container || this.impulseRanking.length === 0) {
+      if (container) container.innerHTML = '<div class="no-data">No impulse tracking data available</div>';
+      return;
+    }
+
+    const html = `
+      <table class="impulse-table">
+        <thead>
+          <tr>
+            <th style="text-align: center; width: 50px;">#</th>
+            <th style="text-align: left;">Symbol</th>
+            <th style="text-align: center; width: 80px;">Counter</th>
+            <th style="text-align: right; width: 100px;">Price</th>
+            <th style="text-align: right; width: 100px;">MA99</th>
+            <th style="text-align: right; width: 80px;">1h Gain</th>
+            <th style="text-align: center; width: 80px;">Floor</th>
+            <th style="text-align: center; width: 80px;">Allowed</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${this.impulseRanking.slice(0, 50).map((item, index) => `
+            <tr style="background-color: ${index % 2 === 0 ? 'rgba(160, 174, 192, 0.05)' : 'transparent'};">
+              <td style="text-align: center; font-weight: 600;">${index + 1}</td>
+              <td style="text-align: left; font-weight: 600; color: var(--primary);">
+                <a href="https://www.binance.com/es-AR/trade/${item.symbol.replace('USDT', '')}_USDT?type=spot"
+                   target="_blank" style="color: var(--primary); text-decoration: none;">
+                  ${item.symbol}
+                </a>
+              </td>
+              <td style="text-align: center; font-weight: 700; color: ${item.counter > 0 ? 'var(--success)' : 'var(--text-secondary)'};">
+                ${item.counter}
+              </td>
+              <td style="text-align: right; color: var(--primary); font-family: monospace;">
+                $${item.price ? item.price.toFixed(8) : '—'}
+              </td>
+              <td style="text-align: right; color: var(--text-secondary); font-family: monospace;">
+                $${item.ma99 ? item.ma99.toFixed(8) : '—'}
+              </td>
+              <td style="text-align: right; color: ${item.gainer1h > 0 ? 'var(--success)' : item.gainer1h < 0 ? 'var(--danger)' : 'var(--text-secondary)'}; font-weight: 600;">
+                ${item.gainer1h > 0 ? '+' : ''}${item.gainer1h.toFixed(2)}%
+              </td>
+              <td style="text-align: center; color: var(--text-secondary); font-family: monospace; font-size: 12px;">
+                ${item.floor ? item.floor.toFixed(6) : '—'}
+              </td>
+              <td style="text-align: center; color: ${item.allowed ? 'var(--success)' : 'var(--text-secondary)'}; font-weight: 600;">
+                ${item.allowed ? '✓' : '—'}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+
+    container.innerHTML = html;
+  }
   }
 
   // ── WebSocket Connection ────────────────────────────────────────────

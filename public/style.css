@@ -752,6 +752,73 @@ body {
   margin: 4px 0;
 }
 
+/* Impulse Ranking Table */
+.impulse-ranking-section {
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  border-left: 4px solid var(--warning);
+}
+
+.impulse-ranking-section h2 {
+  margin-bottom: 15px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.impulse-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background-color: var(--bg-primary);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.impulse-table thead {
+  background-color: rgba(160, 174, 192, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.impulse-table thead th {
+  padding: 12px 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(160, 174, 192, 0.2);
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.impulse-table tbody tr {
+  border-bottom: 1px solid rgba(160, 174, 192, 0.1);
+  transition: background-color 0.2s ease;
+}
+
+.impulse-table tbody tr:hover {
+  background-color: rgba(66, 153, 225, 0.1) !important;
+}
+
+.impulse-table tbody td {
+  padding: 10px;
+  color: var(--text-secondary);
+}
+
+.impulse-table tbody td a {
+  color: var(--info);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.impulse-table tbody td a:hover {
+  color: var(--text-primary);
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
