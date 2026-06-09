@@ -550,6 +550,39 @@ class GainersManager extends EventEmitter {
   }
 
   /**
+   * Get impulse tracking ranking for all symbols (v1.5.0-beta)
+   * Returns all symbols sorted by counter (descending)
+   */
+  getImpulseTrackingRanking() {
+    const ranking = Array.from(this.observers.values())
+      .filter(observer => observer.isReady)
+      .map(observer => {
+        const conditions = observer.getConditions();
+        const impulse = conditions.impulseTracking || {};
+        return {
+          symbol: observer.symbol,
+          counter: impulse.counter || 0,
+          floor: impulse.floor,
+          allowed: impulse.allowed || false,
+          reached: impulse.reached || false,
+          ma99AtFloorSet: impulse.ma99AtFloorSet,
+          price: observer.currentPrice,
+          ma99: observer.ma99,
+          gainer1h: observer.gainer1h,
+        };
+      })
+      // Sort by counter (descending), then by symbol (ascending)
+      .sort((a, b) => {
+        if (b.counter !== a.counter) {
+          return b.counter - a.counter;
+        }
+        return a.symbol.localeCompare(b.symbol);
+      });
+
+    return ranking;
+  }
+
+  /**
    * Get a specific observer's state (for debugging)
    */
   getObserverState(symbol) {

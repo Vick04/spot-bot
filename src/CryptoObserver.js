@@ -69,6 +69,15 @@ class CryptoObserver {
       stickyActivatedAt: null,           // timestamp cuando se activó el sticky
       stickyDurationMs: 30000            // 30 segundos de retención
     };
+
+    // v1.5.0-beta: Multi-level impulse tracking with floor and counter
+    this._impulseTracking = {
+      floor: undefined,                  // precio mínimo (se activa cuando 1s < ma99)
+      allowed: false,                    // true cuando 1s >= floor * 1.008
+      reached: false,                    // true cuando 1s >= floor * 1.013
+      counter: 0,                        // contador de veces que reached=true
+      ma99AtFloorSet: undefined,         // ma99 value cuando floor fue seteado (para referencia)
+    };
   }
 
   /**
@@ -190,6 +199,7 @@ class CryptoObserver {
       return;
     }
     this._processOneSecondCandle(oneSecCandle);
+    this._processImpulseTracking(oneSecCandle);
   }
 
   /**
@@ -480,6 +490,57 @@ class CryptoObserver {
    */
   getCondition2Value() {
     return this._condition2OneSecState.condition2IsTrue;
+  }
+
+  /**
+   * Process multi-level impulse tracking with floor, allowed, and reached
+   * Called on each 1-second candle
+   * @param {Object} oneSecCandle - 1-second candle data
+   * @private
+   */
+  _processImpulseTracking(oneSecCandle) {
+    const tracking = this._impulseTracking;
+    const close = oneSecCandle.close;
+    const ma99 = this.ma99;
+
+    // Step 1: Set floor if undefined and 1s close < ma99
+    if (tracking.floor === undefined && close < ma99) {
+      tracking.floor = close;
+      tracking.ma99AtFloorSet = ma99;
+      tracking.allowed = false;
+      tracking.reached = false;
+      return;
+    }
+
+    // If floor is undefined, nothing to process
+    if (tracking.floor === undefined) {
+      return;
+    }
+
+    // Step 2: Update floor if 1s close < floor (find lower low)
+    if (close < tracking.floor) {
+      tracking.floor = close;
+      tracking.allowed = false;
+      tracking.reached = false;
+      return;
+    }
+
+    // Step 3: Set allowed if close >= floor * 1.008
+    if (!tracking.allowed && close >= tracking.floor * 1.008) {
+      tracking.allowed = true;
+    }
+
+    // Step 4: Set reached if close >= floor * 1.013
+    if (!tracking.reached && close >= tracking.floor * 1.013) {
+      tracking.reached = true;
+      // Increment counter when reached is activated
+      tracking.counter++;
+      // Reset all on reaching target
+      tracking.floor = undefined;
+      tracking.allowed = false;
+      tracking.reached = false;
+      tracking.ma99AtFloorSet = undefined;
+    }
   }
 
   /**
@@ -897,6 +958,15 @@ class CryptoObserver {
         checkB_passed: this._condition2OneSecState.lastOneSecondClose !== null &&
                        this._condition2OneSecState.currentMinuteOpenPrice !== null &&
                        this._condition2OneSecState.lastOneSecondClose >= this._condition2OneSecState.currentMinuteOpenPrice * 1.008,
+      },
+
+      // Multi-level impulse tracking (v1.5.0-beta)
+      impulseTracking: {
+        floor: this._impulseTracking.floor,
+        allowed: this._impulseTracking.allowed,
+        reached: this._impulseTracking.reached,
+        counter: this._impulseTracking.counter,
+        ma99AtFloorSet: this._impulseTracking.ma99AtFloorSet,
       },
 
       // Technical indicators (for reference)

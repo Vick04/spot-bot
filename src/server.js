@@ -354,6 +354,17 @@ app.get("/api/gainers/all", (req, res) => {
   });
 });
 
+// Get impulse tracking ranking (v1.5.0-beta)
+app.get("/api/impulse-ranking", (req, res) => {
+  const ranking = gainersManager.getImpulseTrackingRanking();
+
+  res.json({
+    count: ranking.length,
+    ranking,
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Get observer state (debugging)
 app.get("/api/debug/observer/:symbol", (req, res) => {
   const { symbol } = req.params;
