@@ -73,9 +73,10 @@ class GainersDashboard {
             <th style="text-align: left;">Symbol</th>
             <th style="text-align: center; width: 80px;">Counter</th>
             <th style="text-align: right; width: 100px;">Price</th>
+            <th style="text-align: center; width: 100px;">Floor</th>
             <th style="text-align: right; width: 100px;">MA99</th>
+            <th style="text-align: right; width: 100px;">Current Time</th>
             <th style="text-align: right; width: 100px;">Avg Time</th>
-            <th style="text-align: center; width: 80px;">Floor</th>
             <th style="text-align: center; width: 80px;">Allowed</th>
           </tr>
         </thead>
@@ -95,14 +96,17 @@ class GainersDashboard {
               <td style="text-align: right; color: var(--primary); font-family: monospace;">
                 $${item.price ? item.price.toFixed(8) : '—'}
               </td>
+              <td style="text-align: center; color: var(--text-secondary); font-family: monospace; font-size: 12px;">
+                ${item.floor ? item.floor.toFixed(6) : '—'}
+              </td>
               <td style="text-align: right; color: var(--text-secondary); font-family: monospace;">
                 $${item.ma99 ? item.ma99.toFixed(8) : '—'}
               </td>
+              <td style="text-align: right; color: ${item.currentElapsedTime ? 'var(--success)' : 'var(--text-secondary)'}; font-family: monospace; font-weight: 600;">
+                ${item.currentElapsedTime ? (item.currentElapsedTime / 1000).toFixed(2) + 's' : '—'}
+              </td>
               <td style="text-align: right; color: ${item.averageTime ? 'var(--success)' : 'var(--text-secondary)'}; font-family: monospace; font-weight: 600;">
                 ${item.averageTime ? (item.averageTime / 1000).toFixed(2) + 's' : '—'}
-              </td>
-              <td style="text-align: center; color: var(--text-secondary); font-family: monospace; font-size: 12px;">
-                ${item.floor ? item.floor.toFixed(6) : '—'}
               </td>
               <td style="text-align: center; color: ${item.allowed ? 'var(--success)' : 'var(--text-secondary)'}; font-weight: 600;">
                 ${item.allowed ? '✓' : '—'}

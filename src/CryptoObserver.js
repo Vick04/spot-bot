@@ -987,6 +987,7 @@ class CryptoObserver {
         ma99AtFloorSet: this._impulseTracking.ma99AtFloorSet,
         averageTime: this._impulseTracking.averageTime,
         timingsCount: this._impulseTracking.timings.length,
+        allowedActivatedAt: this._impulseTracking.allowedActivatedAt,
       },
 
       // Technical indicators (for reference)

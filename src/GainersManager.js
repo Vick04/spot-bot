@@ -559,6 +559,13 @@ class GainersManager extends EventEmitter {
       .map(observer => {
         const conditions = observer.getConditions();
         const impulse = conditions.impulseTracking || {};
+
+        // Calculate current elapsed time if allowed is active
+        let currentElapsedTime = null;
+        if (impulse.allowed && impulse.allowedActivatedAt) {
+          currentElapsedTime = Date.now() - impulse.allowedActivatedAt;
+        }
+
         return {
           symbol: observer.symbol,
           counter: impulse.counter || 0,
@@ -568,6 +575,7 @@ class GainersManager extends EventEmitter {
           ma99AtFloorSet: impulse.ma99AtFloorSet,
           averageTime: impulse.averageTime,
           timingsCount: impulse.timingsCount || 0,
+          currentElapsedTime: currentElapsedTime,
           price: observer.currentPrice,
           ma99: observer.ma99,
         };
