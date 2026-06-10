@@ -5,7 +5,6 @@
 class GainersDashboard {
   constructor() {
     this.ws = null;
-    this.topGainers = [];
     this.lastUpdate = null;
     this.gainersManager = null; // Will reference backend manager data
     this.symbolStats = {
@@ -166,9 +165,6 @@ class GainersDashboard {
           this.updateSymbolStats(message.status.symbolStats);
         }
         break;
-      case "gainers-update":
-        this.updateGainers(message.gainers, message.timestamp);
-        break;
       case "trading-status":
         this.updateTradingStatus(message.data);
         break;
@@ -206,190 +202,14 @@ class GainersDashboard {
     document.getElementById("statSuccessRate").textContent = `${successRate}%`;
   }
 
-  updateGainers(gainers, timestamp) {
-    this.topGainers = gainers;
-    this.lastUpdate = timestamp;
-    this.renderGainers();
-    this.updateDebugInfo();
-  }
-
-  renderGainers() {
-    const gainersElement = document.getElementById("gainers");
-    if (!gainersElement) return;
-
-    // Ensure maximum 30 items
-    const topThirty = this.topGainers.slice(0, 30);
-
-    if (topThirty.length === 0) {
-      gainersElement.innerHTML = '<div class="no-data">No gainers data available</div>';
-      return;
-    }
-
-    gainersElement.innerHTML = topThirty
-      .map((gainer, index) => {
-        const percentClass = gainer.gainer5m > 0 ? "positive" : gainer.gainer5m < 0 ? "negative" : "neutral";
-        const changeSign = gainer.gainer5m > 0 ? "+" : "";
-
-        // Multi-timeframe gainers
-        const gainer5m = gainer.gainer5m || 0;
-        const gainer15m = gainer.gainer15m || 0;
-        const gainer30m = gainer.gainer30m || 0;
-
-        // Indicators from observer
-        const ma20 = gainer.ma20 || 0;
-        const ma99 = gainer.ma99 || 0;
-        const bbUpper = gainer.bbUpper || 0;
-        const bbLower = gainer.bbLower || 0;
-
-        // v1.5.0-beta: Buy signal conditions (sequential: 1 → 2 with real-time 1-second observation)
-        const cond1_ma99StrongUptrend = gainer.cond1_ma99StrongUptrend || false;
-        const cond2_candleBreakout = gainer.cond2_candleBreakout || false;
-        const readyToBuy = gainer.readyToBuy || false;
-        const canBuyUP = readyToBuy ? "✅" : "—";
-
-        // Condition 2 real-time 1-second observation state (v1.5.0-beta)
-        const cond2_1s = gainer.cond2_oneSecondState || {};
-        const cond2_oneSecCount = cond2_1s.oneSecondCount || 0;
-        const cond2_observationCancelled = cond2_1s.observationCancelled || false;
-        const cond2_sticky = cond2_1s.sticky || false;
-        const cond2_stickyRemaining = cond2_1s.stickyRemainingMs || 0;
-        const cond2_lastClose = cond2_1s.lastOneSecondClose || 0;
-        const cond2_1mOpen = cond2_1s.currentMinuteOpenPrice || 0;
-        const cond2_checkA = cond2_1s.checkA_passed || false;
-        const cond2_checkB = cond2_1s.checkB_passed || false;
-        const progressPercent = (cond2_oneSecCount / 60) * 100;
-        const progressColor = cond2_observationCancelled ? 'var(--danger)' : (cond2_sticky ? 'var(--success)' : 'rgba(160, 174, 192, 0.5)');
-
-        // Ready to buy timing
-        const readyToBuyTime = gainer.readyToBuyTime;
-        const readyToBuyMinutes = gainer.readyToBuyMinutesElapsed;
-        const readyToBuyTimeDisplay = readyToBuyTime ? `${readyToBuyTime}` : 'N/A';
-        const readyToBuyMinutesDisplay = readyToBuyMinutes !== null ? `${readyToBuyMinutes}m` : 'N/A';
-
-        return `
-          <div class="gainer-card" data-symbol="${gainer.symbol}">
-            <div class="gainer-rank">#${index + 1}</div>
-            <div class="gainer-symbol">
-              <a href="https://www.binance.com/es-AR/trade/${gainer.symbol.replace('USDT', '')}_USDT?type=spot" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer;">${gainer.symbol}</a>
-            </div>
-            <div class="gainer-price">Price: $${gainer.price.toFixed(8)}</div>
-
-            <!-- Gainers by Timeframe -->
-            <div style="margin-bottom: 8px; padding: 6px 8px; background-color: rgba(255, 193, 7, 0.05); border-radius: 6px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;">
-              <div style="text-align: center;">
-                <div style="font-size: 9px; color: var(--text-secondary); font-weight: 600;">1m</div>
-                <div style="font-size: 12px; font-weight: 600; color: ${gainer.gainer1m > 0 ? 'var(--success)' : gainer.gainer1m < 0 ? 'var(--danger)' : 'var(--text-secondary)'};">${gainer.gainer1m > 0 ? '+' : ''}${gainer.gainer1m.toFixed(2)}%</div>
-              </div>
-              <div style="text-align: center;">
-                <div style="font-size: 9px; color: var(--text-secondary); font-weight: 600;">5m</div>
-                <div style="font-size: 12px; font-weight: 600; color: ${gainer.gainer5m > 0 ? 'var(--success)' : gainer.gainer5m < 0 ? 'var(--danger)' : 'var(--text-secondary)'};">${gainer.gainer5m > 0 ? '+' : ''}${gainer.gainer5m.toFixed(2)}%</div>
-              </div>
-              <div style="text-align: center;">
-                <div style="font-size: 9px; color: var(--text-secondary); font-weight: 600;">15m</div>
-                <div style="font-size: 12px; font-weight: 600; color: ${gainer.gainer15m > 0 ? 'var(--success)' : gainer.gainer15m < 0 ? 'var(--danger)' : 'var(--text-secondary)'};">${gainer.gainer15m > 0 ? '+' : ''}${gainer.gainer15m.toFixed(2)}%</div>
-              </div>
-              <div style="text-align: center;">
-                <div style="font-size: 9px; color: var(--text-secondary); font-weight: 600;">30m</div>
-                <div style="font-size: 12px; font-weight: 600; color: ${gainer.gainer30m > 0 ? 'var(--success)' : gainer.gainer30m < 0 ? 'var(--danger)' : 'var(--text-secondary)'};">${gainer.gainer30m > 0 ? '+' : ''}${gainer.gainer30m.toFixed(2)}%</div>
-              </div>
-              <div style="text-align: center;">
-                <div style="font-size: 9px; color: var(--text-secondary); font-weight: 600;">1h</div>
-                <div style="font-size: 12px; font-weight: 600; color: ${gainer.gainer1h > 0 ? 'var(--success)' : gainer.gainer1h < 0 ? 'var(--danger)' : 'var(--text-secondary)'};">${gainer.gainer1h > 0 ? '+' : ''}${gainer.gainer1h.toFixed(2)}%</div>
-              </div>
-            </div>
-
-            <!-- v1.5.0-beta: Buy Signal Conditions (Sequential: 1 → 2 with Real-time 1s) -->
-            <div style="margin-bottom: 8px; padding: 8px; background-color: ${cond1_ma99StrongUptrend ? (readyToBuy ? 'rgba(34, 197, 94, 0.15)' : 'rgba(76, 175, 80, 0.05)') : 'rgba(245, 101, 101, 0.1)'}; border-radius: 6px;">
-              <div style="font-size: 10px; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; text-transform: uppercase;">Buy Signal ${cond1_ma99StrongUptrend ? '🟢 Ready' : '🔴 BLOCKED'}:</div>
-              <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${cond1_ma99StrongUptrend ? 'rgba(72, 187, 120, 0.4)' : 'rgba(245, 101, 101, 0.4)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${cond1_ma99StrongUptrend ? 'var(--success)' : 'var(--danger)'}; text-align: center;"><span>${cond1_ma99StrongUptrend ? '① OPEN' : '① GATE'}</span></div>
-                <div style="width: 8px; height: 2px; background-color: ${cond1_ma99StrongUptrend && cond2_candleBreakout ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'};"></div>
-                <div style="flex: 1; min-width: 80px; height: 20px; background-color: ${cond1_ma99StrongUptrend && cond2_candleBreakout ? 'rgba(72, 187, 120, 0.4)' : 'rgba(160, 174, 192, 0.1)'}; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: ${cond1_ma99StrongUptrend && cond2_candleBreakout ? 'var(--success)' : 'var(--text-secondary)'}; text-align: center;"><span>② 1s Impulse</span></div>
-              </div>
-            </div>
-
-            <div class="gainer-details">
-              <div class="detail-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
-                <span class="detail-label">Buy Conditions (v1.5.0-beta):</span>
-                <span class="detail-value" style="font-size: 9px; color: var(--text-secondary);">Sequential: ① → ②</span>
-              </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">① MA99 Uptrend (slope ≥ 0.02 & accel ≥ 0):</span>
-                <span class="detail-value condition-step" style="background-color: ${cond1_ma99StrongUptrend ? 'rgba(72, 187, 120, 0.3)' : 'rgba(245, 101, 101, 0.2)'}; color: ${cond1_ma99StrongUptrend ? 'var(--success)' : 'var(--danger)'};">${cond1_ma99StrongUptrend ? '🟢 OPEN' : '🔴 CLOSED'}</span>
-              </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px;">
-                <span class="detail-label">② Candle Breakout:</span>
-                <span class="detail-value condition-step ${cond1_ma99StrongUptrend && cond2_candleBreakout ? 'step-met' : 'step-pending'}">${cond1_ma99StrongUptrend && cond2_candleBreakout ? '✓' : '✗'}</span>
-              </div>
-              <div class="detail-row" style="font-size: 11px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(160, 174, 192, 0.2);">
-                <span class="detail-label" style="font-weight: 700; color: ${readyToBuy ? 'var(--success)' : 'var(--text-secondary)'};">READY TO BUY:</span>
-                <span class="detail-value condition-step" style="background-color: ${readyToBuy ? 'rgba(34, 197, 94, 0.3)' : 'rgba(160, 174, 192, 0.1)'}; color: ${readyToBuy ? 'var(--success)' : 'var(--text-secondary)'};">${readyToBuy ? '✅ YES' : '⏳ WAITING'}</span>
-              </div>
-
-              <!-- Technical Details: Condition 2 Real-time 1-second Observation (v1.5.0-beta) -->
-              <div class="detail-row" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(160, 174, 192, 0.2); font-size: 10px; color: var(--text-secondary); font-weight: 600;">
-                <span>② Real-time 1-second Impulse Detection:</span>
-              </div>
-
-              <!-- Observation State -->
-              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
-                <span class="detail-label">State:</span>
-                <span class="detail-value" style="font-size: 9px; font-weight: 600; color: ${cond2_observationCancelled ? 'var(--danger)' : (cond2_sticky ? 'var(--success)' : 'var(--text-secondary)')};">
-                  ${cond2_observationCancelled ? '❌ CANCELLED (price dropped)' : (cond2_sticky ? '✅ STICKY (30s retention)' : '⏳ OBSERVING')}
-                </span>
-              </div>
-
-              <!-- Sticky Timer Info -->
-              ${cond2_sticky ? `
-              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 4px;">
-                <span class="detail-label">Sticky Time Left:</span>
-                <span class="detail-value" style="color: var(--success);">${(cond2_stickyRemaining / 1000).toFixed(1)}s</span>
-              </div>
-              ` : ''}
-
-              <!-- Condition 2 Sequential Checks -->
-              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
-                <span class="detail-label">Sequential Checks:</span>
-              </div>
-
-              <!-- CHECK A -->
-              <div class="detail-row" style="font-size: 9px; color: var(--text-secondary); margin-left: 24px; margin-top: 4px;">
-                <span class="detail-label">① 1s close ≥ 1m open:</span>
-                <span class="detail-value condition-step" style="background-color: ${cond2_checkA ? 'rgba(72, 187, 120, 0.3)' : 'rgba(160, 174, 192, 0.1)'}; color: ${cond2_checkA ? 'var(--success)' : 'var(--text-secondary)'}; font-size: 8px;">
-                  ${cond2_checkA ? '✓' : '✗'} ${cond2_lastClose > 0 ? cond2_lastClose.toFixed(8) : '—'} ≥ ${cond2_1mOpen > 0 ? cond2_1mOpen.toFixed(8) : '—'}
-                </span>
-              </div>
-
-              <!-- CHECK B -->
-              <div class="detail-row" style="font-size: 9px; color: var(--text-secondary); margin-left: 24px; margin-top: 3px;">
-                <span class="detail-label">② 1s close ≥ 1m open × 1.008:</span>
-                <span class="detail-value condition-step" style="background-color: ${cond2_checkB ? 'rgba(72, 187, 120, 0.3)' : 'rgba(160, 174, 192, 0.1)'}; color: ${cond2_checkB ? 'var(--success)' : 'var(--text-secondary)'}; font-size: 8px;">
-                  ${cond2_checkB ? '✓' : '✗'} ${cond2_lastClose > 0 ? cond2_lastClose.toFixed(8) : '—'} ≥ ${cond2_1mOpen > 0 ? (cond2_1mOpen * 1.008).toFixed(8) : '—'}
-                </span>
-              </div>
-
-              <!-- Condition 2 Formula -->
-              <div class="detail-row" style="font-size: 10px; color: var(--text-secondary); margin-left: 12px; margin-top: 6px; padding-top: 4px; border-top: 1px solid rgba(160, 174, 192, 0.1);">
-                <span class="detail-label">Formula:</span>
-                <span class="detail-value" style="font-size: 9px; color: rgba(160, 174, 192, 0.8); font-style: italic;">close ≥ open × 1.008</span>
-              </div>
-            </div>
-          </div>
-        `;
-      })
-      .join("");
-  }
-
   updateDebugInfo() {
     const debugElement = document.getElementById("debugInfo");
     if (!debugElement) return;
 
     const timestamp = this.lastUpdate ? new Date(this.lastUpdate).toLocaleTimeString() : "N/A";
-    const count = this.topGainers.length;
 
     debugElement.innerHTML = `
       <p>Last Update: ${timestamp}</p>
-      <p>Gainers Count: ${count}</p>
       <p>WebSocket Status: ${this.ws ? (this.ws.readyState === WebSocket.OPEN ? "Connected" : "Connecting...") : "Disconnected"}</p>
     `;
   }
