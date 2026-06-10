@@ -75,7 +75,7 @@ class GainersDashboard {
             <th style="text-align: center; width: 80px;">Counter</th>
             <th style="text-align: right; width: 100px;">Price</th>
             <th style="text-align: right; width: 100px;">MA99</th>
-            <th style="text-align: right; width: 80px;">1h Gain</th>
+            <th style="text-align: right; width: 100px;">Avg Time</th>
             <th style="text-align: center; width: 80px;">Floor</th>
             <th style="text-align: center; width: 80px;">Allowed</th>
           </tr>
@@ -99,8 +99,8 @@ class GainersDashboard {
               <td style="text-align: right; color: var(--text-secondary); font-family: monospace;">
                 $${item.ma99 ? item.ma99.toFixed(8) : '—'}
               </td>
-              <td style="text-align: right; color: ${item.gainer1h > 0 ? 'var(--success)' : item.gainer1h < 0 ? 'var(--danger)' : 'var(--text-secondary)'}; font-weight: 600;">
-                ${item.gainer1h > 0 ? '+' : ''}${item.gainer1h.toFixed(2)}%
+              <td style="text-align: right; color: ${item.averageTime ? 'var(--success)' : 'var(--text-secondary)'}; font-family: monospace; font-weight: 600;">
+                ${item.averageTime ? (item.averageTime / 1000).toFixed(2) + 's' : '—'}
               </td>
               <td style="text-align: center; color: var(--text-secondary); font-family: monospace; font-size: 12px;">
                 ${item.floor ? item.floor.toFixed(6) : '—'}

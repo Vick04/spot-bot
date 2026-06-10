@@ -77,6 +77,10 @@ class CryptoObserver {
       reached: false,                    // true cuando 1s >= floor * 1.013
       counter: 0,                        // contador de veces que reached=true
       ma99AtFloorSet: undefined,         // ma99 value cuando floor fue seteado (para referencia)
+      // Time tracking from allowed to reached
+      allowedActivatedAt: null,          // timestamp cuando allowed se activa
+      timings: [],                       // array de tiempos (ms) que toma llegar a reached
+      averageTime: null,                 // promedio de tiempos en ms
     };
   }
 
@@ -528,18 +532,32 @@ class CryptoObserver {
     // Step 3: Set allowed if close >= floor * 1.008
     if (!tracking.allowed && close >= tracking.floor * 1.008) {
       tracking.allowed = true;
+      tracking.allowedActivatedAt = Date.now(); // Start timing
     }
 
     // Step 4: Set reached if close >= floor * 1.013
     if (!tracking.reached && close >= tracking.floor * 1.013) {
       tracking.reached = true;
+
+      // Calculate time from allowed to reached
+      if (tracking.allowedActivatedAt !== null) {
+        const elapsedTime = Date.now() - tracking.allowedActivatedAt;
+        tracking.timings.push(elapsedTime);
+
+        // Calculate average time
+        const totalTime = tracking.timings.reduce((a, b) => a + b, 0);
+        tracking.averageTime = totalTime / tracking.timings.length;
+      }
+
       // Increment counter when reached is activated
       tracking.counter++;
+
       // Reset all on reaching target
       tracking.floor = undefined;
       tracking.allowed = false;
       tracking.reached = false;
       tracking.ma99AtFloorSet = undefined;
+      tracking.allowedActivatedAt = null;
     }
   }
 
@@ -967,6 +985,8 @@ class CryptoObserver {
         reached: this._impulseTracking.reached,
         counter: this._impulseTracking.counter,
         ma99AtFloorSet: this._impulseTracking.ma99AtFloorSet,
+        averageTime: this._impulseTracking.averageTime,
+        timingsCount: this._impulseTracking.timings.length,
       },
 
       // Technical indicators (for reference)

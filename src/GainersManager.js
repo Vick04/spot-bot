@@ -566,9 +566,10 @@ class GainersManager extends EventEmitter {
           allowed: impulse.allowed || false,
           reached: impulse.reached || false,
           ma99AtFloorSet: impulse.ma99AtFloorSet,
+          averageTime: impulse.averageTime,
+          timingsCount: impulse.timingsCount || 0,
           price: observer.currentPrice,
           ma99: observer.ma99,
-          gainer1h: observer.gainer1h,
         };
       })
       // Sort by counter (descending), then by symbol (ascending)
