@@ -30,6 +30,14 @@ class GainersDashboard {
     };
     this.impulseRanking = [];
 
+    // Table pagination and sorting
+    this.tableState = {
+      currentPage: 1,
+      itemsPerPage: 50,
+      sortColumn: 'counter',
+      sortDirection: 'desc', // 'asc' or 'desc'
+    };
+
     this.connectWebSocket();
     this.setupConnectionStatus();
     this.setupImpulseRankingUpdates();
@@ -65,25 +73,68 @@ class GainersDashboard {
       return;
     }
 
+    // Sort data
+    let sortedData = [...this.impulseRanking];
+    sortedData.sort((a, b) => {
+      let aVal = a[this.tableState.sortColumn];
+      let bVal = b[this.tableState.sortColumn];
+
+      // Handle null/undefined
+      if (aVal === null || aVal === undefined) aVal = 0;
+      if (bVal === null || bVal === undefined) bVal = 0;
+
+      if (typeof aVal === 'string') {
+        return this.tableState.sortDirection === 'asc'
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+
+      return this.tableState.sortDirection === 'asc'
+        ? aVal - bVal
+        : bVal - aVal;
+    });
+
+    // Paginate data
+    const start = (this.tableState.currentPage - 1) * this.tableState.itemsPerPage;
+    const end = start + this.tableState.itemsPerPage;
+    const paginatedData = sortedData.slice(start, end);
+    const totalPages = Math.ceil(sortedData.length / this.tableState.itemsPerPage);
+
+    // Create header with sort indicators
+    const createHeaderCell = (label, column) => {
+      const isSorted = this.tableState.sortColumn === column;
+      const arrow = isSorted ? (this.tableState.sortDirection === 'asc' ? ' ▲' : ' ▼') : '';
+      return `<th onclick="dashboard.setSortColumn('${column}')" style="cursor: pointer; user-select: none;">${label}${arrow}</th>`;
+    };
+
     const html = `
+      <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+        <span style="color: var(--text-secondary); font-size: 14px;">Page ${this.tableState.currentPage} of ${totalPages} | Total: ${sortedData.length}</span>
+        <select id="itemsPerPageSelect" onchange="dashboard.setItemsPerPage(this.value)" style="padding: 5px; background-color: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px;">
+          <option value="25" ${this.tableState.itemsPerPage === 25 ? 'selected' : ''}>25 per page</option>
+          <option value="50" ${this.tableState.itemsPerPage === 50 ? 'selected' : ''}>50 per page</option>
+          <option value="100" ${this.tableState.itemsPerPage === 100 ? 'selected' : ''}>100 per page</option>
+        </select>
+      </div>
+
       <table class="impulse-table">
         <thead>
           <tr>
-            <th style="text-align: center; width: 50px;">#</th>
-            <th style="text-align: left;">Symbol</th>
-            <th style="text-align: center; width: 80px;">Counter</th>
-            <th style="text-align: right; width: 100px;">Price</th>
-            <th style="text-align: center; width: 100px;">Floor</th>
-            <th style="text-align: right; width: 100px;">MA99</th>
-            <th style="text-align: right; width: 100px;">Current Time</th>
-            <th style="text-align: right; width: 100px;">Avg Time</th>
-            <th style="text-align: center; width: 80px;">Allowed</th>
+            ${createHeaderCell('#', '#')}
+            ${createHeaderCell('Symbol', 'symbol')}
+            ${createHeaderCell('Counter', 'counter')}
+            ${createHeaderCell('Price', 'price')}
+            ${createHeaderCell('Floor', 'floor')}
+            ${createHeaderCell('MA99', 'ma99')}
+            ${createHeaderCell('Current Time', 'currentElapsedTime')}
+            ${createHeaderCell('Avg Time', 'averageTime')}
+            ${createHeaderCell('Allowed', 'allowed')}
           </tr>
         </thead>
         <tbody>
-          ${this.impulseRanking.slice(0, 50).map((item, index) => `
+          ${paginatedData.map((item, index) => `
             <tr style="background-color: ${index % 2 === 0 ? 'rgba(160, 174, 192, 0.05)' : 'transparent'};">
-              <td style="text-align: center; font-weight: 600;">${index + 1}</td>
+              <td style="text-align: center; font-weight: 600;">${start + index + 1}</td>
               <td style="text-align: left; font-weight: 600; color: var(--primary);">
                 <a href="https://www.binance.com/es-AR/trade/${item.symbol.replace('USDT', '')}_USDT?type=spot"
                    target="_blank" style="color: var(--primary); text-decoration: none;">
@@ -115,9 +166,61 @@ class GainersDashboard {
           `).join('')}
         </tbody>
       </table>
+
+      <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center; align-items: center;">
+        <button onclick="dashboard.previousPage()" style="padding: 8px 12px; background-color: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;" ${this.tableState.currentPage === 1 ? 'disabled style="opacity: 0.5;"' : ''}>← Previous</button>
+
+        <div style="display: flex; gap: 5px;">
+          ${Array.from({length: totalPages}, (_, i) => {
+            const pageNum = i + 1;
+            const isActive = pageNum === this.tableState.currentPage;
+            return `<button onclick="dashboard.goToPage(${pageNum})" style="padding: 6px 10px; background-color: ${isActive ? 'var(--info)' : 'var(--bg-tertiary)'}; color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; font-weight: ${isActive ? '700' : '400'};">${pageNum}</button>`;
+          }).join('')}
+        </div>
+
+        <button onclick="dashboard.nextPage()" style="padding: 8px 12px; background-color: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer;" ${this.tableState.currentPage === totalPages ? 'disabled style="opacity: 0.5;"' : ''}>Next →</button>
+      </div>
     `;
 
     container.innerHTML = html;
+  }
+
+  // Table control methods
+  setSortColumn(column) {
+    if (this.tableState.sortColumn === column) {
+      this.tableState.sortDirection = this.tableState.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.tableState.sortColumn = column;
+      this.tableState.sortDirection = 'desc';
+    }
+    this.tableState.currentPage = 1;
+    this.renderImpulseRanking();
+  }
+
+  goToPage(pageNum) {
+    this.tableState.currentPage = pageNum;
+    this.renderImpulseRanking();
+  }
+
+  previousPage() {
+    if (this.tableState.currentPage > 1) {
+      this.tableState.currentPage--;
+      this.renderImpulseRanking();
+    }
+  }
+
+  nextPage() {
+    const totalPages = Math.ceil(this.impulseRanking.length / this.tableState.itemsPerPage);
+    if (this.tableState.currentPage < totalPages) {
+      this.tableState.currentPage++;
+      this.renderImpulseRanking();
+    }
+  }
+
+  setItemsPerPage(value) {
+    this.tableState.itemsPerPage = parseInt(value);
+    this.tableState.currentPage = 1;
+    this.renderImpulseRanking();
   }
 
   // ── WebSocket Connection ────────────────────────────────────────────
